@@ -4,1805 +4,891 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BrandVault - Trademark Portfolio Dashboard</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: 'Inter', sans-serif;
-      background: #ffffff;
-      color: #37352f;
-      font-size: 14px;
-      line-height: 1.5;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #ffffff; color: #37352f; font-size: 14px; line-height: 1.5;
+      height: 100vh; overflow: hidden;
     }
-
-    .container {
-      display: flex;
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    /* SIDEBAR */
+    .app { display: flex; height: 100vh; }
     .sidebar {
-      width: 240px;
-      background: #fbfbfa;
-      border-right: 1px solid #e8e5e0;
-      display: flex;
-      flex-direction: column;
-      overflow-y: auto;
-      padding: 24px 16px;
+      width: 240px; min-width: 240px; background: #fbfbfa;
+      border-right: 1px solid #e8e5e0; display: flex; flex-direction: column;
+      padding: 16px 12px; gap: 4px; overflow-y: auto;
     }
-
-    .sidebar-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 24px;
+    .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin-bottom: 8px; }
+    .logo-mark {
+      width: 28px; height: 28px; background: #37352f; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 700; font-size: 11px; letter-spacing: 0.5px;
     }
-
-    .sidebar-logo {
-      width: 28px;
-      height: 28px;
-      background: #37352f;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #ffffff;
-      font-weight: 700;
-      font-size: 12px;
+    .org-name { font-size: 13px; font-weight: 600; color: #37352f; }
+    .org-sub { font-size: 11px; color: #9b9a97; }
+    .nav-section-label {
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.05em; color: #9b9a97; padding: 16px 10px 6px;
     }
-
-    .sidebar-org {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .sidebar-org-name {
-      font-weight: 600;
-      font-size: 13px;
-      color: #37352f;
-    }
-
-    .sidebar-org-sub {
-      font-size: 11px;
-      color: #9b9a97;
-    }
-
-    .sidebar-nav {
-      flex: 1;
-    }
-
-    .sidebar-section-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #9b9a97;
-      margin-bottom: 12px;
-      margin-top: 20px;
-      font-weight: 600;
-    }
-
-    .nav-items {
-      list-style: none;
-    }
-
     .nav-item {
-      margin-bottom: 8px;
-    }
-
-    .nav-link {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      color: #37352f;
-      text-decoration: none;
-      font-size: 14px;
-      transition: background 0.2s;
-    }
-
-    .nav-link:hover {
-      background: #ece9e3;
-    }
-
-    .nav-link.active {
-      background: #e8e5e0;
-      font-weight: 500;
-    }
-
-    .nav-icon {
-      width: 16px;
-      height: 16px;
-      flex-shrink: 0;
-    }
-
-    .sidebar-footer {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding-top: 16px;
-      border-top: 1px solid #e8e5e0;
-    }
-
-    .user-avatar {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: #37352f;
-      color: #ffffff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-      font-size: 12px;
-      flex-shrink: 0;
-    }
-
-    .user-info {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .user-name {
-      font-size: 13px;
-      font-weight: 500;
-      color: #37352f;
-    }
-
-    .user-role {
-      font-size: 11px;
-      color: #9b9a97;
-    }
-
-    /* MAIN CONTENT */
-    .main-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .top-bar {
-      background: #ffffff;
-      border-bottom: 1px solid #e8e5e0;
-      padding: 16px 32px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      height: 80px;
-    }
-
-    .top-bar-left {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .page-title {
-      font-size: 28px;
-      font-weight: 700;
-      color: #37352f;
-      margin-bottom: 4px;
-    }
-
-    .page-subtitle {
-      font-size: 12px;
-      color: #9b9a97;
-    }
-
-    .top-bar-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .status-badge {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
-      border: 1px solid #0f7b6c;
-      border-radius: 6px;
-      background: #ffffff;
-      font-size: 13px;
-      font-weight: 500;
-      color: #0f7b6c;
-    }
-
-    .status-check {
-      width: 16px;
-      height: 16px;
-    }
-
-    .btn {
-      padding: 10px 20px;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
-      transition: background 0.2s;
-    }
-
-    .btn-primary {
-      background: #37352f;
-      color: #ffffff;
-    }
-
-    .btn-primary:hover {
-      background: #2a282a;
-    }
-
-    .btn-secondary {
-      background: #f5f5f5;
-      color: #37352f;
-      border: 1px solid #e8e5e0;
-    }
-
-    .btn-secondary:hover {
-      background: #ece9e3;
-    }
-
-    /* CONTENT AREA */
-    .content-wrapper {
-      flex: 1;
-      display: flex;
-      overflow: hidden;
-    }
-
-    .content-main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow-y: auto;
-      overflow-x: hidden;
-    }
-
-    /* STATS ROW */
-    .stats-row {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      padding: 24px 32px;
-      background: #ffffff;
-      border-bottom: 1px solid #e8e5e0;
-    }
-
-    .stat-card {
-      background: #ffffff;
-      border: 1px solid #e8e5e0;
-      border-radius: 8px;
-      padding: 20px;
-      position: relative;
-    }
-
-    .stat-card.alert {
-      border-top: 3px solid #eb5757;
-    }
-
-    .stat-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #9b9a97;
-      margin-bottom: 12px;
-      font-weight: 600;
-    }
-
-    .stat-number {
-      font-size: 32px;
-      font-weight: 700;
-      color: #37352f;
-      margin-bottom: 8px;
-    }
-
-    .stat-card.alert .stat-number {
-      color: #eb5757;
-    }
-
-    .stat-subtitle {
-      font-size: 12px;
-      color: #6b6b6b;
-    }
-
-    .stat-subtitle.success {
-      color: #0f7b6c;
-    }
-
-    .stat-subtitle.warning {
-      color: #f2994a;
-    }
-
-    .stat-subtitle.danger {
-      color: #eb5757;
-    }
-
-    /* TABS */
-    .tabs-bar {
-      display: flex;
-      border-bottom: 1px solid #e8e5e0;
-      background: #ffffff;
-      padding: 0 32px;
-    }
-
-    .tab {
-      padding: 16px 20px;
-      border-bottom: 2px solid transparent;
-      cursor: pointer;
-      font-size: 14px;
-      color: #6b6b6b;
-      transition: all 0.2s;
-      border-bottom-color: #e8e5e0;
-    }
-
-    .tab.active {
-      color: #37352f;
-      font-weight: 600;
-      border-bottom-color: #37352f;
-    }
-
-    /* TAB CONTENT */
-    .tab-content {
-      display: none;
-      flex: 1;
-      overflow-y: auto;
-      padding: 24px 32px;
-    }
-
-    .tab-content.active {
-      display: block;
-    }
-
-    .section-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-
-    .section-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: #37352f;
-    }
-
-    .section-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-    }
-
-    .section-dot.red {
-      background: #eb5757;
-    }
-
-    .section-dot.orange {
-      background: #f2994a;
-    }
-
-    .section-dot.blue {
-      background: #2e6b8a;
-    }
-
-    .section-dot.green {
-      background: #0f7b6c;
-    }
-
-    .section-dot.purple {
-      background: #8b5cf6;
-    }
-
-    .badge {
-      background: #e8e5e0;
-      color: #37352f;
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-
-    /* ACTION ITEMS */
-    .action-item {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 16px;
-      background: #ffffff;
-      border: 1px solid #e8e5e0;
-      border-radius: 6px;
-      margin-bottom: 12px;
-      border-left: 4px solid;
-    }
-
-    .action-item.critical {
-      border-left-color: #eb5757;
-    }
-
-    .action-item.warning {
-      border-left-color: #f2994a;
-    }
-
-    .action-item.info {
-      border-left-color: #2e6b8a;
-    }
-
-    .action-badge {
-      width: 40px;
-      height: 40px;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #ffffff;
-      font-weight: 600;
-      font-size: 12px;
-      flex-shrink: 0;
-    }
-
-    .action-content {
-      flex: 1;
-    }
-
-    .action-mark {
-      font-weight: 600;
-      color: #37352f;
-      margin-bottom: 2px;
-    }
-
-    .action-description {
-      font-size: 13px;
-      color: #6b6b6b;
-    }
-
-    .action-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .countdown-badge {
-      background: #0f7b6c;
-      color: #ffffff;
-      padding: 6px 12px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-
-    .action-registry {
-      font-size: 11px;
-      color: #9b9a97;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      font-weight: 600;
-    }
-
-    /* MARK FAMILY */
-    .mark-family {
-      border: 1px solid #e8e5e0;
-      border-radius: 6px;
-      margin-bottom: 16px;
-      overflow: hidden;
-    }
-
-    .mark-family-header {
-      padding: 16px;
-      background: #ffffff;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      cursor: pointer;
-      border-bottom: 1px solid #e8e5e0;
-    }
-
-    .mark-family.expanded .mark-family-header {
-      border-bottom: 1px solid #ccc;
-    }
-
-    .mark-family-header:hover {
-      background: #f9f8f7;
-    }
-
-    .mark-family-badge {
-      width: 36px;
-      height: 36px;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #ffffff;
-      font-weight: 600;
-      font-size: 11px;
-      flex-shrink: 0;
-    }
-
-    .mark-family-info {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .mark-family-name {
-      font-weight: 600;
-      color: #37352f;
-      margin-bottom: 2px;
-    }
-
-    .mark-family-count {
-      font-size: 12px;
-      color: #9b9a97;
-    }
-
-    .mark-expand-arrow {
-      width: 16px;
-      height: 16px;
-      transition: transform 0.2s;
-      flex-shrink: 0;
-    }
-
-    .mark-family.expanded .mark-expand-arrow {
-      transform: rotate(90deg);
-    }
-
-    .mark-classes {
-      display: none;
-    }
-
-    .mark-family.expanded .mark-classes {
-      display: block;
-    }
-
-    .mark-class-group {
-      background: #f8fbfd;
-      padding: 12px 16px;
-      border-bottom: 1px solid #e8e5e0;
-    }
-
-    .mark-class-header {
-      font-weight: 600;
-      color: #37352f;
-      margin-bottom: 12px;
-      font-size: 13px;
-    }
-
-    .mark-class-count {
-      background: #e8e5e0;
-      color: #37352f;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
-      margin-left: 8px;
-    }
-
-    .mark-registration {
-      background: #ffffff;
-      padding: 12px 16px;
-      border-bottom: 1px solid #e8e5e0;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .mark-registration:last-child {
-      border-bottom: none;
-    }
-
-    .mark-reg-name {
-      font-weight: 500;
-      color: #37352f;
-      margin-bottom: 2px;
-    }
-
-    .mark-reg-app {
-      font-size: 12px;
-      color: #9b9a97;
-    }
-
-    .mark-reg-content {
-      flex: 1;
-    }
-
-    .mark-reg-status {
-      font-size: 11px;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-
-    .status-registered {
-      background: #e6f3f0;
-      color: #0f7b6c;
-    }
-
-    .status-pending {
-      background: #fdecd8;
-      color: #f2994a;
-    }
-
-    .status-published {
-      background: #d4e3f0;
-      color: #2e6b8a;
-    }
-
-    .status-expired {
-      background: #f5d5d5;
-      color: #991b1b;
-    }
-
-    .status-abandoned {
-      background: #ece9e3;
-      color: #6b6b6b;
-    }
-
-    /* REGISTRY CARDS */
-    .registry-card {
-      border: 1px solid #e8e5e0;
-      border-radius: 6px;
-      margin-bottom: 16px;
-      overflow: hidden;
-    }
-
-    .registry-card-header {
-      padding: 16px;
-      background: #ffffff;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      cursor: pointer;
-    }
-
-    .registry-card-header:hover {
-      background: #f9f8f7;
-    }
-
-    .registry-badge {
-      width: 36px;
-      height: 36px;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #ffffff;
-      font-weight: 600;
-      font-size: 11px;
-      flex-shrink: 0;
-    }
-
-    .registry-info {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .registry-name {
-      font-weight: 600;
-      color: #37352f;
-      margin-bottom: 2px;
-    }
-
-    .registry-subtitle {
-      font-size: 12px;
-      color: #9b9a97;
-    }
-
-    .registry-count {
-      background: #e8e5e0;
-      color: #37352f;
-      padding: 6px 12px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-
-    .registry-expand {
-      width: 16px;
-      height: 16px;
-      transition: transform 0.2s;
-      flex-shrink: 0;
-    }
-
-    .registry-card.expanded .registry-expand {
-      transform: rotate(90deg);
-    }
-
-    .registry-marks {
-      display: none;
-    }
-
-    .registry-card.expanded .registry-marks {
-      display: block;
-    }
-
-    .registry-mark-item {
-      padding: 12px 16px;
-      background: #f9f8f7;
-      border-bottom: 1px solid #e8e5e0;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .registry-mark-item:last-child {
-      border-bottom: none;
-    }
-
-    /* PIPELINE VISUALIZATION */
-    .pipeline-bubbles {
-      display: flex;
-      justify-content: space-around;
-      align-items: flex-end;
-      margin: 40px 0;
-      gap: 20px;
-    }
-
-    .bubble-group {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .bubble {
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 24px;
-      color: #ffffff;
-    }
-
-    .bubble-filed {
-      background: #37352f;
-    }
-
-    .bubble-published {
-      background: #2e6b8a;
-    }
-
-    .bubble-pending {
-      background: #f2994a;
-    }
-
-    .bubble-registered {
-      background: #0f7b6c;
-    }
-
-    .bubble-opposed {
-      background: #eb5757;
-    }
-
-    .bubble-expired {
-      background: #991b1b;
-    }
-
-    .bubble-label {
-      font-size: 12px;
-      color: #6b6b6b;
-      text-align: center;
-      font-weight: 500;
-    }
-
-    .class-bars {
-      margin-top: 40px;
-    }
-
-    .class-bar-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-
-    .class-bar-label {
-      width: 140px;
-      font-weight: 500;
-      color: #37352f;
-      font-size: 13px;
-    }
-
-    .class-bar {
-      flex: 1;
-      height: 28px;
-      background: #e8e5e0;
-      border-radius: 4px;
-      overflow: hidden;
-      position: relative;
-    }
-
-    .class-bar-fill {
-      height: 100%;
-      background: #37352f;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      padding-right: 12px;
-      color: #ffffff;
-      font-size: 12px;
-      font-weight: 600;
-    }
-
-    /* RIGHT PANEL */
-    .right-panel {
-      width: 320px;
-      background: #fbfbfa;
-      border-left: 1px solid #e8e5e0;
-      display: flex;
-      flex-direction: column;
-      overflow-y: auto;
-      padding: 24px 16px;
-    }
-
-    .panel-section {
-      margin-bottom: 24px;
-    }
-
-    .panel-section-title {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #9b9a97;
-      margin-bottom: 12px;
-      font-weight: 600;
-    }
-
-    .alert-box {
-      background: #ffffff;
-      border: 1px solid #e8e5e0;
-      border-left: 4px solid #f2994a;
-      border-radius: 6px;
-      padding: 16px;
-      margin-bottom: 16px;
-    }
-
-    .alert-box-title {
-      font-weight: 600;
-      color: #37352f;
-      margin-bottom: 8px;
-      font-size: 13px;
-    }
-
-    .alert-box-text {
-      font-size: 12px;
-      color: #6b6b6b;
-      line-height: 1.6;
-    }
-
-    .insight-box {
-      background: #ffffff;
-      border: 1px solid #e8e5e0;
-      border-radius: 6px;
-      padding: 16px;
-      margin-bottom: 16px;
-    }
-
-    .insight-box-title {
-      font-weight: 600;
-      color: #37352f;
-      margin-bottom: 8px;
-      font-size: 13px;
-    }
-
-    .insight-box-text {
-      font-size: 12px;
-      color: #6b6b6b;
-      line-height: 1.6;
-    }
-
-    .item-list {
-      list-style: none;
-    }
-
-    .item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 0;
-      border-bottom: 1px solid #e8e5e0;
-    }
-
-    .item:last-child {
-      border-bottom: none;
-    }
-
-    .item-badge {
-      width: 32px;
-      height: 32px;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #ffffff;
-      font-weight: 600;
-      font-size: 10px;
-      flex-shrink: 0;
-    }
-
-    .item-info {
-      flex: 1;
-    }
-
-    .item-title {
-      font-weight: 500;
-      color: #37352f;
-      margin-bottom: 2px;
-      font-size: 13px;
-    }
-
-    .item-subtitle {
-      font-size: 11px;
-      color: #9b9a97;
-    }
-
-    .item-count {
-      background: #0f7b6c;
-      color: #ffffff;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
-    }
-
-    .loading, .error {
-      text-align: center;
-      padding: 60px 20px;
-      color: #6b6b6b;
-    }
-
-    .error {
-      color: #eb5757;
-    }
-
-    @media (max-width: 1400px) {
-      .right-panel {
-        display: none;
-      }
-    }
+      display: flex; align-items: center; gap: 10px; padding: 7px 10px;
+      border-radius: 6px; cursor: pointer; font-size: 13px; color: #37352f;
+      transition: background 0.12s; position: relative;
+    }
+    .nav-item:hover { background: #f0efec; }
+    .nav-item.active { background: #f0efec; font-weight: 600; }
+    .nav-item .icon { width: 20px; text-align: center; color: #9b9a97; font-size: 15px; }
+    .nav-item.active .icon { color: #37352f; }
+    .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .nav-item.active svg { stroke: #37352f; }
+    .nav-item .badge { margin-left: auto; font-size: 11px; font-weight: 600; background: #eb5757; color: #fff; padding: 1px 7px; border-radius: 10px; }
+    .nav-item .badge-muted { margin-left: auto; font-size: 11px; color: #9b9a97; }
+    .nav-item.dimmed { color: #9b9a97; }
+    .nav-item.dimmed .icon { color: #c4c4c0; }
+    .nav-item.disabled { opacity: 0.4; pointer-events: none; }
+    .topbar-btn.disabled { opacity: 0.4; pointer-events: none; }
+    .topbar-btn.primary.disabled { opacity: 0.4; pointer-events: none; }
+    .sidebar-footer { margin-top: auto; border-top: 1px solid #e8e5e0; padding-top: 12px; }
+    .avatar { width: 28px; height: 28px; border-radius: 50%; background: #e8e5e0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #37352f; }
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 28px; border-bottom: 1px solid #e8e5e0; background: #fff; }
+    .topbar-left { display: flex; align-items: center; gap: 16px; }
+    .topbar-right { display: flex; align-items: center; gap: 8px; }
+    .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #9b9a97; }
+    .breadcrumb span { color: #37352f; font-weight: 500; }
+    .topbar-badge { font-size: 12px; padding: 4px 12px; border-radius: 6px; font-weight: 500; background: #e6f4ea; color: #0f7b6c; border: 1px solid #b7e4c7; display: flex; align-items: center; gap: 4px; }
+    .topbar-btn { font-size: 12px; padding: 6px 14px; border-radius: 6px; border: 1px solid #e8e5e0; background: #fff; cursor: pointer; display: flex; align-items: center; gap: 6px; color: #37352f; transition: all 0.12s; }
+    .topbar-btn:hover { background: #f7f6f5; }
+    .topbar-btn.primary { background: #37352f; color: #fff; border-color: #37352f; }
+    .topbar-btn.primary:hover { background: #2d2c28; }
+    .content-area { flex: 1; overflow-y: auto; padding: 28px; }
+    .main-panel { display: flex; flex: 1; overflow: hidden; }
+    .page-title { font-size: 26px; font-weight: 700; color: #37352f; margin-bottom: 4px; }
+    .page-desc { font-size: 13px; color: #9b9a97; margin-bottom: 24px; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border: 1px solid #e8e5e0; border-radius: 12px; overflow: hidden; margin-bottom: 28px; background: #fff; }
+    .stat-card { padding: 20px 24px; border-right: 1px solid #e8e5e0; }
+    .stat-card:last-child { border-right: none; }
+    .stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #9b9a97; margin-bottom: 8px; }
+    .stat-value { font-size: 32px; font-weight: 700; color: #37352f; }
+    .stat-value.alert { color: #eb5757; }
+    .stat-change { font-size: 12px; color: #0f7b6c; margin-top: 2px; }
+    .stat-change.down { color: #eb5757; }
+    .stat-card.alert-top { border-top: 3px solid #eb5757; }
+    .dashboard-grid { display: grid; grid-template-columns: 1fr 340px; gap: 0; }
+    .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .section-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .section-dot.red { background: #eb5757; box-shadow: 0 0 0 3px rgba(235,87,87,0.12); }
+    .section-dot.blue { background: #2e6b8a; box-shadow: 0 0 0 3px rgba(46,107,138,0.12); }
+    .section-dot.green { background: #0f7b6c; box-shadow: 0 0 0 3px rgba(15,123,108,0.12); }
+    .section-title { font-size: 15px; font-weight: 600; color: #37352f; }
+    .section-count { font-size: 11px; font-weight: 600; color: #eb5757; background: rgba(235,87,87,0.08); padding: 2px 8px; border-radius: 10px; }
+    .section-count.blue { color: #2e6b8a; background: rgba(46,107,138,0.08); }
+    .tab-bar { display: flex; gap: 0; border-bottom: 1px solid #e8e5e0; margin-bottom: 24px; }
+    .tab-item { padding: 10px 18px; font-size: 13px; color: #9b9a97; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; font-weight: 500; }
+    .tab-item:hover { color: #37352f; }
+    .tab-item.active { color: #37352f; font-weight: 600; border-bottom-color: #37352f; }
+    .action-list { display: flex; flex-direction: column; gap: 2px; }
+    .action-card { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 8px; transition: background 0.12s; cursor: pointer; border-left: 3px solid transparent; }
+    .action-card:hover { background: #fbfbfa; }
+    .action-card .initials { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .action-card .info { flex: 1; }
+    .action-card .title { font-size: 13px; font-weight: 600; color: #37352f; }
+    .action-card .sub { font-size: 12px; color: #9b9a97; margin-top: 1px; }
+    .action-card .days-badge { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 10px; white-space: nowrap; }
+    .action-card .office-label { font-size: 11px; color: #9b9a97; margin-left: 8px; }
+    .family-card { border: 1px solid #e8e5e0; border-radius: 10px; overflow: hidden; margin-bottom: 8px; background: #fff; }
+    .family-header { display: flex; align-items: center; gap: 14px; padding: 14px 18px; cursor: pointer; transition: background 0.12s; }
+    .family-header:hover { background: #fbfbfa; }
+    .family-initials { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .family-info { flex: 1; }
+    .family-name { font-size: 14px; font-weight: 600; color: #37352f; }
+    .family-meta { font-size: 12px; color: #9b9a97; margin-top: 1px; }
+    .family-count { font-size: 12px; font-weight: 500; color: #2e6b8a; background: rgba(46,107,138,0.08); padding: 4px 12px; border-radius: 10px; }
+    .family-toggle { color: #9b9a97; margin-left: 8px; cursor: pointer; font-size: 12px; }
+    .family-body { border-top: 1px solid #e8e5e0; display: none; }
+    .family-body.expanded { display: block; }
+    .patent-row { display: flex; align-items: center; padding: 10px 18px 10px 68px; border-bottom: 1px solid #f0efec; font-size: 13px; }
+    .patent-row:last-child { border-bottom: none; }
+    .patent-office { font-size: 11px; font-weight: 600; color: #2e6b8a; width: 60px; }
+    .patent-number { flex: 1; color: #37352f; }
+    .patent-status { font-size: 12px; font-weight: 500; padding: 2px 10px; border-radius: 10px; }
+    .pipeline-container { display: flex; align-items: center; justify-content: space-between; padding: 32px 24px; border: 1px solid #e8e5e0; border-radius: 12px; background: #fff; margin-bottom: 32px; }
+    .pipeline-stage { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .pipeline-bubble { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; border: 2px solid #e8e5e0; background: #fff; color: #37352f; transition: all 0.2s; }
+    .pipeline-bubble.active { border-color: #2e6b8a; background: rgba(46,107,138,0.06); color: #2e6b8a; }
+    .pipeline-bubble.highlight { border-color: #0f7b6c; background: rgba(15,123,108,0.06); color: #0f7b6c; }
+    .pipeline-bubble.warning { border-color: #eb5757; background: rgba(235,87,87,0.06); color: #eb5757; }
+    .pipeline-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #9b9a97; }
+    .pipeline-arrow { color: #d3d1cb; font-size: 16px; }
+    .tech-area-section { margin-top: 8px; }
+    .tech-area-title { font-size: 15px; font-weight: 600; color: #37352f; margin-bottom: 16px; }
+    .tech-bar-row { display: flex; align-items: center; margin-bottom: 16px; }
+    .tech-bar-label { width: 140px; font-size: 13px; color: #37352f; font-weight: 500; flex-shrink: 0; }
+    .tech-bar-track { flex: 1; height: 8px; background: #f0efec; border-radius: 4px; margin: 0 12px; overflow: hidden; }
+    .tech-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+    .tech-bar-value { font-size: 12px; color: #9b9a97; width: 120px; text-align: right; white-space: nowrap; }
+    .office-list { display: flex; flex-direction: column; gap: 2px; }
+    .office-card { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 8px; transition: background 0.12s; cursor: pointer; }
+    .office-card:hover { background: #fbfbfa; }
+    .office-initials { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .office-info { flex: 1; }
+    .office-name { font-size: 14px; font-weight: 600; color: #37352f; }
+    .office-meta { font-size: 12px; color: #9b9a97; margin-top: 1px; }
+    .office-count { font-size: 12px; font-weight: 500; color: #2e6b8a; background: rgba(46,107,138,0.08); padding: 4px 12px; border-radius: 10px; }
+    .office-toggle { color: #9b9a97; margin-left: 8px; cursor: pointer; font-size: 12px; }
+    .office-body { border-top: 1px solid #e8e5e0; display: none; }
+    .office-body.expanded { display: block; }
+    .right-panel { width: 340px; min-width: 340px; border-left: 1px solid #e8e5e0; background: #fbfbfa; overflow-y: auto; padding: 24px 20px; display: flex; flex-direction: column; gap: 24px; }
+    .panel-section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #9b9a97; margin-bottom: 12px; }
+    .renewal-list { border: 1px solid #e8e5e0; border-radius: 10px; overflow: hidden; background: #fff; }
+    .renewal-item { display: flex; align-items: center; gap: 12px; padding: 11px 16px; border-bottom: 1px solid #f0efec; cursor: pointer; transition: background 0.12s; }
+    .renewal-item:last-child { border-bottom: none; }
+    .renewal-item:hover { background: #fbfbfa; }
+    .renewal-initials { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .renewal-info { flex: 1; }
+    .renewal-title { font-size: 13px; font-weight: 500; color: #37352f; }
+    .renewal-sub { font-size: 11px; color: #9b9a97; }
+    .renewal-days { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 8px; }
+    .info-card { border: 1px solid #e8e5e0; border-radius: 10px; padding: 16px; background: #fff; border-left: 3px solid #2e6b8a; }
+    .info-card-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #9b9a97; margin-bottom: 8px; }
+    .info-card-text { font-size: 13px; color: #37352f; line-height: 1.5; }
+    .view-all { display: flex; align-items: center; justify-content: space-between; }
+    .view-all-link { font-size: 12px; color: #2e6b8a; cursor: pointer; text-decoration: none; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .report-panel { position: fixed; right: -420px; top: 0; width: 420px; height: 100vh; background: #fff; border-left: 1px solid #e8e5e0; transition: right 0.3s ease; z-index: 100; overflow-y: auto; padding: 28px 24px; }
+    .report-panel.open { right: 0; }
+    .report-panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .report-panel-title { font-size: 18px; font-weight: 700; color: #37352f; }
+    .report-close { cursor: pointer; font-size: 20px; color: #9b9a97; }
+    .report-export-btn { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 6px; border: 1px solid #e8e5e0; background: #fff; cursor: pointer; font-size: 12px; color: #37352f; margin-bottom: 12px; width: 100%; transition: all 0.12s; }
+    .report-export-btn:hover { background: #f7f6f5; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #d3d1cb; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #b0aeaa; }
+    ::-webkit-scrollbar-track { background: transparent; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <!-- SIDEBAR -->
-    <div class="sidebar">
-      <div class="sidebar-header">
-        <div class="sidebar-logo">BV</div>
-        <div class="sidebar-org">
-          <div class="sidebar-org-name">AiLA</div>
-          <div class="sidebar-org-sub">ACME CO LEGAL</div>
-        </div>
-      </div>
-
-      <nav class="sidebar-nav">
-        <div class="sidebar-section-label">PORTFOLIO</div>
-        <ul class="nav-items">
-          <li class="nav-item">
-            <a class="nav-link active" onclick="switchNav('dashboard')">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="7" height="7"></rect>
-                <rect x="14" y="3" width="7" height="7"></rect>
-                <rect x="14" y="14" width="7" height="7"></rect>
-                <rect x="3" y="14" width="7" height="7"></rect>
-              </svg>
-              Dashboard
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" onclick="switchNav('search')">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"></circle>
-                <path d="m21 21-4.35-4.35"></path>
-              </svg>
-              Search
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" onclick="switchNav('calendar')">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
-                <path d="M16 2v4M8 2v4M3 10h18"></path>
-              </svg>
-              Calendar
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" onclick="switchNav('alerts')">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-              </svg>
-              Alerts
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" onclick="switchNav('settings')">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="3"></circle>
-                <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m3.08 3.08l4.24 4.24M1 12h6m6 0h6m-1.78 7.78l-4.24-4.24m-3.08-3.08l-4.24-4.24"></path>
-              </svg>
-              Settings
-            </a>
-          </li>
-        </ul>
-      </nav>
-
-      <div class="sidebar-footer">
-        <div class="user-avatar">MK</div>
-        <div class="user-info">
-          <div class="user-name">Mark Kingsley</div>
-          <div class="user-role">Legal Counsel</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- MAIN CONTENT -->
-    <div class="main-content">
-      <!-- TOP BAR -->
-      <div class="top-bar">
-        <div class="top-bar-left">
-          <div class="page-title">BrandVault</div>
-          <div class="page-subtitle">Trademark Portfolio Intelligence</div>
-        </div>
-        <div class="top-bar-right">
-          <div class="status-badge">
-            <svg class="status-check" viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="12" cy="12" r="10"></circle>
-              <path d="M9 12l2 2 4-4" stroke="#ffffff" stroke-width="2" fill="none"></path>
-            </svg>
-            LawPanel Live
-          </div>
-          <button class="btn btn-secondary" onclick="showExportMenu()">Report</button>
-        </div>
-      </div>
-
-      <!-- CONTENT WRAPPER -->
-      <div class="content-wrapper">
-        <div class="content-main">
-          <!-- STATS ROW -->
-          <div class="stats-row" id="stats-row"></div>
-
-          <!-- TABS -->
-          <div class="tabs-bar">
-            <div class="tab active" onclick="switchTab('actions')">Actions Required</div>
-            <div class="tab" onclick="switchTab('marks')">By Mark</div>
-            <div class="tab" onclick="switchTab('pipeline')">Pipeline</div>
-            <div class="tab" onclick="switchTab('registry')">By Registry</div>
-          </div>
-
-          <!-- TAB: ACTIONS REQUIRED -->
-          <div class="tab-content active" id="tab-actions"></div>
-
-          <!-- TAB: BY MARK -->
-          <div class="tab-content" id="tab-marks"></div>
-
-          <!-- TAB: PIPELINE -->
-          <div class="tab-content" id="tab-pipeline"></div>
-
-          <!-- TAB: BY REGISTRY -->
-          <div class="tab-content" id="tab-registry"></div>
-        </div>
-
-        <!-- RIGHT PANEL -->
-        <div class="right-panel" id="right-panel"></div>
+  <div class="app">
+    <div class="sidebar" id="sidebar"></div>
+    <div class="main">
+      <div class="topbar" id="topbar"></div>
+      <div class="main-panel">
+        <div class="content-area" id="contentArea"></div>
+        <div class="right-panel" id="rightPanel"></div>
       </div>
     </div>
   </div>
+  <div class="report-panel" id="reportPanel"></div>
 
   <script>
-    // STATE MANAGEMENT
-    let allData = [];
-    let transformedData = {};
-    let currentTab = 'actions';
-    let expandedMarks = new Set();
-    let expandedRegistries = new Set();
+    const h = (tag, cls, txt) => {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (txt) e.textContent = txt;
+      return e;
+    };
 
-    // COLOR PALETTE FOR BADGES
-    const colors = [
-      '#37352f', '#f2994a', '#0f7b6c', '#2e6b8a', '#eb5757',
-      '#8b5cf6', '#6b6b6b', '#d4672e', '#1a8f5f', '#5a7ba1'
-    ];
+    const badgeColors = ['#2e6b8a','#6940a5','#0f7b6c','#c4823f','#8b5e3c','#5a7d5a','#b85450','#4a6fa5'];
+    const niceClassColors = ['#2e6b8a','#6940a5','#0f7b6c','#c4823f','#8b5e3c'];
+    let data = null;
 
-    function getColorForIndex(index) {
-      return colors[index % colors.length];
-    }
+    const getDaysBadgeColor = (days) => {
+      if (days <= 90) return { bg: 'rgba(235,87,87,0.08)', color: '#eb5757', text: `${days}d` };
+      if (days <= 180) return { bg: '#f2994a', color: '#fff', text: `${days}d` };
+      if (days <= 365) return { bg: 'rgba(15,123,108,0.08)', color: '#0f7b6c', text: `${days}d` };
+      return { bg: '#f0efec', color: '#9b9a97', text: `${days}d` };
+    };
 
-    // UTILITY FUNCTIONS
-    function daysTo(dateStr) {
-      if (!dateStr) return null;
-      const date = new Date(dateStr);
+    const getStatusColor = (status) => {
+      const map = {
+        'Registered': { bg: 'rgba(15,123,108,0.08)', color: '#0f7b6c' },
+        'Pending': { bg: 'rgba(242,153,74,0.08)', color: '#f2994a' },
+        'Published': { bg: 'rgba(46,107,138,0.08)', color: '#2e6b8a' },
+        'Expired': { bg: 'rgba(235,87,87,0.08)', color: '#eb5757' },
+        'Abandoned': { bg: 'rgba(235,87,87,0.08)', color: '#eb5757' }
+      };
+      return map[status] || { bg: '#f0efec', color: '#9b9a97' };
+    };
+
+    const calculateDaysRemaining = (expiryDate) => {
+      const expiry = new Date(expiryDate);
       const today = new Date();
-      const diff = Math.ceil((date - today) / (1000 * 60 * 60 * 24));
-      return diff;
-    }
+      return Math.floor((expiry - today) / (1000 * 60 * 60 * 24));
+    };
 
-    function fmtDate(dateStr) {
-      if (!dateStr) return '-';
-      return new Date(dateStr).toLocaleDateString('en-US', {
-        year: 'numeric', month: 'short', day: 'numeric'
-      });
-    }
+    const initials = (str) => str?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'N/A';
 
-    function getDaysLabel(days) {
-      if (days === null) return '';
-      if (days < 0) return Math.abs(days) + 'd ago';
-      if (days === 0) return 'Today';
-      return days + 'd';
-    }
+    const loadData = async () => {
+      try {
+        const response = await fetch('./trademark-data.json');
+        data = await response.json();
+      } catch (e) {
+        console.error('Error loading data:', e);
+        data = { count: 0, trademarks: [], fetchedAt: new Date().toISOString() };
+      }
+      renderApp();
+    };
 
-    function getInitials(text) {
-      return text.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
-    }
+    const buildSidebar = () => {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.innerHTML = '';
 
-    // TRANSFORM DATA
-    function transformData(trademarks) {
-      const grouped = {};
+      const brand = h('div', 'sidebar-brand');
+      brand.appendChild(h('div', 'logo-mark', 'Ai'));
+      const brandInfo = h('div');
+      brandInfo.appendChild(h('div', 'org-name', 'Yoti Holding Ltd'));
+      brandInfo.appendChild(h('div', 'org-sub', 'AiLA workspace'));
+      brand.appendChild(brandInfo);
+      sidebar.appendChild(brand);
 
-      trademarks.forEach((tm, idx) => {
-        const markKey = tm.mark_text.toLowerCase();
-        if (!grouped[markKey]) {
-          grouped[markKey] = {
-            mark_text: tm.mark_text,
-            color: getColorForIndex(idx),
-            registrations: []
-          };
-        }
-        grouped[markKey].registrations.push(tm);
-      });
+      const navLabel1 = h('div', 'nav-section-label', 'BRANDVAULT');
+      sidebar.appendChild(navLabel1);
 
-      return grouped;
-    }
+      const dashboardItem = h('div', 'nav-item');
+      dashboardItem.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`;
+      dashboardItem.appendChild(h('span', '', 'Dashboard'));
+      dashboardItem.classList.add('active');
+      sidebar.appendChild(dashboardItem);
 
-    function groupByMark(trademarks) {
-      const byMark = {};
-      trademarks.forEach(tm => {
-        const key = tm.mark_text.toLowerCase();
-        if (!byMark[key]) {
-          byMark[key] = {
-            mark_text: tm.mark_text,
-            registrations: []
-          };
-        }
-        byMark[key].registrations.push(tm);
-      });
-      return Object.values(byMark);
-    }
+      const mattersItem = h('div', 'nav-item dimmed');
+      mattersItem.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+      mattersItem.appendChild(h('span', '', 'Matters'));
+      sidebar.appendChild(mattersItem);
 
-    function groupByClass(registrations) {
-      const byClass = {};
-      registrations.forEach(reg => {
-        const classes = reg.good_and_services || [];
-        classes.forEach(cls => {
-          const classNum = cls.search_class?.number || 'Unknown';
-          if (!byClass[classNum]) {
-            byClass[classNum] = {
-              class: classNum,
-              className: cls.search_class?.name || 'Unknown Class',
-              registrations: []
-            };
-          }
-          if (!byClass[classNum].registrations.find(r => r.id === reg.id)) {
-            byClass[classNum].registrations.push(reg);
-          }
+      const searchItem = h('div', 'nav-item dimmed');
+      searchItem.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`;
+      searchItem.appendChild(h('span', '', 'Search'));
+      sidebar.appendChild(searchItem);
+
+      const marksLabel = h('div', 'nav-section-label', 'TRADEMARK MARKS');
+      sidebar.appendChild(marksLabel);
+
+      if (data && data.trademarks) {
+        const marksByName = {};
+        data.trademarks.forEach(t => {
+          if (!marksByName[t.mark_text]) marksByName[t.mark_text] = 0;
+          marksByName[t.mark_text]++;
         });
-      });
-      return Object.values(byClass).sort((a, b) => a.class - b.class);
-    }
 
-    function groupByRegistry(trademarks) {
-      const byRegistry = {};
-      trademarks.forEach(tm => {
-        const reg = tm.registry_name || 'Unknown';
-        if (!byRegistry[reg]) {
-          byRegistry[reg] = {
-            registry_name: reg,
-            registry_description: tm.registry_description || reg,
-            trademarks: []
-          };
-        }
-        byRegistry[reg].trademarks.push(tm);
-      });
-      return Object.values(byRegistry).sort((a, b) =>
-        a.registry_name.localeCompare(b.registry_name)
-      );
-    }
-
-    // CALCULATE ACTION ITEMS
-    function getActionsRequired(trademarks) {
-      const actions = [];
-
-      trademarks.forEach(tm => {
-        // Renewal action
-        if (tm.expiry_date) {
-          const days = daysTo(tm.expiry_date);
-          if (days !== null && days > 0 && days <= 365) {
-            actions.push({
-              type: 'renewal',
-              mark: tm.mark_text,
-              description: `Renewal due in ${days} days`,
-              daysLeft: days,
-              registry: tm.registry_name,
-              color: tm.color || '#37352f',
-              severity: days <= 30 ? 'critical' : days <= 90 ? 'warning' : 'info'
-            });
-          }
-        }
-
-        // Office action
-        if (tm.office_action_date) {
-          const days = daysTo(tm.office_action_date);
-          if (days !== null && days > 0) {
-            actions.push({
-              type: 'office_action',
-              mark: tm.mark_text,
-              description: 'Office action response due',
-              daysLeft: days,
-              registry: tm.registry_name,
-              color: tm.color || '#37352f',
-              severity: days <= 30 ? 'critical' : 'warning'
-            });
-          }
-        }
-      });
-
-      return actions.sort((a, b) => a.daysLeft - b.daysLeft);
-    }
-
-    // RENDER FUNCTIONS
-    function renderStats() {
-      const stats = document.getElementById('stats-row');
-      const total = allData.length;
-      const unique = new Set(allData.map(t => t.mark_text.toLowerCase())).size;
-      const registered = allData.filter(t => t.status === 'registered').length;
-      const pending = allData.filter(t => t.status === 'pending' || t.status === 'published').length;
-      const actions = getActionsRequired(allData);
-
-      stats.innerHTML = '';
-
-      const cards = [
-        { label: 'TOTAL MARKS', number: unique, subtitle: `${total} total registrations` },
-        { label: 'REGISTERED', number: registered, subtitle: 'Active protection', subtitleClass: 'success' },
-        { label: 'PENDING / PUBLISHED', number: pending, subtitle: 'In prosecution', subtitleClass: 'warning' },
-        { label: 'NEEDS ACTION', number: actions.length, subtitle: 'Renewals & office actions', alert: true, subtitleClass: 'danger' }
-      ];
-
-      cards.forEach(card => {
-        const el = document.createElement('div');
-        el.className = 'stat-card' + (card.alert ? ' alert' : '');
-        el.innerHTML = `
-          <div class="stat-label">${card.label}</div>
-          <div class="stat-number">${card.number}</div>
-          <div class="stat-subtitle ${card.subtitleClass || ''}">${card.subtitle}</div>
-        `;
-        stats.appendChild(el);
-      });
-    }
-
-    function renderActions() {
-      const container = document.getElementById('tab-actions');
-      const actions = getActionsRequired(allData);
-
-      if (actions.length === 0) {
-        container.innerHTML = '<div class="loading">No actions required at this time.</div>';
-        return;
+        Object.entries(marksByName).forEach(([mark, count]) => {
+          const markItem = h('div', 'nav-item');
+          const dot = h('div', 'section-dot blue');
+          dot.style.width = '6px';
+          dot.style.height = '6px';
+          dot.style.margin = '0 4px 0 2px';
+          dot.style.boxShadow = 'none';
+          markItem.appendChild(dot);
+          markItem.appendChild(h('span', '', mark));
+          const badge = h('div', 'badge-muted', count.toString());
+          markItem.appendChild(badge);
+          sidebar.appendChild(markItem);
+        });
       }
 
-      const header = document.createElement('div');
-      header.className = 'section-header';
-      header.innerHTML = `
-        <div class="section-dot red"></div>
-        <div class="section-title">Action required</div>
-        <div class="badge">${actions.length}</div>
-      `;
+      const innovaultLabel = h('div', 'nav-section-label', 'INNOVAULT');
+      sidebar.appendChild(innovaultLabel);
+
+      const patentsItem = h('div', 'nav-item disabled');
+      patentsItem.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21h6"/><path d="M9 18h6"/><circle cx="12" cy="10" r="4"/><path d="M12 2v2"/></svg>`;
+      patentsItem.appendChild(h('span', '', 'Patents'));
+      sidebar.appendChild(patentsItem);
+
+      const footer = h('div', 'sidebar-footer');
+      const footerContent = h('div', 'nav-item');
+      footerContent.style.padding = '8px 0';
+      footerContent.style.cursor = 'default';
+      const avatar = h('div', 'avatar', 'MK');
+      footerContent.appendChild(avatar);
+      const footerInfo = h('div');
+      footerInfo.appendChild(h('div', 'org-name', 'Mark Kingsley-Williams'));
+      footerInfo.appendChild(h('div', 'org-sub', 'AiLA · BrandVault'));
+      footerContent.appendChild(footerInfo);
+      footer.appendChild(footerContent);
+      sidebar.appendChild(footer);
+    };
+
+    const buildTopbar = () => {
+      const topbar = document.getElementById('topbar');
+      topbar.innerHTML = '';
+
+      const left = h('div', 'topbar-left');
+      const breadcrumb = h('div', 'breadcrumb');
+      breadcrumb.appendChild(h('span', '', 'AiLA'));
+      breadcrumb.appendChild(h('span', '', '/ BrandVault'));
+      breadcrumb.appendChild(h('span', '', '/ Dashboard'));
+      left.appendChild(breadcrumb);
+      topbar.appendChild(left);
+
+      const right = h('div', 'topbar-right');
+      const badge = h('div', 'topbar-badge');
+      badge.textContent = '✅ LawPanel Live';
+      right.appendChild(badge);
+
+      const reportBtn = h('button', 'topbar-btn');
+      reportBtn.textContent = '📊 Report';
+      reportBtn.onclick = () => document.getElementById('reportPanel').classList.toggle('open');
+      right.appendChild(reportBtn);
+
+      const settingsBtn = h('button', 'topbar-btn disabled');
+      settingsBtn.textContent = '⚙ Settings';
+      right.appendChild(settingsBtn);
+
+      const filingBtn = h('button', 'topbar-btn primary disabled');
+      filingBtn.textContent = '+ New filing';
+      right.appendChild(filingBtn);
+
+      topbar.appendChild(right);
+    };
+
+    const buildContentArea = () => {
+      const contentArea = document.getElementById('contentArea');
+      contentArea.innerHTML = '';
+
+      const pageTitle = h('div', 'page-title', 'BrandVault');
+      contentArea.appendChild(pageTitle);
+
+      const registries = new Set(data.trademarks.map(t => t.registry_name)).size;
+      const pageDesc = h('div', 'page-desc', `Trademark portfolio overview. ${data.count} marks across ${registries} registries.`);
+      contentArea.appendChild(pageDesc);
+
+      const statsRow = h('div', 'stats-row');
+      const registered = data.trademarks.filter(t => t.status === 'Registered').length;
+      const pending = data.trademarks.filter(t => t.status === 'Pending').length;
+      const published = data.trademarks.filter(t => t.status === 'Published').length;
+
+      const stat1 = h('div', 'stat-card');
+      stat1.appendChild(h('div', 'stat-label', 'TOTAL MARKS'));
+      stat1.appendChild(h('div', 'stat-value', data.count.toString()));
+      stat1.appendChild(h('div', 'stat-change', `${data.count} marks`));
+      statsRow.appendChild(stat1);
+
+      const stat2 = h('div', 'stat-card');
+      stat2.appendChild(h('div', 'stat-label', 'REGISTERED'));
+      stat2.appendChild(h('div', 'stat-value', registered.toString()));
+      stat2.appendChild(h('div', 'stat-change', 'Active protection'));
+      statsRow.appendChild(stat2);
+
+      const stat3 = h('div', 'stat-card');
+      stat3.appendChild(h('div', 'stat-label', 'PENDING / PUBLISHED'));
+      stat3.appendChild(h('div', 'stat-value', (pending + published).toString()));
+      stat3.appendChild(h('div', 'stat-change', 'In prosecution'));
+      statsRow.appendChild(stat3);
+
+      const needsAction = data.trademarks.filter(t => {
+        const days = calculateDaysRemaining(t.expiry_date);
+        return days > 0 && days <= 365;
+      }).length;
+
+      const stat4 = h('div', 'stat-card alert-top');
+      stat4.appendChild(h('div', 'stat-label', 'NEEDS ACTION'));
+      stat4.appendChild(h('div', 'stat-value alert', needsAction.toString()));
+      stat4.appendChild(h('div', 'stat-change down', 'Renewals & deadlines'));
+      statsRow.appendChild(stat4);
+
+      contentArea.appendChild(statsRow);
+
+      const tabBar = h('div', 'tab-bar');
+      const tabs = ['Actions Required', 'By Mark', 'Pipeline', 'By Registry'];
+      tabs.forEach((tab, idx) => {
+        const tabItem = h('div', 'tab-item');
+        if (idx === 0) tabItem.classList.add('active');
+        tabItem.textContent = tab;
+        tabItem.onclick = () => switchTab(tab.toLowerCase().replace(/\s+/g, '-').replace('required', 'actions'));
+        tabBar.appendChild(tabItem);
+      });
+      contentArea.appendChild(tabBar);
+
+      const grid = h('div', 'dashboard-grid');
+      const contentCol = h('div');
+      contentCol.style.flex = '1';
+      contentCol.style.overflowY = 'auto';
+
+      const actionsContent = h('div', 'tab-content active');
+      actionsContent.id = 'actions-content';
+      buildActionsTab(actionsContent);
+      contentCol.appendChild(actionsContent);
+
+      const byMarkContent = h('div', 'tab-content');
+      byMarkContent.id = 'by-mark-content';
+      buildByMarkTab(byMarkContent);
+      contentCol.appendChild(byMarkContent);
+
+      const pipelineContent = h('div', 'tab-content');
+      pipelineContent.id = 'pipeline-content';
+      buildPipelineTab(pipelineContent);
+      contentCol.appendChild(pipelineContent);
+
+      const registryContent = h('div', 'tab-content');
+      registryContent.id = 'by-registry-content';
+      buildByRegistryTab(registryContent);
+      contentCol.appendChild(registryContent);
+
+      grid.appendChild(contentCol);
+      contentArea.appendChild(grid);
+    };
+
+    const buildActionsTab = (container) => {
+      container.innerHTML = '';
+      const actionMarks = data.trademarks.filter(t => {
+        const days = calculateDaysRemaining(t.expiry_date);
+        return days > 0 && days <= 365;
+      }).sort((a, b) => calculateDaysRemaining(a.expiry_date) - calculateDaysRemaining(b.expiry_date));
+
+      const header = h('div', 'section-header');
+      header.appendChild(h('div', 'section-dot red'));
+      header.appendChild(h('span', 'section-title', 'Action required'));
+      header.appendChild(h('div', 'section-count', actionMarks.length.toString()));
       container.appendChild(header);
 
-      const list = document.createElement('div');
-      actions.forEach(action => {
-        const item = document.createElement('div');
-        item.className = `action-item ${action.severity}`;
-        item.innerHTML = `
-          <div class="action-badge" style="background: ${action.color}">
-            ${getInitials(action.mark)}
-          </div>
-          <div class="action-content">
-            <div class="action-mark">${action.mark}</div>
-            <div class="action-description">${action.description}</div>
-          </div>
-          <div class="action-right">
-            <div class="countdown-badge">${getDaysLabel(action.daysLeft)}</div>
-            <div class="action-registry">${action.registry}</div>
-          </div>
-        `;
-        list.appendChild(item);
+      const list = h('div', 'action-list');
+      actionMarks.forEach((mark, idx) => {
+        const days = calculateDaysRemaining(mark.expiry_date);
+        const daysBadge = getDaysBadgeColor(days);
+
+        const card = h('div', 'action-card');
+        const initBadge = h('div', 'initials');
+        initBadge.textContent = initials(mark.mark_text);
+        initBadge.style.backgroundColor = badgeColors[idx % badgeColors.length];
+        card.appendChild(initBadge);
+
+        const info = h('div', 'info');
+        info.appendChild(h('div', 'title', mark.mark_text));
+        const sub = h('div', 'sub');
+        sub.textContent = `Renewal due in ${days} days`;
+        info.appendChild(sub);
+        card.appendChild(info);
+
+        const daysBadgeEl = h('div', 'days-badge');
+        daysBadgeEl.textContent = daysBadge.text;
+        daysBadgeEl.style.backgroundColor = daysBadge.bg;
+        daysBadgeEl.style.color = daysBadge.color;
+        card.appendChild(daysBadgeEl);
+
+        const office = h('div', 'office-label', mark.registry_name);
+        card.appendChild(office);
+
+        list.appendChild(card);
       });
       container.appendChild(list);
-    }
+    };
 
-    function renderMarks() {
-      const container = document.getElementById('tab-marks');
-      const marks = groupByMark(allData);
+    const buildByMarkTab = (container) => {
+      container.innerHTML = '';
+      const marksByName = {};
+      data.trademarks.forEach(t => {
+        if (!marksByName[t.mark_text]) marksByName[t.mark_text] = [];
+        marksByName[t.mark_text].push(t);
+      });
 
-      if (marks.length === 0) {
-        container.innerHTML = '<div class="loading">No trademarks found.</div>';
-        return;
-      }
-
-      const header = document.createElement('div');
-      header.className = 'section-header';
-      header.innerHTML = `
-        <div class="section-dot blue"></div>
-        <div class="section-title">Trademark Portfolio</div>
-        <div class="badge">${marks.length}</div>
-      `;
+      const header = h('div', 'section-header');
+      header.appendChild(h('div', 'section-dot blue'));
+      header.appendChild(h('span', 'section-title', 'Trademark Marks'));
+      header.appendChild(h('div', 'section-count blue', Object.keys(marksByName).length.toString()));
       container.appendChild(header);
 
-      marks.forEach((family, idx) => {
-        const card = document.createElement('div');
-        const cardId = `mark-${idx}`;
-        const isExpanded = expandedMarks.has(cardId);
-        card.className = 'mark-family' + (isExpanded ? ' expanded' : '');
-        card.id = cardId;
+      const list = h('div');
+      Object.entries(marksByName).forEach(([markName, marks], idx) => {
+        const card = h('div', 'family-card');
+        const headerEl = h('div', 'family-header');
+        const initBadge = h('div', 'family-initials');
+        initBadge.textContent = initials(markName);
+        initBadge.style.backgroundColor = badgeColors[idx % badgeColors.length];
+        headerEl.appendChild(initBadge);
 
-        const color = getColorForIndex(idx);
-        const header = document.createElement('div');
-        header.className = 'mark-family-header';
-        header.onclick = () => toggleMark(cardId);
-        header.innerHTML = `
-          <div class="mark-family-badge" style="background: ${color}">
-            ${getInitials(family.mark_text)}
-          </div>
-          <div class="mark-family-info">
-            <div class="mark-family-name">${family.mark_text}</div>
-            <div class="mark-family-count">${family.registrations.length} registrations</div>
-          </div>
-          <svg class="mark-expand-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="9 6 15 12 9 18"></polyline>
-          </svg>
-        `;
-        card.appendChild(header);
+        const info = h('div', 'family-info');
+        info.appendChild(h('div', 'family-name', markName));
+        const niceClasses = new Set();
+        marks.forEach(m => {
+          if (m.good_and_services && Array.isArray(m.good_and_services)) {
+            m.good_and_services.forEach(gs => {
+              if (gs.search_class) niceClasses.add(gs.search_class.number);
+            });
+          }
+        });
+        const classesStr = Array.from(niceClasses).sort((a, b) => a - b).join(', ');
+        info.appendChild(h('div', 'family-meta', `Nice Classes: ${classesStr} · ${marks.length} marks`));
+        headerEl.appendChild(info);
 
-        const classGroups = groupByClass(family.registrations);
-        const classes = document.createElement('div');
-        classes.className = 'mark-classes';
+        const count = h('div', 'family-count', marks.length.toString());
+        headerEl.appendChild(count);
 
-        classGroups.forEach(classGroup => {
-          const classDiv = document.createElement('div');
-          classDiv.className = 'mark-class-group';
-          classDiv.innerHTML = `<div class="mark-class-header">Class ${classGroup.class} — ${classGroup.className}<span class="mark-class-count">${classGroup.registrations.length}</span></div>`;
+        const toggle = h('div', 'family-toggle', '▼');
+        headerEl.appendChild(toggle);
 
-          classGroup.registrations.forEach(reg => {
-            const regDiv = document.createElement('div');
-            regDiv.className = 'mark-registration';
-            const statusClass = 'status-' + (reg.status || 'pending').toLowerCase();
-            regDiv.innerHTML = `
-              <div class="mark-reg-content">
-                <div class="mark-reg-name">${reg.registry_name}</div>
-                <div class="mark-reg-app">${reg.application_number}</div>
-              </div>
-              <span class="mark-reg-status ${statusClass}">${(reg.status || 'pending').toUpperCase()}</span>
-              <div class="action-registry">${fmtDate(reg.registration_date || reg.application_date)}</div>
-            `;
-            classDiv.appendChild(regDiv);
+        card.appendChild(headerEl);
+
+        const body = h('div', 'family-body');
+        marks.forEach(mark => {
+          const row = h('div', 'patent-row');
+          const office = h('div', 'patent-office', mark.registry_name);
+          row.appendChild(office);
+          const number = h('div', 'patent-number', mark.application_number);
+          row.appendChild(number);
+          const status = getStatusColor(mark.status);
+          const statusEl = h('div', 'patent-status', mark.status);
+          statusEl.style.backgroundColor = status.bg;
+          statusEl.style.color = status.color;
+          row.appendChild(statusEl);
+          body.appendChild(row);
+        });
+        card.appendChild(body);
+
+        headerEl.onclick = () => {
+          body.classList.toggle('expanded');
+          toggle.textContent = body.classList.contains('expanded') ? '▲' : '▼';
+        };
+
+        list.appendChild(card);
+      });
+      container.appendChild(list);
+    };
+
+    const buildPipelineTab = (container) => {
+      container.innerHTML = '';
+      const statuses = ['FILED', 'PUBLISHED', 'PENDING', 'REGISTERED', 'ABANDONED', 'EXPIRED'];
+      const statusCounts = {};
+      statuses.forEach(s => statusCounts[s] = 0);
+      data.trademarks.forEach(t => {
+        if (statusCounts.hasOwnProperty(t.status.toUpperCase())) statusCounts[t.status.toUpperCase()]++;
+      });
+
+      const pipelineContainer = h('div', 'pipeline-container');
+      statuses.forEach((status, idx) => {
+        const stage = h('div', 'pipeline-stage');
+        const bubble = h('div', 'pipeline-bubble');
+        const count = statusCounts[status] || 0;
+        bubble.textContent = count;
+        if (count > 0) bubble.classList.add(status === 'REGISTERED' ? 'highlight' : 'active');
+        stage.appendChild(bubble);
+        const label = h('div', 'pipeline-label', status);
+        stage.appendChild(label);
+        pipelineContainer.appendChild(stage);
+
+        if (idx < statuses.length - 1) {
+          const arrow = h('div', 'pipeline-arrow', '→');
+          pipelineContainer.appendChild(arrow);
+        }
+      });
+      container.appendChild(pipelineContainer);
+
+      const techTitle = h('div', 'tech-area-title', 'By Nice Classification');
+      container.appendChild(techTitle);
+
+      const niceClasses = {};
+      data.trademarks.forEach(t => {
+        if (t.good_and_services && Array.isArray(t.good_and_services)) {
+          t.good_and_services.forEach(gs => {
+            if (gs.search_class) {
+              const num = gs.search_class.number;
+              if (!niceClasses[num]) niceClasses[num] = 0;
+              niceClasses[num]++;
+            }
           });
-          classes.appendChild(classDiv);
-        });
-
-        card.appendChild(classes);
-        container.appendChild(card);
+        }
       });
-    }
 
-    function renderPipeline() {
-      const container = document.getElementById('tab-pipeline');
+      const maxCount = Math.max(...Object.values(niceClasses), 1);
+      Object.entries(niceClasses).sort((a, b) => b[1] - a[1]).forEach(([classNum, count], idx) => {
+        const row = h('div', 'tech-bar-row');
+        const label = h('div', 'tech-bar-label', `Class ${classNum}`);
+        row.appendChild(label);
+        const track = h('div', 'tech-bar-track');
+        const fill = h('div', 'tech-bar-fill');
+        fill.style.backgroundColor = niceClassColors[idx % niceClassColors.length];
+        fill.style.width = `${(count / maxCount) * 100}%`;
+        track.appendChild(fill);
+        row.appendChild(track);
+        const value = h('div', 'tech-bar-value', `${count} marks`);
+        row.appendChild(value);
+        container.appendChild(row);
+      });
+    };
 
-      const filed = allData.filter(t => t.status === 'filed').length;
-      const published = allData.filter(t => t.status === 'published').length;
-      const pending = allData.filter(t => t.status === 'pending').length;
-      const registered = allData.filter(t => t.status === 'registered').length;
-      const opposed = allData.filter(t => t.status === 'opposed').length;
-      const expired = allData.filter(t => t.status === 'expired').length;
+    const buildByRegistryTab = (container) => {
+      container.innerHTML = '';
+      const byRegistry = {};
+      data.trademarks.forEach(t => {
+        if (!byRegistry[t.registry_name]) byRegistry[t.registry_name] = [];
+        byRegistry[t.registry_name].push(t);
+      });
 
-      const header = document.createElement('div');
-      header.className = 'section-header';
-      header.innerHTML = `
-        <div class="section-dot green"></div>
-        <div class="section-title">Filing Pipeline</div>
-      `;
+      const header = h('div', 'section-header');
+      header.appendChild(h('div', 'section-dot blue'));
+      header.appendChild(h('span', 'section-title', 'Registries'));
+      header.appendChild(h('div', 'section-count blue', Object.keys(byRegistry).length.toString()));
       container.appendChild(header);
 
-      const bubbles = document.createElement('div');
-      bubbles.className = 'pipeline-bubbles';
-      const stages = [
-        { label: 'Filed', count: filed, color: 'filed' },
-        { label: 'Published', count: published, color: 'published' },
-        { label: 'Pending', count: pending, color: 'pending' },
-        { label: 'Registered', count: registered, color: 'registered' },
-        { label: 'Opposed', count: opposed, color: 'opposed' },
-        { label: 'Expired', count: expired, color: 'expired' }
-      ];
+      const list = h('div', 'office-list');
+      Object.entries(byRegistry).forEach(([registry, marks], idx) => {
+        const registered = marks.filter(m => m.status === 'Registered').length;
+        const pending = marks.filter(m => m.status === 'Pending' || m.status === 'Published').length;
 
-      stages.forEach(stage => {
-        const group = document.createElement('div');
-        group.className = 'bubble-group';
-        const size = Math.max(60, Math.min(120, 60 + (stage.count * 2)));
-        group.innerHTML = `
-          <div class="bubble bubble-${stage.color}" style="width: ${size}px; height: ${size}px; font-size: ${size / 3}px;">
-            ${stage.count}
-          </div>
-          <div class="bubble-label">${stage.label}</div>
-        `;
-        bubbles.appendChild(group);
-      });
+        const card = h('div', 'office-card');
+        const initBadge = h('div', 'office-initials');
+        initBadge.textContent = initials(registry);
+        initBadge.style.backgroundColor = badgeColors[idx % badgeColors.length];
+        card.appendChild(initBadge);
 
-      container.appendChild(bubbles);
+        const info = h('div', 'office-info');
+        info.appendChild(h('div', 'office-name', registry));
+        info.appendChild(h('div', 'office-meta', `${registered} registered, ${pending} pending`));
+        card.appendChild(info);
 
-      const classHeader = document.createElement('div');
-      classHeader.className = 'section-header';
-      classHeader.style.marginTop = '40px';
-      classHeader.innerHTML = `
-        <div class="section-dot orange"></div>
-        <div class="section-title">By Nice Class</div>
-      `;
-      container.appendChild(classHeader);
+        const count = h('div', 'office-count', marks.length.toString());
+        card.appendChild(count);
 
-      const classBars = document.createElement('div');
-      classBars.className = 'class-bars';
+        const toggle = h('div', 'office-toggle', '▼');
+        card.appendChild(toggle);
 
-      const classMap = {};
-      allData.forEach(tm => {
-        (tm.good_and_services || []).forEach(cls => {
-          const classNum = cls.search_class?.number || 'Unknown';
-          classMap[classNum] = (classMap[classNum] || 0) + 1;
-        });
-      });
-
-      const sortedClasses = Object.entries(classMap)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10);
-
-      const maxCount = Math.max(...sortedClasses.map(c => c[1]));
-
-      sortedClasses.forEach(([classNum, count]) => {
-        const item = document.createElement('div');
-        item.className = 'class-bar-item';
-        const percent = (count / maxCount) * 100;
-        item.innerHTML = `
-          <div class="class-bar-label">Class ${classNum}</div>
-          <div class="class-bar">
-            <div class="class-bar-fill" style="width: ${percent}%">${count}</div>
-          </div>
-        `;
-        classBars.appendChild(item);
-      });
-
-      container.appendChild(classBars);
-    }
-
-    function renderRegistry() {
-      const container = document.getElementById('tab-registry');
-      const registries = groupByRegistry(allData);
-
-      if (registries.length === 0) {
-        container.innerHTML = '<div class="loading">No registries found.</div>';
-        return;
-      }
-
-      const header = document.createElement('div');
-      header.className = 'section-header';
-      header.innerHTML = `
-        <div class="section-dot purple"></div>
-        <div class="section-title">Marks by Registry</div>
-        <div class="badge">${registries.length}</div>
-      `;
-      container.appendChild(header);
-
-      registries.forEach((reg, idx) => {
-        const cardId = `registry-${idx}`;
-        const isExpanded = expandedRegistries.has(cardId);
-
-        const card = document.createElement('div');
-        card.className = 'registry-card' + (isExpanded ? ' expanded' : '');
-        card.id = cardId;
-
-        const color = getColorForIndex(idx);
-        const cardHeader = document.createElement('div');
-        cardHeader.className = 'registry-card-header';
-        cardHeader.onclick = () => toggleRegistry(cardId);
-
-        const registered = reg.trademarks.filter(t => t.status === 'registered').length;
-        const pending = reg.trademarks.filter(t => t.status !== 'registered').length;
-
-        cardHeader.innerHTML = `
-          <div class="registry-badge" style="background: ${color}">
-            ${getInitials(reg.registry_name)}
-          </div>
-          <div class="registry-info">
-            <div class="registry-name">${reg.registry_name}</div>
-            <div class="registry-subtitle">${registered} registered, ${pending} pending/published</div>
-          </div>
-          <div class="registry-count">${reg.trademarks.length}</div>
-          <svg class="registry-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="9 6 15 12 9 18"></polyline>
-          </svg>
-        `;
-        card.appendChild(cardHeader);
-
-        const marks = document.createElement('div');
-        marks.className = 'registry-marks';
-
-        reg.trademarks.forEach(tm => {
-          const item = document.createElement('div');
-          item.className = 'registry-mark-item';
-          const statusClass = 'status-' + (tm.status || 'pending').toLowerCase();
-          item.innerHTML = `
-            <div class="action-badge" style="background: ${color}">
-              ${getInitials(tm.mark_text)}
-            </div>
-            <div class="action-content">
-              <div class="action-mark">${tm.mark_text}</div>
-              <div class="action-description">${tm.application_number}</div>
-            </div>
-            <span class="mark-reg-status ${statusClass}">${(tm.status || 'pending').toUpperCase()}</span>
-          `;
-          marks.appendChild(item);
+        const body = h('div', 'office-body');
+        marks.forEach(mark => {
+          const row = h('div', 'patent-row');
+          const markText = h('div', 'patent-number', mark.mark_text);
+          markText.style.paddingLeft = '0';
+          row.appendChild(markText);
+          const number = h('div', 'patent-number', mark.application_number);
+          row.appendChild(number);
+          const status = getStatusColor(mark.status);
+          const statusEl = h('div', 'patent-status', mark.status);
+          statusEl.style.backgroundColor = status.bg;
+          statusEl.style.color = status.color;
+          row.appendChild(statusEl);
+          body.appendChild(row);
         });
 
-        card.appendChild(marks);
-        container.appendChild(card);
+        card.appendChild(body);
+        card.style.cursor = 'pointer';
+        card.onclick = () => {
+          body.classList.toggle('expanded');
+          toggle.textContent = body.classList.contains('expanded') ? '▲' : '▼';
+        };
+
+        list.appendChild(card);
       });
-    }
+      container.appendChild(list);
+    };
 
-    function renderRightPanel() {
-      const panel = document.getElementById('right-panel');
-      const actions = getActionsRequired(allData);
-      const registries = new Set(allData.map(t => t.registry_name));
-      const classes = new Set();
-      allData.forEach(tm => {
-        (tm.good_and_services || []).forEach(cls => {
-          if (cls.search_class?.number) classes.add(cls.search_class.number);
-        });
-      });
+    const switchTab = (tabName) => {
+      const tabs = document.querySelectorAll('.tab-item');
+      tabs.forEach(t => t.classList.remove('active'));
+      const contents = document.querySelectorAll('.tab-content');
+      contents.forEach(c => c.classList.remove('active'));
 
-      const topClass = Array.from(classes).sort()[0] || 'Unknown';
+      const tabMap = {
+        'actions-required': 0,
+        'by-mark': 1,
+        'pipeline': 2,
+        'by-registry': 3
+      };
 
-      panel.innerHTML = `
-        <div class="panel-section">
-          <div class="panel-section-title">ALERTS</div>
-          <div class="alert-box">
-            <div class="alert-box-title">BrandVault Alert</div>
-            <div class="alert-box-text">${actions.length} marks require immediate attention. ${actions.length > 0 ? `Earliest action due in ${actions[0].daysLeft} days.` : 'All marks are current.'}</div>
-          </div>
-        </div>
+      const idx = tabMap[tabName] || 0;
+      if (tabs[idx]) tabs[idx].classList.add('active');
+      if (contents[idx]) contents[idx].classList.add('active');
+    };
 
-        <div class="panel-section">
-          <div class="panel-section-title">PORTFOLIO INSIGHT</div>
-          <div class="insight-box">
-            <div class="insight-box-text"><strong>${new Set(allData.map(t => t.mark_text)).size}</strong> registered marks across <strong>${registries.size}</strong> registries. Strongest coverage in <strong>Class ${topClass}</strong>.</div>
-          </div>
-        </div>
+    const buildRightPanel = () => {
+      const rightPanel = document.getElementById('rightPanel');
+      rightPanel.innerHTML = '';
 
-        <div class="panel-section">
-          <div class="panel-section-title">DATA SOURCE</div>
-          <div class="insight-box">
-            <div class="insight-box-text">LawPanel Firms API. Last fetched: <strong>${new Date().toLocaleDateString()}</strong>. Run lawpanel-fetch-trademarks.js to refresh.</div>
-          </div>
-        </div>
+      const title = h('div', 'panel-section-title', 'AILA INTELLIGENCE');
+      rightPanel.appendChild(title);
 
-        <div class="panel-section">
-          <div class="panel-section-title">UPCOMING RENEWALS</div>
-          <ul class="item-list" id="renewals-list"></ul>
-        </div>
+      const actionMarks = data.trademarks.filter(t => {
+        const days = calculateDaysRemaining(t.expiry_date);
+        return days > 0 && days <= 365;
+      }).length;
 
-        <div class="panel-section">
-          <div class="panel-section-title">RECENT ACTIVITY</div>
-          <ul class="item-list" id="activity-list"></ul>
-        </div>
-      `;
+      const info1 = h('div', 'info-card');
+      info1.appendChild(h('div', 'info-card-title', 'BRANDVAULT ALERT'));
+      info1.appendChild(h('div', 'info-card-text', `${actionMarks} marks need renewal attention within the next 12 months.`));
+      rightPanel.appendChild(info1);
 
-      // Upcoming renewals
-      const renewals = allData
-        .filter(t => t.expiry_date)
-        .map(t => ({
-          mark: t.mark_text,
-          registry: t.registry_name,
-          date: t.expiry_date,
-          days: daysTo(t.expiry_date),
-          color: getColorForIndex(Math.random() * 10)
-        }))
-        .filter(r => r.days && r.days > 0 && r.days <= 365)
-        .sort((a, b) => a.days - b.days)
+      const registries = new Set(data.trademarks.map(t => t.registry_name)).size;
+      const registered = data.trademarks.filter(t => t.status === 'Registered').length;
+
+      const info2 = h('div', 'info-card');
+      info2.appendChild(h('div', 'info-card-title', 'PORTFOLIO INSIGHT'));
+      info2.appendChild(h('div', 'info-card-text', `${registered} registered marks across ${registries} registries. Strongest coverage in Class 9 and Class 42.`));
+      rightPanel.appendChild(info2);
+
+      const fetchedDate = new Date(data.fetchedAt || Date.now()).toLocaleDateString();
+      const info3 = h('div', 'info-card');
+      info3.appendChild(h('div', 'info-card-title', 'DATA SOURCE'));
+      info3.appendChild(h('div', 'info-card-text', `Live data from LawPanel Firms API. Last fetched: ${fetchedDate}. Run lawpanel-fetch-trademarks.js to refresh.`));
+      rightPanel.appendChild(info3);
+
+      const renewalHeader = h('div');
+      renewalHeader.classList.add('view-all');
+      renewalHeader.appendChild(h('div', 'panel-section-title', 'Upcoming Renewals'));
+      const viewAllLink = h('a', 'view-all-link', 'View all →');
+      renewalHeader.appendChild(viewAllLink);
+      rightPanel.appendChild(renewalHeader);
+
+      const upcomingRenewals = data.trademarks
+        .filter(t => {
+          const days = calculateDaysRemaining(t.expiry_date);
+          return days > 0 && days <= 180;
+        })
+        .sort((a, b) => calculateDaysRemaining(a.expiry_date) - calculateDaysRemaining(b.expiry_date))
         .slice(0, 5);
 
-      const renewalsList = document.getElementById('renewals-list');
-      renewals.forEach(r => {
-        const li = document.createElement('li');
-        li.className = 'item';
-        li.innerHTML = `
-          <div class="item-badge" style="background: ${r.color}">
-            ${getInitials(r.mark)}
-          </div>
-          <div class="item-info">
-            <div class="item-title">${r.mark}</div>
-            <div class="item-subtitle">${r.registry}</div>
-          </div>
-          <div class="item-count">${r.days}d</div>
-        `;
-        renewalsList.appendChild(li);
+      const renewalList = h('div', 'renewal-list');
+      upcomingRenewals.forEach((mark, idx) => {
+        const days = calculateDaysRemaining(mark.expiry_date);
+        const daysBadge = getDaysBadgeColor(days);
+
+        const item = h('div', 'renewal-item');
+        const initBadge = h('div', 'renewal-initials');
+        initBadge.textContent = initials(mark.mark_text);
+        initBadge.style.backgroundColor = badgeColors[idx % badgeColors.length];
+        item.appendChild(initBadge);
+
+        const info = h('div', 'renewal-info');
+        info.appendChild(h('div', 'renewal-title', mark.mark_text));
+        info.appendChild(h('div', 'renewal-sub', `${mark.registry_name} · ${new Date(mark.expiry_date).toLocaleDateString()}`));
+        item.appendChild(info);
+
+        const daysEl = h('div', 'renewal-days');
+        daysEl.textContent = daysBadge.text;
+        daysEl.style.backgroundColor = daysBadge.bg;
+        daysEl.style.color = daysBadge.color;
+        item.appendChild(daysEl);
+
+        renewalList.appendChild(item);
+      });
+      rightPanel.appendChild(renewalList);
+    };
+
+    const buildReportPanel = () => {
+      const reportPanel = document.getElementById('reportPanel');
+      reportPanel.innerHTML = '';
+
+      const header = h('div', 'report-panel-header');
+      header.appendChild(h('div', 'report-panel-title', 'Portfolio Report'));
+      const closeBtn = h('div', 'report-close', '✕');
+      closeBtn.onclick = () => reportPanel.classList.remove('open');
+      header.appendChild(closeBtn);
+      reportPanel.appendChild(header);
+
+      const exportCsv = h('button', 'report-export-btn');
+      exportCsv.innerHTML = '📥 Export as CSV';
+      exportCsv.onclick = () => exportCSV();
+      reportPanel.appendChild(exportCsv);
+
+      const exportXlsx = h('button', 'report-export-btn');
+      exportXlsx.innerHTML = '📊 Export as XLSX';
+      exportXlsx.onclick = () => exportXLSX();
+      reportPanel.appendChild(exportXlsx);
+
+      const exportPdf = h('button', 'report-export-btn');
+      exportPdf.innerHTML = '📄 Export as PDF';
+      exportPdf.onclick = () => exportPDF();
+      reportPanel.appendChild(exportPdf);
+
+      const reportContent = h('div');
+      reportContent.style.marginTop = '24px';
+      reportContent.appendChild(h('div', 'panel-section-title', 'Report Summary'));
+      const summary = h('div', 'info-card-text');
+      summary.innerHTML = `<strong>Trademark Portfolio Overview</strong><br/>Total Marks: ${data.count}<br/>Registered: ${data.trademarks.filter(t => t.status === 'Registered').length}<br/>Pending: ${data.trademarks.filter(t => t.status === 'Pending').length}<br/>Published: ${data.trademarks.filter(t => t.status === 'Published').length}`;
+      reportContent.appendChild(summary);
+      reportPanel.appendChild(reportContent);
+    };
+
+    const exportCSV = () => {
+      const headers = ['Mark Name', 'Registry', 'Application Number', 'Status', 'Expiry Date'];
+      const rows = data.trademarks.map(t => [
+        t.mark_text,
+        t.registry_name,
+        t.application_number,
+        t.status,
+        new Date(t.expiry_date).toLocaleDateString()
+      ]);
+
+      let csv = headers.join(',') + '\n';
+      rows.forEach(row => {
+        csv += row.map(cell => `"${cell}"`).join(',') + '\n';
       });
 
-      // Recent activity
-      const activity = allData
-        .filter(t => t.registration_date || t.status_date)
-        .map(t => ({
-          mark: t.mark_text,
-          registry: t.registry_name,
-          status: t.status,
-          date: t.registration_date || t.status_date,
-          color: getColorForIndex(Math.random() * 10)
-        }))
-        .sort((a, b) => new Date(b.date) - new Date(a.date))
-        .slice(0, 5);
-
-      const activityList = document.getElementById('activity-list');
-      activity.forEach(a => {
-        const li = document.createElement('li');
-        li.className = 'item';
-        li.innerHTML = `
-          <div class="item-badge" style="background: ${a.color}">
-            ${getInitials(a.mark)}
-          </div>
-          <div class="item-info">
-            <div class="item-title">${a.mark}</div>
-            <div class="item-subtitle">${a.status ? a.status.charAt(0).toUpperCase() + a.status.slice(1) : 'Updated'} - ${fmtDate(a.date)}</div>
-          </div>
-        `;
-        activityList.appendChild(li);
-      });
-    }
-
-    // INTERACTION HANDLERS
-    function switchTab(tab) {
-      currentTab = tab;
-      document.querySelectorAll('.tab').forEach((t, i) => {
-        t.classList.toggle('active', ['actions', 'marks', 'pipeline', 'registry'][i] === tab);
-      });
-      document.querySelectorAll('.tab-content').forEach((c, i) => {
-        c.classList.toggle('active', ['actions', 'marks', 'pipeline', 'registry'][i] === tab);
-      });
-    }
-
-    function switchNav(nav) {
-      document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-      event.target.closest('.nav-link').classList.add('active');
-    }
-
-    function toggleMark(cardId) {
-      if (expandedMarks.has(cardId)) {
-        expandedMarks.delete(cardId);
-      } else {
-        expandedMarks.add(cardId);
-      }
-      renderMarks();
-    }
-
-    function toggleRegistry(cardId) {
-      if (expandedRegistries.has(cardId)) {
-        expandedRegistries.delete(cardId);
-      } else {
-        expandedRegistries.add(cardId);
-      }
-      renderRegistry();
-    }
-
-    // EXPORT FUNCTIONS
-    function exportCSV() {
-      const rows = [['Mark', 'Registry', 'Application #', 'Status', 'Filing Date', 'Expiry Date']];
-      allData.forEach(tm => {
-        rows.push([
-          tm.mark_text,
-          tm.registry_name,
-          tm.application_number,
-          tm.status,
-          fmtDate(tm.application_date),
-          fmtDate(tm.expiry_date)
-        ]);
-      });
-
-      let csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = h('a');
       a.href = url;
-      a.download = 'brandvault-portfolio.csv';
+      a.download = 'trademarks.csv';
       a.click();
-    }
+      window.URL.revokeObjectURL(url);
+    };
 
-    function exportXLSX() {
-      const rows = [['Mark', 'Registry', 'Application #', 'Status', 'Filing Date', 'Expiry Date']];
-      allData.forEach(tm => {
-        rows.push([
-          tm.mark_text,
-          tm.registry_name,
-          tm.application_number,
-          tm.status,
-          fmtDate(tm.application_date),
-          fmtDate(tm.expiry_date)
-        ]);
-      });
+    const exportXLSX = () => {
+      const headers = ['Mark Name', 'Registry', 'Application Number', 'Status', 'Expiry Date'];
+      const rows = data.trademarks.map(t => [
+        t.mark_text,
+        t.registry_name,
+        t.application_number,
+        t.status,
+        new Date(t.expiry_date).toLocaleDateString()
+      ]);
 
-      const ws = XLSX.utils.aoa_to_sheet(rows);
+      const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Portfolio');
-      XLSX.writeFile(wb, 'brandvault-portfolio.xlsx');
-    }
+      XLSX.utils.book_append_sheet(wb, ws, 'Trademarks');
+      XLSX.writeFile(wb, 'trademarks.xlsx');
+    };
 
-    function exportPDF() {
-      const element = document.querySelector('.content-main');
+    const exportPDF = () => {
+      const element = h('div');
+      element.style.padding = '20px';
+      element.innerHTML = `
+        <h1>Trademark Portfolio Report</h1>
+        <p>Generated: ${new Date().toLocaleDateString()}</p>
+        <h2>Summary</h2>
+        <p>Total Marks: ${data.count}</p>
+        <p>Registered: ${data.trademarks.filter(t => t.status === 'Registered').length}</p>
+        <h2>Marks</h2>
+        <table style="width:100%;border-collapse:collapse;">
+          <tr>
+            <th style="border:1px solid #ddd;padding:8px;">Mark</th>
+            <th style="border:1px solid #ddd;padding:8px;">Registry</th>
+            <th style="border:1px solid #ddd;padding:8px;">Status</th>
+            <th style="border:1px solid #ddd;padding:8px;">Expiry</th>
+          </tr>
+          ${data.trademarks.map(t => `
+            <tr>
+              <td style="border:1px solid #ddd;padding:8px;">${t.mark_text}</td>
+              <td style="border:1px solid #ddd;padding:8px;">${t.registry_name}</td>
+              <td style="border:1px solid #ddd;padding:8px;">${t.status}</td>
+              <td style="border:1px solid #ddd;padding:8px;">${new Date(t.expiry_date).toLocaleDateString()}</td>
+            </tr>
+          `).join('')}
+        </table>
+      `;
+      document.body.appendChild(element);
+
       const opt = {
         margin: 10,
-        filename: 'brandvault-portfolio.pdf',
+        filename: 'trademarks.pdf',
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2 },
         jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
       };
-      html2pdf().set(opt).from(element).save();
-    }
 
-    function showExportMenu() {
-      const menu = ['CSV', 'XLSX', 'PDF'];
-      const choice = prompt('Export format:\n1. CSV\n2. XLSX\n3. PDF\n\nEnter number:', '1');
-      if (choice === '1') exportCSV();
-      else if (choice === '2') exportXLSX();
-      else if (choice === '3') exportPDF();
-    }
+      html2pdf().set(opt).from(element).save().then(() => {
+        document.body.removeChild(element);
+      });
+    };
 
-    // MAIN APP FUNCTION
-    async function App() {
-      try {
-        const response = await fetch('./trademark-data.json');
-        if (!response.ok) throw new Error('Failed to load data');
-        const data = await response.json();
+    const renderApp = () => {
+      buildSidebar();
+      buildTopbar();
+      buildContentArea();
+      buildRightPanel();
+      buildReportPanel();
+    };
 
-        allData = data.trademarks || [];
-        if (allData.length === 0) {
-          allData = data; // Fallback for direct array
-        }
-
-        // Add colors to items
-        allData = allData.map((tm, idx) => ({
-          ...tm,
-          color: getColorForIndex(idx)
-        }));
-
-        renderStats();
-        renderActions();
-        renderMarks();
-        renderPipeline();
-        renderRegistry();
-        renderRightPanel();
-      } catch (error) {
-        console.error('Error loading data:', error);
-        document.getElementById('tab-actions').innerHTML =
-          `<div class="error">Error loading trademark data: ${error.message}</div>`;
-      }
-    }
-
-    // INITIALIZE
-    document.addEventListener('DOMContentLoaded', App);
+    loadData();
   </script>
 </body>
 </html>
