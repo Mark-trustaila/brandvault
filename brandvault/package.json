@@ -1,0 +1,10 @@
+{
+  "name": "brandvault",
+  "version": "0.1.0",
+  "description": "BrandVault — Trademark Portfolio Dashboard for AiLA",
+  "private": true,
+  "scripts": {
+    "fetch": "node scripts/lawpanel-fetch-trademarks.js",
+    "start": "npx serve public"
+  }
+}
