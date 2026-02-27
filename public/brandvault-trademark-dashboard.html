@@ -158,13 +158,92 @@
     .view-all-link { font-size: 12px; color: #2e6b8a; cursor: pointer; text-decoration: none; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
-    .report-panel { position: fixed; right: -420px; top: 0; width: 420px; height: 100vh; background: #fff; border-left: 1px solid #e8e5e0; transition: right 0.3s ease; z-index: 100; overflow-y: auto; padding: 28px 24px; }
-    .report-panel.open { right: 0; }
-    .report-panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
-    .report-panel-title { font-size: 18px; font-weight: 700; color: #37352f; }
-    .report-close { cursor: pointer; font-size: 20px; color: #9b9a97; }
-    .report-export-btn { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 6px; border: 1px solid #e8e5e0; background: #fff; cursor: pointer; font-size: 12px; color: #37352f; margin-bottom: 12px; width: 100%; transition: all 0.12s; }
-    .report-export-btn:hover { background: #f7f6f5; }
+    /* Report overlay & panel */
+    .report-overlay { position: fixed; inset: 0; z-index: 200; display: none; }
+    .report-overlay.open { display: block; }
+    .report-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.12); }
+    .report-panel {
+      position: absolute; top: 0; right: 0; bottom: 0; width: 480px;
+      background: #fff; border-left: 1px solid #e8e5e0;
+      box-shadow: -2px 0 12px rgba(0,0,0,0.06);
+      display: flex; flex-direction: column; z-index: 201;
+    }
+    .report-header {
+      padding: 20px 24px; border-bottom: 1px solid #e8e5e0;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .report-header h2 { font-size: 18px; font-weight: 700; color: #37352f; display: flex; align-items: center; gap: 8px; }
+    .report-close { cursor: pointer; font-size: 20px; color: #9b9a97; background: none; border: none; padding: 4px; }
+    .report-close:hover { color: #37352f; }
+    .report-body { flex: 1; overflow-y: auto; padding: 24px; }
+    .report-section { margin-bottom: 24px; }
+    .report-section-title {
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.05em; color: #9b9a97; margin-bottom: 10px;
+    }
+    /* Presets */
+    .preset-list { display: flex; flex-direction: column; gap: 4px; }
+    .preset-item {
+      display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+      border: 1px solid #e8e5e0; border-radius: 8px; cursor: pointer;
+      transition: all 0.12s; background: #fff;
+    }
+    .preset-item:hover { background: #fbfbfa; border-color: #d3d1cb; }
+    .preset-item.selected { border-color: #37352f; background: #f7f6f5; }
+    .preset-icon { font-size: 20px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: #f7f6f5; border-radius: 6px; }
+    .preset-info { flex: 1; }
+    .preset-name { font-size: 13px; font-weight: 600; color: #37352f; }
+    .preset-desc { font-size: 11px; color: #9b9a97; }
+    /* Filter chips */
+    .filter-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .filter-chip {
+      font-size: 12px; padding: 4px 12px; border-radius: 14px;
+      border: 1px solid #e8e5e0; background: #fff; cursor: pointer;
+      transition: all 0.12s; color: #37352f;
+    }
+    .filter-chip:hover { border-color: #d3d1cb; }
+    .filter-chip.active { background: #37352f; color: #fff; border-color: #37352f; }
+    .filter-label { font-size: 13px; font-weight: 600; color: #37352f; margin-bottom: 6px; margin-top: 12px; }
+    .filter-select {
+      width: 100%; padding: 8px 12px; border: 1px solid #e8e5e0;
+      border-radius: 6px; font-size: 13px; color: #37352f;
+      background: #fff; margin-top: 6px;
+    }
+    /* Export format cards */
+    .format-row { display: flex; gap: 8px; }
+    .format-card {
+      flex: 1; padding: 12px; border: 1px solid #e8e5e0; border-radius: 8px;
+      background: #fff; cursor: pointer; text-align: center; transition: all 0.15s;
+    }
+    .format-card:hover { border-color: #d3d1cb; background: #fbfbfa; }
+    .format-card.selected { border-color: #37352f; background: #f7f6f5; }
+    .format-card .fmt-icon { font-size: 22px; display: block; margin-bottom: 4px; }
+    .format-card .fmt-label { font-size: 12px; font-weight: 600; color: #37352f; }
+    .format-card .fmt-desc { font-size: 10px; color: #9b9a97; }
+    /* Preview table */
+    .report-preview {
+      border: 1px solid #e8e5e0; border-radius: 8px; overflow: hidden; margin-top: 12px;
+      max-height: 200px; overflow-y: auto; font-size: 11px;
+    }
+    .report-preview table { width: 100%; border-collapse: collapse; }
+    .report-preview th {
+      background: #f7f6f5; padding: 6px 10px; text-align: left; font-weight: 600;
+      color: #37352f; border-bottom: 1px solid #e8e5e0; position: sticky; top: 0;
+    }
+    .report-preview td { padding: 6px 10px; border-bottom: 1px solid #f0efec; color: #37352f; }
+    /* Report footer */
+    .report-footer {
+      padding: 16px 24px; border-top: 1px solid #e8e5e0;
+      display: flex; justify-content: flex-end; gap: 8px;
+    }
+    .report-footer button {
+      padding: 8px 20px; border-radius: 6px; font-size: 13px;
+      font-weight: 500; cursor: pointer; transition: all 0.12s;
+    }
+    .btn-cancel { background: #fff; border: 1px solid #e8e5e0; color: #37352f; }
+    .btn-cancel:hover { background: #f7f6f5; }
+    .btn-download { background: #37352f; border: 1px solid #37352f; color: #fff; }
+    .btn-download:hover { background: #2d2c28; }
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-thumb { background: #d3d1cb; border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: #b0aeaa; }
@@ -182,7 +261,10 @@
       </div>
     </div>
   </div>
-  <div class="report-panel" id="reportPanel"></div>
+  <div class="report-overlay" id="reportOverlay">
+    <div class="report-backdrop" id="reportBackdrop"></div>
+    <div class="report-panel" id="reportPanel"></div>
+  </div>
 
   <script>
     const h = (tag, cls, txt) => {
@@ -330,7 +412,7 @@
 
       const reportBtn = h('button', 'topbar-btn');
       reportBtn.textContent = '📊 Report';
-      reportBtn.onclick = () => document.getElementById('reportPanel').classList.toggle('open');
+      reportBtn.onclick = () => document.getElementById('reportOverlay').classList.toggle('open');
       right.appendChild(reportBtn);
 
       const settingsBtn = h('button', 'topbar-btn disabled');
@@ -397,7 +479,7 @@
         const tabItem = h('div', 'tab-item');
         if (idx === 0) tabItem.classList.add('active');
         tabItem.textContent = tab;
-        tabItem.onclick = () => switchTab(tab.toLowerCase().replace(/\s+/g, '-').replace('required', 'actions'));
+        tabItem.onclick = () => switchTab(tab.toLowerCase().replace(/\s+/g, '-'));
         tabBar.appendChild(tabItem);
       });
       contentArea.appendChild(tabBar);
@@ -682,7 +764,8 @@
         'actions-required': 0,
         'by-mark': 1,
         'pipeline': 2,
-        'by-registry': 3
+        'by-registry': 3,
+        'actions': 0
       };
 
       const idx = tabMap[tabName] || 0;
@@ -763,49 +846,253 @@
       rightPanel.appendChild(renewalList);
     };
 
+    let reportFilters = { offices: [], statuses: [], mark: 'all', format: 'csv' };
+
+    const getFilteredTrademarks = () => {
+      return data.trademarks.filter(t => {
+        if (reportFilters.offices.length > 0 && !reportFilters.offices.includes(t.registry_name)) return false;
+        if (reportFilters.statuses.length > 0 && !reportFilters.statuses.includes(t.status)) return false;
+        if (reportFilters.mark !== 'all' && t.mark_text !== reportFilters.mark) return false;
+        return true;
+      });
+    };
+
+    const updatePreview = () => {
+      const previewEl = document.getElementById('reportPreview');
+      if (!previewEl) return;
+      const filtered = getFilteredTrademarks();
+      const previewTitle = document.getElementById('previewTitle');
+      if (previewTitle) previewTitle.textContent = `PREVIEW (${filtered.length} MARKS)`;
+
+      const table = document.createElement('table');
+      const thead = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+      ['Mark', 'Registry', 'Status', 'Nice Classes'].forEach(col => {
+        const th = document.createElement('th');
+        th.textContent = col;
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+      filtered.slice(0, 20).forEach(t => {
+        const tr = document.createElement('tr');
+        const classes = (t.good_and_services || []).map(gs => gs.search_class ? gs.search_class.number : '').filter(Boolean).join(', ');
+        [t.mark_text, t.registry_name, t.status, classes].forEach(val => {
+          const td = document.createElement('td');
+          td.textContent = val;
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      previewEl.textContent = '';
+      previewEl.appendChild(table);
+
+      const dlBtn = document.getElementById('downloadBtn');
+      if (dlBtn) dlBtn.textContent = `Download ${reportFilters.format.toUpperCase()}`;
+    };
+
+    const toggleChip = (chip, value, filterArray, filterKey) => {
+      const idx = reportFilters[filterKey].indexOf(value);
+      if (idx >= 0) {
+        reportFilters[filterKey].splice(idx, 1);
+        chip.classList.remove('active');
+      } else {
+        reportFilters[filterKey].push(value);
+        chip.classList.add('active');
+      }
+      updatePreview();
+    };
+
     const buildReportPanel = () => {
-      const reportPanel = document.getElementById('reportPanel');
-      reportPanel.innerHTML = '';
+      const overlay = document.getElementById('reportOverlay');
+      const backdrop = document.getElementById('reportBackdrop');
+      const panel = document.getElementById('reportPanel');
+      panel.textContent = '';
+      reportFilters = { offices: [], statuses: [], mark: 'all', format: 'csv' };
 
-      const header = h('div', 'report-panel-header');
-      header.appendChild(h('div', 'report-panel-title', 'Portfolio Report'));
-      const closeBtn = h('div', 'report-close', '✕');
-      closeBtn.onclick = () => reportPanel.classList.remove('open');
+      backdrop.onclick = () => overlay.classList.remove('open');
+
+      // Header
+      const header = h('div', 'report-header');
+      const h2 = document.createElement('h2');
+      h2.textContent = '📊 Report';
+      header.appendChild(h2);
+      const closeBtn = h('button', 'report-close', '✕');
+      closeBtn.onclick = () => overlay.classList.remove('open');
       header.appendChild(closeBtn);
-      reportPanel.appendChild(header);
+      panel.appendChild(header);
 
-      const exportCsv = h('button', 'report-export-btn');
-      exportCsv.innerHTML = '📥 Export as CSV';
-      exportCsv.onclick = () => exportCSV();
-      reportPanel.appendChild(exportCsv);
+      // Body
+      const body = h('div', 'report-body');
 
-      const exportXlsx = h('button', 'report-export-btn');
-      exportXlsx.innerHTML = '📊 Export as XLSX';
-      exportXlsx.onclick = () => exportXLSX();
-      reportPanel.appendChild(exportXlsx);
+      // Quick Presets
+      const presetSection = h('div', 'report-section');
+      presetSection.appendChild(h('div', 'report-section-title', 'QUICK PRESETS'));
+      const presetList = h('div', 'preset-list');
 
-      const exportPdf = h('button', 'report-export-btn');
-      exportPdf.innerHTML = '📄 Export as PDF';
-      exportPdf.onclick = () => exportPDF();
-      reportPanel.appendChild(exportPdf);
+      const presets = [
+        { icon: '📋', name: 'Full Portfolio', desc: 'All marks, all fields, CSV', offices: [], statuses: [], mark: 'all', format: 'csv' },
+        { icon: '🔄', name: 'Renewal Review', desc: 'Registered marks with renewal dates, Excel', offices: [], statuses: ['Registered'], mark: 'all', format: 'xlsx' },
+        { icon: '📊', name: 'Mark Overview', desc: 'All marks with Nice class counts, Excel', offices: [], statuses: [], mark: 'all', format: 'xlsx' },
+        { icon: '🏢', name: 'Registry Summary', desc: 'Stats by registry office, CSV', offices: [], statuses: [], mark: 'all', format: 'csv' }
+      ];
 
-      const reportContent = h('div');
-      reportContent.style.marginTop = '24px';
-      reportContent.appendChild(h('div', 'panel-section-title', 'Report Summary'));
-      const summary = h('div', 'info-card-text');
-      summary.innerHTML = `<strong>Trademark Portfolio Overview</strong><br/>Total Marks: ${data.count}<br/>Registered: ${data.trademarks.filter(t => t.status === 'Registered').length}<br/>Pending: ${data.trademarks.filter(t => t.status === 'Pending').length}<br/>Published: ${data.trademarks.filter(t => t.status === 'Published').length}`;
-      reportContent.appendChild(summary);
-      reportPanel.appendChild(reportContent);
+      let selectedPreset = null;
+      presets.forEach((preset, idx) => {
+        const item = h('div', 'preset-item');
+        item.appendChild(h('div', 'preset-icon', preset.icon));
+        const info = h('div', 'preset-info');
+        info.appendChild(h('div', 'preset-name', preset.name));
+        info.appendChild(h('div', 'preset-desc', preset.desc));
+        item.appendChild(info);
+        item.onclick = () => {
+          if (selectedPreset) selectedPreset.classList.remove('selected');
+          item.classList.add('selected');
+          selectedPreset = item;
+          reportFilters.offices = [...preset.offices];
+          reportFilters.statuses = [...preset.statuses];
+          reportFilters.mark = preset.mark;
+          reportFilters.format = preset.format;
+          // Update chip states
+          document.querySelectorAll('.filter-chip[data-type="office"]').forEach(c => {
+            c.classList.toggle('active', reportFilters.offices.includes(c.dataset.value));
+          });
+          document.querySelectorAll('.filter-chip[data-type="status"]').forEach(c => {
+            c.classList.toggle('active', reportFilters.statuses.includes(c.dataset.value));
+          });
+          document.querySelectorAll('.format-card').forEach(c => {
+            c.classList.toggle('selected', c.dataset.format === reportFilters.format);
+          });
+          const markSelect = document.getElementById('markFilter');
+          if (markSelect) markSelect.value = reportFilters.mark;
+          updatePreview();
+        };
+        presetList.appendChild(item);
+      });
+      presetSection.appendChild(presetList);
+      body.appendChild(presetSection);
+
+      // Filters
+      const filterSection = h('div', 'report-section');
+      filterSection.appendChild(h('div', 'report-section-title', 'FILTERS'));
+
+      // Registry filter chips
+      filterSection.appendChild(h('div', 'filter-label', 'Registry'));
+      const officeChips = h('div', 'filter-chips');
+      const offices = [...new Set(data.trademarks.map(t => t.registry_name))].sort();
+      offices.forEach(office => {
+        const chip = h('div', 'filter-chip', office);
+        chip.dataset.type = 'office';
+        chip.dataset.value = office;
+        chip.onclick = () => toggleChip(chip, office, reportFilters.offices, 'offices');
+        officeChips.appendChild(chip);
+      });
+      filterSection.appendChild(officeChips);
+
+      // Status filter chips
+      filterSection.appendChild(h('div', 'filter-label', 'Status'));
+      const statusChips = h('div', 'filter-chips');
+      const statusCounts = {};
+      data.trademarks.forEach(t => { statusCounts[t.status] = (statusCounts[t.status] || 0) + 1; });
+      Object.entries(statusCounts).forEach(([status, count]) => {
+        const chip = h('div', 'filter-chip', `${status} (${count})`);
+        chip.dataset.type = 'status';
+        chip.dataset.value = status;
+        chip.onclick = () => toggleChip(chip, status, reportFilters.statuses, 'statuses');
+        statusChips.appendChild(chip);
+      });
+      filterSection.appendChild(statusChips);
+
+      // Mark dropdown
+      filterSection.appendChild(h('div', 'filter-label', 'Mark'));
+      const markSelect = document.createElement('select');
+      markSelect.className = 'filter-select';
+      markSelect.id = 'markFilter';
+      const allOption = document.createElement('option');
+      allOption.value = 'all';
+      allOption.textContent = 'All marks';
+      markSelect.appendChild(allOption);
+      const marks = [...new Set(data.trademarks.map(t => t.mark_text))].sort();
+      marks.forEach(mark => {
+        const opt = document.createElement('option');
+        opt.value = mark;
+        opt.textContent = mark;
+        markSelect.appendChild(opt);
+      });
+      markSelect.onchange = () => { reportFilters.mark = markSelect.value; updatePreview(); };
+      filterSection.appendChild(markSelect);
+
+      body.appendChild(filterSection);
+
+      // Export Format
+      const formatSection = h('div', 'report-section');
+      formatSection.appendChild(h('div', 'report-section-title', 'EXPORT FORMAT'));
+      const formatRow = h('div', 'format-row');
+      const formats = [
+        { key: 'csv', icon: '📄', label: 'CSV', desc: 'Comma-separated' },
+        { key: 'xlsx', icon: '📊', label: 'Excel', desc: 'Two-sheet workbook' },
+        { key: 'pdf', icon: '📑', label: 'PDF', desc: 'Print-ready report' }
+      ];
+      formats.forEach(fmt => {
+        const card = h('div', 'format-card' + (fmt.key === 'csv' ? ' selected' : ''));
+        card.dataset.format = fmt.key;
+        card.appendChild(h('div', 'fmt-icon', fmt.icon));
+        card.appendChild(h('div', 'fmt-label', fmt.label));
+        card.appendChild(h('div', 'fmt-desc', fmt.desc));
+        card.onclick = () => {
+          document.querySelectorAll('.format-card').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          reportFilters.format = fmt.key;
+          updatePreview();
+        };
+        formatRow.appendChild(card);
+      });
+      formatSection.appendChild(formatRow);
+      body.appendChild(formatSection);
+
+      // Preview
+      const previewSection = h('div', 'report-section');
+      const previewTitle = h('div', 'report-section-title', `PREVIEW (${data.trademarks.length} MARKS)`);
+      previewTitle.id = 'previewTitle';
+      previewSection.appendChild(previewTitle);
+      const preview = h('div', 'report-preview');
+      preview.id = 'reportPreview';
+      previewSection.appendChild(preview);
+      body.appendChild(previewSection);
+
+      panel.appendChild(body);
+
+      // Footer
+      const footer = h('div', 'report-footer');
+      const cancelBtn = h('button', 'btn-cancel', 'Cancel');
+      cancelBtn.onclick = () => overlay.classList.remove('open');
+      footer.appendChild(cancelBtn);
+      const downloadBtn = h('button', 'btn-download', 'Download CSV');
+      downloadBtn.id = 'downloadBtn';
+      downloadBtn.onclick = () => {
+        if (reportFilters.format === 'csv') exportCSV();
+        else if (reportFilters.format === 'xlsx') exportXLSX();
+        else exportPDF();
+      };
+      footer.appendChild(downloadBtn);
+      panel.appendChild(footer);
+
+      updatePreview();
     };
 
     const exportCSV = () => {
-      const headers = ['Mark Name', 'Registry', 'Application Number', 'Status', 'Expiry Date'];
-      const rows = data.trademarks.map(t => [
+      const filtered = getFilteredTrademarks();
+      const headers = ['Mark Name', 'Registry', 'Application Number', 'Status', 'Expiry Date', 'Nice Classes'];
+      const rows = filtered.map(t => [
         t.mark_text,
         t.registry_name,
         t.application_number,
         t.status,
-        new Date(t.expiry_date).toLocaleDateString()
+        new Date(t.expiry_date).toLocaleDateString(),
+        (t.good_and_services || []).map(gs => gs.search_class ? gs.search_class.number : '').filter(Boolean).join('; ')
       ]);
 
       let csv = headers.join(',') + '\n';
@@ -823,13 +1110,15 @@
     };
 
     const exportXLSX = () => {
-      const headers = ['Mark Name', 'Registry', 'Application Number', 'Status', 'Expiry Date'];
-      const rows = data.trademarks.map(t => [
+      const filtered = getFilteredTrademarks();
+      const headers = ['Mark Name', 'Registry', 'Application Number', 'Status', 'Expiry Date', 'Nice Classes'];
+      const rows = filtered.map(t => [
         t.mark_text,
         t.registry_name,
         t.application_number,
         t.status,
-        new Date(t.expiry_date).toLocaleDateString()
+        new Date(t.expiry_date).toLocaleDateString(),
+        (t.good_and_services || []).map(gs => gs.search_class ? gs.search_class.number : '').filter(Boolean).join('; ')
       ]);
 
       const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
@@ -839,32 +1128,58 @@
     };
 
     const exportPDF = () => {
-      const element = h('div');
+      const filtered = getFilteredTrademarks();
+      const element = document.createElement('div');
       element.style.padding = '20px';
-      element.innerHTML = `
-        <h1>Trademark Portfolio Report</h1>
-        <p>Generated: ${new Date().toLocaleDateString()}</p>
-        <h2>Summary</h2>
-        <p>Total Marks: ${data.count}</p>
-        <p>Registered: ${data.trademarks.filter(t => t.status === 'Registered').length}</p>
-        <h2>Marks</h2>
-        <table style="width:100%;border-collapse:collapse;">
-          <tr>
-            <th style="border:1px solid #ddd;padding:8px;">Mark</th>
-            <th style="border:1px solid #ddd;padding:8px;">Registry</th>
-            <th style="border:1px solid #ddd;padding:8px;">Status</th>
-            <th style="border:1px solid #ddd;padding:8px;">Expiry</th>
-          </tr>
-          ${data.trademarks.map(t => `
-            <tr>
-              <td style="border:1px solid #ddd;padding:8px;">${t.mark_text}</td>
-              <td style="border:1px solid #ddd;padding:8px;">${t.registry_name}</td>
-              <td style="border:1px solid #ddd;padding:8px;">${t.status}</td>
-              <td style="border:1px solid #ddd;padding:8px;">${new Date(t.expiry_date).toLocaleDateString()}</td>
-            </tr>
-          `).join('')}
-        </table>
-      `;
+      element.style.fontFamily = 'Inter, Arial, sans-serif';
+
+      const title = document.createElement('h1');
+      title.textContent = 'BrandVault — Trademark Portfolio Report';
+      title.style.cssText = 'font-size:22px;margin-bottom:4px;color:#37352f;';
+      element.appendChild(title);
+
+      const dateLine = document.createElement('p');
+      dateLine.textContent = 'Generated: ' + new Date().toLocaleDateString();
+      dateLine.style.cssText = 'font-size:12px;color:#9b9a97;margin-bottom:20px;';
+      element.appendChild(dateLine);
+
+      const summaryH = document.createElement('h2');
+      summaryH.textContent = 'Summary';
+      summaryH.style.cssText = 'font-size:16px;margin-bottom:8px;color:#37352f;';
+      element.appendChild(summaryH);
+
+      const summaryP = document.createElement('p');
+      summaryP.textContent = `${filtered.length} marks · ${filtered.filter(t=>t.status==='Registered').length} registered · ${filtered.filter(t=>t.status==='Pending').length} pending · ${filtered.filter(t=>t.status==='Published').length} published`;
+      summaryP.style.cssText = 'font-size:13px;color:#37352f;margin-bottom:20px;';
+      element.appendChild(summaryP);
+
+      const table = document.createElement('table');
+      table.style.cssText = 'width:100%;border-collapse:collapse;font-size:11px;';
+      const thead = document.createElement('thead');
+      const hRow = document.createElement('tr');
+      ['Mark', 'Registry', 'Application No.', 'Status', 'Expiry', 'Nice Classes'].forEach(col => {
+        const th = document.createElement('th');
+        th.textContent = col;
+        th.style.cssText = 'border:1px solid #ddd;padding:6px 8px;background:#f7f6f5;text-align:left;font-weight:600;';
+        hRow.appendChild(th);
+      });
+      thead.appendChild(hRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+      filtered.forEach(t => {
+        const tr = document.createElement('tr');
+        const classes = (t.good_and_services||[]).map(gs=>gs.search_class?gs.search_class.number:'').filter(Boolean).join(', ');
+        [t.mark_text, t.registry_name, t.application_number, t.status, new Date(t.expiry_date).toLocaleDateString(), classes].forEach(val => {
+          const td = document.createElement('td');
+          td.textContent = val;
+          td.style.cssText = 'border:1px solid #ddd;padding:6px 8px;';
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      element.appendChild(table);
       document.body.appendChild(element);
 
       const opt = {
