@@ -63,18 +63,18 @@
     .topbar-btn:hover { background: #f7f6f5; }
     .topbar-btn.primary { background: #37352f; color: #fff; border-color: #37352f; }
     .topbar-btn.primary:hover { background: #2d2c28; }
-    .content-area { flex: 1; overflow-y: auto; padding: 28px; }
+    .content-area { flex: 1; overflow-y: auto; padding: 20px 28px; }
     .main-panel { display: flex; flex: 1; overflow: hidden; }
-    .page-title { font-size: 26px; font-weight: 700; color: #37352f; margin-bottom: 4px; }
-    .page-desc { font-size: 13px; color: #9b9a97; margin-bottom: 24px; }
-    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border: 1px solid #e8e5e0; border-radius: 12px; overflow: hidden; margin-bottom: 28px; background: #fff; }
-    .stat-card { padding: 20px 24px; border-right: 1px solid #e8e5e0; cursor: pointer; transition: background 0.12s; }
+    .page-title { font-size: 22px; font-weight: 700; color: #37352f; margin-bottom: 2px; }
+    .page-desc { font-size: 12px; color: #9b9a97; margin-bottom: 14px; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border: 1px solid #e8e5e0; border-radius: 10px; overflow: hidden; margin-bottom: 14px; background: #fff; }
+    .stat-card { padding: 12px 18px; border-right: 1px solid #e8e5e0; cursor: pointer; transition: background 0.12s; }
     .stat-card:hover { background: #fbfbfa; }
     .stat-card:last-child { border-right: none; }
-    .stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #9b9a97; margin-bottom: 8px; }
-    .stat-value { font-size: 32px; font-weight: 700; color: #37352f; }
+    .stat-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #9b9a97; margin-bottom: 4px; }
+    .stat-value { font-size: 24px; font-weight: 700; color: #37352f; }
     .stat-value.alert { color: #eb5757; }
-    .stat-change { font-size: 12px; color: #0f7b6c; margin-top: 2px; }
+    .stat-change { font-size: 11px; color: #0f7b6c; margin-top: 1px; }
     .stat-change.down { color: #eb5757; }
     .stat-card.alert-top { border-top: 3px solid #eb5757; }
     .dashboard-grid { display: grid; grid-template-columns: 1fr 340px; gap: 0; }
@@ -86,7 +86,7 @@
     .section-title { font-size: 15px; font-weight: 600; color: #37352f; }
     .section-count { font-size: 11px; font-weight: 600; color: #eb5757; background: rgba(235,87,87,0.08); padding: 2px 8px; border-radius: 10px; }
     .section-count.blue { color: #2e6b8a; background: rgba(46,107,138,0.08); }
-    .tab-bar { display: flex; gap: 0; border-bottom: 1px solid #e8e5e0; margin-bottom: 24px; }
+    .tab-bar { display: flex; gap: 0; border-bottom: 1px solid #e8e5e0; margin-bottom: 16px; }
     .tab-item { padding: 10px 18px; font-size: 13px; color: #9b9a97; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; font-weight: 500; }
     .tab-item:hover { color: #37352f; }
     .tab-item.active { color: #37352f; font-weight: 600; border-bottom-color: #37352f; }
@@ -123,6 +123,34 @@
     .pipeline-bubble.warning { border-color: #eb5757; background: rgba(235,87,87,0.06); color: #eb5757; }
     .pipeline-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #9b9a97; }
     .pipeline-arrow { color: #d3d1cb; font-size: 16px; }
+    .pipeline-stage { cursor: pointer; }
+    .pipeline-stage:hover .pipeline-bubble { transform: scale(1.08); }
+    .pipeline-bubble.selected { box-shadow: 0 0 0 3px rgba(46,107,138,0.25); }
+    .pipeline-filtered-list { margin-top: 20px; }
+    .pipeline-filtered-header { font-size: 13px; font-weight: 600; color: #37352f; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .pipeline-filtered-header .pf-count { font-size: 11px; font-weight: 600; color: #2e6b8a; background: rgba(46,107,138,0.08); padding: 2px 8px; border-radius: 10px; }
+    .pipeline-filtered-header .pf-clear { font-size: 11px; color: #9b9a97; cursor: pointer; margin-left: auto; }
+    .pipeline-filtered-header .pf-clear:hover { color: #eb5757; }
+    /* Search bar */
+    .search-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 14px; border: 1px solid #e8e5e0; border-radius: 8px;
+      background: #fff; margin-bottom: 12px; transition: border-color 0.15s;
+    }
+    .search-bar:focus-within { border-color: #2e6b8a; box-shadow: 0 0 0 2px rgba(46,107,138,0.08); }
+    .search-bar .search-icon { color: #9b9a97; font-size: 14px; flex-shrink: 0; }
+    .search-bar input {
+      flex: 1; border: none; outline: none; font-size: 13px; font-family: inherit;
+      color: #37352f; background: transparent;
+    }
+    .search-bar input::placeholder { color: #c4c4c0; }
+    .search-bar .search-clear {
+      font-size: 14px; color: #d3d1cb; cursor: pointer; background: none;
+      border: none; padding: 0 2px; display: none;
+    }
+    .search-bar .search-clear.visible { display: block; }
+    .search-bar .search-clear:hover { color: #9b9a97; }
+    .search-bar .search-count { font-size: 11px; color: #9b9a97; white-space: nowrap; }
     .tech-area-section { margin-top: 8px; }
     .tech-area-title { font-size: 15px; font-weight: 600; color: #37352f; margin-bottom: 16px; }
     .tech-bar-row { display: flex; align-items: center; margin-bottom: 16px; }
@@ -560,6 +588,8 @@
     const badgeColors = ['#2e6b8a','#6940a5','#0f7b6c','#c4823f','#8b5e3c','#5a7d5a','#b85450','#4a6fa5'];
     const niceClassColors = ['#2e6b8a','#6940a5','#0f7b6c','#c4823f','#8b5e3c'];
     let data = null;
+    let searchQuery = '';
+    let pipelineFilter = null;
 
     // Notes storage (localStorage-backed)
     const NOTES_KEY = 'brandvault_notes';
@@ -676,6 +706,17 @@
     };
 
     const initials = (str) => str?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'N/A';
+
+    const matchesSearch = (trademark) => {
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return (trademark.mark_text || '').toLowerCase().includes(q) ||
+             (trademark.application_number || '').toLowerCase().includes(q) ||
+             (trademark.registration_number || '').toLowerCase().includes(q) ||
+             (trademark.registry_name || '').toLowerCase().includes(q) ||
+             (trademark.status || '').toLowerCase().includes(q) ||
+             (trademark.client_agent_name || '').toLowerCase().includes(q);
+    };
 
     const loadData = async () => {
       try {
@@ -822,11 +863,22 @@
       topbar.appendChild(right);
     };
 
+    const rebuildTabs = () => {
+      const actionsContent = document.getElementById('actions-content');
+      const byMarkContent = document.getElementById('by-mark-content');
+      const pipelineContent = document.getElementById('pipeline-content');
+      const registryContent = document.getElementById('by-registry-content');
+      if (actionsContent) buildActionsTab(actionsContent);
+      if (byMarkContent) buildByMarkTab(byMarkContent);
+      if (pipelineContent) buildPipelineTab(pipelineContent);
+      if (registryContent) buildByRegistryTab(registryContent);
+    };
+
     const buildContentArea = () => {
       const contentArea = document.getElementById('contentArea');
       contentArea.innerHTML = '';
 
-      const pageTitle = h('div', 'page-title', 'BrandVault');
+      const pageTitle = h('div', 'page-title', 'Yoti');
       contentArea.appendChild(pageTitle);
 
       const registries = new Set(data.trademarks.map(t => t.registry_name)).size;
@@ -839,44 +891,46 @@
       const published = data.trademarks.filter(t => t.status === 'Published').length;
 
       const stat1 = h('div', 'stat-card');
-      stat1.style.cursor = 'pointer';
       stat1.appendChild(h('div', 'stat-label', 'TOTAL MARKS'));
       stat1.appendChild(h('div', 'stat-value', data.count.toString()));
       stat1.appendChild(h('div', 'stat-change', `${data.count} marks`));
-      stat1.onclick = () => switchTab('by-mark');
+      stat1.onclick = () => {
+        pipelineFilter = null;
+        switchTab('by-mark');
+        setTimeout(() => {
+          const first = document.querySelector('#by-mark-content .family-card');
+          if (first) first.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 50);
+      };
       statsRow.appendChild(stat1);
 
       const stat2 = h('div', 'stat-card');
-      stat2.style.cursor = 'pointer';
       stat2.appendChild(h('div', 'stat-label', 'REGISTERED'));
       stat2.appendChild(h('div', 'stat-value', registered.toString()));
       stat2.appendChild(h('div', 'stat-change', 'Active protection'));
       stat2.onclick = () => {
-        switchTab('by-mark');
+        pipelineFilter = 'REGISTERED';
+        switchTab('pipeline');
+        rebuildTabs();
         setTimeout(() => {
-          document.querySelectorAll('.family-card').forEach(card => {
-            const body = card.querySelector('.family-body');
-            const toggle = card.querySelector('.family-toggle');
-            const rows = card.querySelectorAll('.patent-row');
-            const hasRegistered = Array.from(rows).some(r => {
-              const s = r.querySelector('.patent-status');
-              return s && s.textContent === 'Registered';
-            });
-            if (hasRegistered && body && !body.classList.contains('expanded')) {
-              body.classList.add('expanded');
-              if (toggle) toggle.textContent = '\u25B2';
-            }
-          });
+          const list = document.querySelector('.pipeline-filtered-list');
+          if (list) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 50);
       };
       statsRow.appendChild(stat2);
 
       const stat3 = h('div', 'stat-card');
-      stat3.style.cursor = 'pointer';
       stat3.appendChild(h('div', 'stat-label', 'PENDING / PUBLISHED'));
       stat3.appendChild(h('div', 'stat-value', (pending + published).toString()));
       stat3.appendChild(h('div', 'stat-change', 'In prosecution'));
-      stat3.onclick = () => switchTab('pipeline');
+      stat3.onclick = () => {
+        pipelineFilter = null;
+        switchTab('pipeline');
+        setTimeout(() => {
+          const first = document.querySelector('#pipeline-content .pipeline-container');
+          if (first) first.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 50);
+      };
       statsRow.appendChild(stat3);
 
       const needsAction = data.trademarks.filter(t => {
@@ -885,14 +939,52 @@
       }).length;
 
       const stat4 = h('div', 'stat-card alert-top');
-      stat4.style.cursor = 'pointer';
       stat4.appendChild(h('div', 'stat-label', 'NEEDS ACTION'));
       stat4.appendChild(h('div', 'stat-value alert', needsAction.toString()));
       stat4.appendChild(h('div', 'stat-change down', 'Renewals & deadlines'));
-      stat4.onclick = () => switchTab('actions-required');
+      stat4.onclick = () => {
+        pipelineFilter = null;
+        switchTab('actions-required');
+        setTimeout(() => {
+          const first = document.querySelector('#actions-content .action-card');
+          if (first) first.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 50);
+      };
       statsRow.appendChild(stat4);
 
       contentArea.appendChild(statsRow);
+
+      // Search bar
+      const searchBar = h('div', 'search-bar');
+      const searchIcon = h('span', 'search-icon', '\uD83D\uDD0D');
+      searchBar.appendChild(searchIcon);
+      const searchInput = document.createElement('input');
+      searchInput.type = 'text';
+      searchInput.placeholder = 'Search marks, registries, application numbers\u2026';
+      searchInput.id = 'globalSearch';
+      if (searchQuery) searchInput.value = searchQuery;
+      const searchCount = h('span', 'search-count');
+      const searchClear = h('button', 'search-clear', '\u2715');
+      if (searchQuery) searchClear.classList.add('visible');
+
+      searchInput.oninput = () => {
+        searchQuery = searchInput.value.trim();
+        searchClear.classList.toggle('visible', !!searchQuery);
+        const matched = data.trademarks.filter(matchesSearch).length;
+        searchCount.textContent = searchQuery ? `${matched}/${data.count}` : '';
+        rebuildTabs();
+      };
+      searchClear.onclick = () => {
+        searchQuery = '';
+        searchInput.value = '';
+        searchClear.classList.remove('visible');
+        searchCount.textContent = '';
+        rebuildTabs();
+      };
+      searchBar.appendChild(searchInput);
+      searchBar.appendChild(searchCount);
+      searchBar.appendChild(searchClear);
+      contentArea.appendChild(searchBar);
 
       const tabBar = h('div', 'tab-bar');
       const tabs = ['Actions Required', 'By Mark', 'Pipeline', 'By Registry'];
@@ -938,7 +1030,7 @@
       container.innerHTML = '';
       const actionMarks = data.trademarks.filter(t => {
         const days = calculateDaysRemaining(t.expiry_date);
-        return days > 0 && days <= 365;
+        return days > 0 && days <= 365 && matchesSearch(t);
       }).sort((a, b) => calculateDaysRemaining(a.expiry_date) - calculateDaysRemaining(b.expiry_date));
 
       const header = h('div', 'section-header');
@@ -987,8 +1079,9 @@
 
     const buildByMarkTab = (container) => {
       container.innerHTML = '';
+      const filtered = data.trademarks.filter(matchesSearch);
       const marksByName = {};
-      data.trademarks.forEach(t => {
+      filtered.forEach(t => {
         if (!marksByName[t.mark_text]) marksByName[t.mark_text] = [];
         marksByName[t.mark_text].push(t);
       });
@@ -1064,10 +1157,11 @@
 
     const buildPipelineTab = (container) => {
       container.innerHTML = '';
+      const filtered = data.trademarks.filter(matchesSearch);
       const statuses = ['FILED', 'PUBLISHED', 'PENDING', 'REGISTERED', 'ABANDONED', 'EXPIRED'];
       const statusCounts = {};
       statuses.forEach(s => statusCounts[s] = 0);
-      data.trademarks.forEach(t => {
+      filtered.forEach(t => {
         if (statusCounts.hasOwnProperty(t.status.toUpperCase())) statusCounts[t.status.toUpperCase()]++;
       });
 
@@ -1078,23 +1172,74 @@
         const count = statusCounts[status] || 0;
         bubble.textContent = count;
         if (count > 0) bubble.classList.add(status === 'REGISTERED' ? 'highlight' : 'active');
+        if (pipelineFilter === status) bubble.classList.add('selected');
         stage.appendChild(bubble);
         const label = h('div', 'pipeline-label', status);
         stage.appendChild(label);
+
+        stage.onclick = () => {
+          if (pipelineFilter === status) {
+            pipelineFilter = null;
+          } else {
+            pipelineFilter = status;
+          }
+          buildPipelineTab(container);
+        };
+
         pipelineContainer.appendChild(stage);
 
         if (idx < statuses.length - 1) {
-          const arrow = h('div', 'pipeline-arrow', '→');
+          const arrow = h('div', 'pipeline-arrow', '\u2192');
           pipelineContainer.appendChild(arrow);
         }
       });
       container.appendChild(pipelineContainer);
 
+      // Filtered trademark list when a status is selected
+      if (pipelineFilter) {
+        const matchingMarks = filtered.filter(t => t.status.toUpperCase() === pipelineFilter);
+        const filteredList = h('div', 'pipeline-filtered-list');
+        const filteredHeader = h('div', 'pipeline-filtered-header');
+        filteredHeader.appendChild(document.createTextNode(pipelineFilter.charAt(0) + pipelineFilter.slice(1).toLowerCase()));
+        filteredHeader.appendChild(h('span', 'pf-count', matchingMarks.length.toString()));
+        const clearBtn = h('span', 'pf-clear', '\u2715 Clear filter');
+        clearBtn.onclick = () => { pipelineFilter = null; buildPipelineTab(container); };
+        filteredHeader.appendChild(clearBtn);
+        filteredList.appendChild(filteredHeader);
+
+        const list = h('div', 'action-list');
+        matchingMarks.forEach((mark, idx) => {
+          const card = h('div', 'action-card');
+          const initBadge = h('div', 'initials');
+          initBadge.textContent = initials(mark.mark_text);
+          initBadge.style.backgroundColor = badgeColors[idx % badgeColors.length];
+          card.appendChild(initBadge);
+
+          const info = h('div', 'info');
+          info.appendChild(h('div', 'title', mark.mark_text));
+          const sub = h('div', 'sub');
+          sub.textContent = `${mark.registry_name} \u00B7 ${mark.application_number}`;
+          info.appendChild(sub);
+          card.appendChild(info);
+
+          const statusColor = getStatusColor(mark.status);
+          const statusEl = h('div', 'patent-status', mark.status);
+          statusEl.style.backgroundColor = statusColor.bg;
+          statusEl.style.color = statusColor.color;
+          card.appendChild(statusEl);
+
+          card.onclick = () => showTrademarkDetail(mark);
+          list.appendChild(card);
+        });
+        filteredList.appendChild(list);
+        container.appendChild(filteredList);
+      }
+
       const techTitle = h('div', 'tech-area-title', 'By Nice Classification');
       container.appendChild(techTitle);
 
       const niceClasses = {};
-      data.trademarks.forEach(t => {
+      filtered.forEach(t => {
         if (t.good_and_services && Array.isArray(t.good_and_services)) {
           t.good_and_services.forEach(gs => {
             if (gs.search_class) {
@@ -1125,8 +1270,9 @@
 
     const buildByRegistryTab = (container) => {
       container.innerHTML = '';
+      const filtered = data.trademarks.filter(matchesSearch);
       const byRegistry = {};
-      data.trademarks.forEach(t => {
+      filtered.forEach(t => {
         if (!byRegistry[t.registry_name]) byRegistry[t.registry_name] = [];
         byRegistry[t.registry_name].push(t);
       });
