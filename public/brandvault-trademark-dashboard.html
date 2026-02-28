@@ -334,6 +334,148 @@
     .patent-row:hover { background: #f7f6f5; }
     .patent-row.selected { background: #eef6fb; }
     .action-card.selected { background: #eef6fb; border-left-color: #2e6b8a; }
+    /* Notes system */
+    .notes-composer {
+      display: flex; flex-direction: column; gap: 8px;
+      padding: 12px; border: 1px solid #e8e5e0; border-radius: 8px;
+      background: #fbfbfa; margin-bottom: 12px;
+    }
+    .notes-composer textarea {
+      width: 100%; min-height: 56px; border: 1px solid #e8e5e0; border-radius: 6px;
+      padding: 10px 12px; font-family: inherit; font-size: 13px; color: #37352f;
+      resize: vertical; background: #fff; line-height: 1.5;
+    }
+    .notes-composer textarea:focus { outline: none; border-color: #2e6b8a; box-shadow: 0 0 0 2px rgba(46,107,138,0.1); }
+    .notes-composer textarea::placeholder { color: #c4c4c0; }
+    .notes-composer-actions { display: flex; align-items: center; gap: 8px; }
+    .notes-link-input {
+      flex: 1; padding: 6px 10px; border: 1px solid #e8e5e0; border-radius: 6px;
+      font-size: 12px; color: #37352f; background: #fff; display: none;
+    }
+    .notes-link-input.visible { display: block; }
+    .notes-link-input:focus { outline: none; border-color: #2e6b8a; }
+    .notes-link-input::placeholder { color: #c4c4c0; }
+    .notes-btn-link {
+      font-size: 12px; padding: 5px 10px; border-radius: 5px; border: 1px solid #e8e5e0;
+      background: #fff; cursor: pointer; color: #9b9a97; transition: all 0.12s;
+    }
+    .notes-btn-link:hover { border-color: #2e6b8a; color: #2e6b8a; }
+    .notes-btn-link.active { border-color: #2e6b8a; color: #2e6b8a; background: rgba(46,107,138,0.04); }
+    .notes-btn-save {
+      margin-left: auto; font-size: 12px; padding: 5px 14px; border-radius: 5px;
+      border: none; background: #37352f; color: #fff; cursor: pointer; font-weight: 500;
+      transition: background 0.12s;
+    }
+    .notes-btn-save:hover { background: #2d2c28; }
+    .notes-btn-save:disabled { opacity: 0.4; cursor: default; }
+    .note-card {
+      border: 1px solid #e8e5e0; border-radius: 8px; padding: 12px 14px;
+      margin-bottom: 6px; background: #fff; transition: all 0.12s;
+    }
+    .note-card:hover { border-color: #d3d1cb; }
+    .note-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .note-avatar {
+      width: 22px; height: 22px; border-radius: 50%; background: #2e6b8a;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .note-meta { font-size: 11px; color: #9b9a97; }
+    .note-meta strong { color: #37352f; font-weight: 600; }
+    .note-text { font-size: 13px; color: #37352f; line-height: 1.5; white-space: pre-wrap; }
+    .note-link-chip {
+      display: inline-flex; align-items: center; gap: 4px; margin-top: 6px;
+      font-size: 11px; color: #2e6b8a; background: rgba(46,107,138,0.06);
+      padding: 3px 10px; border-radius: 10px; text-decoration: none;
+      border: 1px solid rgba(46,107,138,0.15); transition: all 0.12s;
+    }
+    .note-link-chip:hover { background: rgba(46,107,138,0.12); border-color: rgba(46,107,138,0.3); }
+    .note-empty { font-size: 12px; color: #c4c4c0; text-align: center; padding: 16px; font-style: italic; }
+    .note-delete {
+      margin-left: auto; font-size: 14px; color: #d3d1cb; cursor: pointer;
+      background: none; border: none; padding: 0 4px; transition: color 0.12s;
+    }
+    .note-delete:hover { color: #eb5757; }
+    /* Horizontal timeline */
+    .htimeline-container { margin-bottom: 8px; }
+    .htimeline-label {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.05em; color: #9b9a97; margin-bottom: 8px;
+    }
+    .htimeline-track {
+      display: flex; align-items: center; position: relative;
+      padding: 8px 0; min-height: 52px;
+    }
+    .htimeline-line {
+      position: absolute; left: 0; right: 0; top: 50%; height: 2px;
+      background: #e8e5e0; transform: translateY(-50%);
+    }
+    .htimeline-event {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      position: relative; z-index: 1; flex: 1; min-width: 0;
+    }
+    .htimeline-dot {
+      width: 12px; height: 12px; border-radius: 50%;
+      border: 2px solid #e8e5e0; background: #fff; flex-shrink: 0;
+      transition: all 0.2s;
+    }
+    .htimeline-dot.filled { border-color: #0f7b6c; background: #0f7b6c; }
+    .htimeline-dot.active { border-color: #2e6b8a; background: #2e6b8a; box-shadow: 0 0 0 3px rgba(46,107,138,0.15); }
+    .htimeline-dot.warning { border-color: #f2994a; background: #f2994a; }
+    .htimeline-dot.danger { border-color: #eb5757; background: #eb5757; box-shadow: 0 0 0 3px rgba(235,87,87,0.15); }
+    .htimeline-dot.future { border-color: #d3d1cb; background: #fff; border-style: dashed; }
+    .htimeline-evt-label { font-size: 9px; font-weight: 600; text-transform: uppercase; color: #9b9a97; text-align: center; white-space: nowrap; }
+    .htimeline-evt-date { font-size: 10px; color: #37352f; font-weight: 500; text-align: center; white-space: nowrap; }
+    .htimeline-obligation {
+      display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+      border: 1px solid #e8e5e0; border-radius: 6px; margin-bottom: 4px;
+      font-size: 11px; background: #fff; transition: all 0.12s;
+    }
+    .htimeline-obligation:hover { border-color: #d3d1cb; background: #fbfbfa; }
+    .htimeline-obligation .ob-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .htimeline-obligation .ob-label { flex: 1; color: #37352f; font-weight: 500; }
+    .htimeline-obligation .ob-date { color: #9b9a97; font-size: 10px; }
+    .htimeline-obligation .ob-badge {
+      font-size: 9px; font-weight: 600; padding: 2px 7px; border-radius: 8px;
+    }
+    /* Deadline management */
+    .deadline-section { margin-top: 24px; }
+    .deadline-card {
+      display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+      border: 1px solid #e8e5e0; border-radius: 8px; margin-bottom: 6px;
+      background: #fff; cursor: pointer; transition: all 0.12s;
+      border-left: 3px solid transparent;
+    }
+    .deadline-card:hover { border-color: #d3d1cb; background: #fbfbfa; }
+    .deadline-card.urgent { border-left-color: #eb5757; }
+    .deadline-card.soon { border-left-color: #f2994a; }
+    .deadline-card.upcoming { border-left-color: #0f7b6c; }
+    .deadline-info { flex: 1; }
+    .deadline-mark { font-size: 13px; font-weight: 600; color: #37352f; }
+    .deadline-desc { font-size: 11px; color: #9b9a97; margin-top: 1px; }
+    .deadline-badge { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 8px; white-space: nowrap; }
+    .deadline-actions { display: flex; gap: 4px; }
+    .deadline-copy-btn {
+      font-size: 10px; padding: 4px 8px; border-radius: 4px;
+      border: 1px solid #e8e5e0; background: #fff; cursor: pointer;
+      color: #9b9a97; transition: all 0.12s;
+    }
+    .deadline-copy-btn:hover { border-color: #2e6b8a; color: #2e6b8a; }
+    .deadline-copy-btn.copied { background: #0f7b6c; color: #fff; border-color: #0f7b6c; }
+    .deadline-empty { font-size: 12px; color: #c4c4c0; text-align: center; padding: 20px; border: 1px dashed #e8e5e0; border-radius: 8px; }
+    .jira-export-bar {
+      display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+      border: 1px solid #e8e5e0; border-radius: 8px; background: #fbfbfa;
+      margin-bottom: 16px;
+    }
+    .jira-export-bar .jira-label { font-size: 12px; color: #37352f; font-weight: 500; flex: 1; }
+    .jira-export-btn {
+      font-size: 12px; padding: 6px 14px; border-radius: 6px;
+      border: 1px solid #e8e5e0; background: #fff; cursor: pointer;
+      color: #37352f; font-weight: 500; transition: all 0.12s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .jira-export-btn:hover { background: #f7f6f5; border-color: #d3d1cb; }
+    .jira-export-btn.copied { background: #0f7b6c; color: #fff; border-color: #0f7b6c; }
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-thumb { background: #d3d1cb; border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: #b0aeaa; }
@@ -371,6 +513,96 @@
     const badgeColors = ['#2e6b8a','#6940a5','#0f7b6c','#c4823f','#8b5e3c','#5a7d5a','#b85450','#4a6fa5'];
     const niceClassColors = ['#2e6b8a','#6940a5','#0f7b6c','#c4823f','#8b5e3c'];
     let data = null;
+
+    // Notes storage (localStorage-backed)
+    const NOTES_KEY = 'brandvault_notes';
+    const loadNotes = () => {
+      try { return JSON.parse(localStorage.getItem(NOTES_KEY) || '{}'); } catch { return {}; }
+    };
+    const saveNotes = (notes) => localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+    const getNotesForTrademark = (id) => (loadNotes()[id] || []);
+    const addNote = (trademarkId, text, link) => {
+      const notes = loadNotes();
+      if (!notes[trademarkId]) notes[trademarkId] = [];
+      notes[trademarkId].unshift({
+        id: Date.now().toString(36),
+        text, link: link || null,
+        author: 'MK', authorFull: 'Mark Kingsley-Williams',
+        date: new Date().toISOString()
+      });
+      saveNotes(notes);
+      return notes[trademarkId];
+    };
+    const deleteNote = (trademarkId, noteId) => {
+      const notes = loadNotes();
+      if (notes[trademarkId]) {
+        notes[trademarkId] = notes[trademarkId].filter(n => n.id !== noteId);
+        saveNotes(notes);
+      }
+      return notes[trademarkId] || [];
+    };
+
+    // Registry-specific obligation rules
+    const registryObligations = {
+      'USPTO': [
+        { type: 'Declaration of Use', yearsAfterReg: 5, window: 1, desc: 'Section 8 Declaration of Continued Use (Years 5-6)', critical: true },
+        { type: 'Incontestability', yearsAfterReg: 5, window: 1, desc: 'Section 15 Declaration of Incontestability (Years 5-6)', critical: false },
+        { type: 'Renewal + Declaration', yearsAfterReg: 10, window: 1, desc: 'Section 8 & 9 Combined Renewal and Declaration', critical: true, recurring: 10 }
+      ],
+      'UKIPO': [
+        { type: 'Renewal', yearsAfterReg: 10, window: 0.5, desc: 'Renewal due every 10 years from filing date', critical: true, recurring: 10 }
+      ],
+      'EUIPO': [
+        { type: 'Renewal', yearsAfterReg: 10, window: 0.5, desc: 'Renewal due every 10 years from filing date', critical: true, recurring: 10 },
+        { type: 'Proof of Use', yearsAfterReg: 5, window: 0, desc: 'Vulnerable to revocation for non-use after 5 years', critical: false }
+      ],
+      'WIPO': [
+        { type: 'Renewal', yearsAfterReg: 10, window: 0.5, desc: 'Madrid Protocol renewal every 10 years', critical: true, recurring: 10 }
+      ],
+      'INPI': [
+        { type: 'Renewal', yearsAfterReg: 10, window: 0.5, desc: 'Renewal every 10 years', critical: true, recurring: 10 }
+      ],
+      'IPOS': [
+        { type: 'Renewal', yearsAfterReg: 10, window: 0.5, desc: 'Renewal every 10 years', critical: true, recurring: 10 }
+      ],
+      'IP Australia': [
+        { type: 'Renewal', yearsAfterReg: 10, window: 0.5, desc: 'Renewal every 10 years', critical: true, recurring: 10 }
+      ]
+    };
+
+    const getObligationsForTrademark = (trademark) => {
+      const rules = registryObligations[trademark.registry_name] || [];
+      const regDate = trademark.registration_date ? new Date(trademark.registration_date) : null;
+      if (!regDate) return [];
+      const obligations = [];
+      const now = new Date();
+
+      rules.forEach(rule => {
+        const maxYears = rule.recurring ? 100 : rule.yearsAfterReg;
+        for (let yr = rule.yearsAfterReg; yr <= maxYears; yr += (rule.recurring || maxYears + 1)) {
+          const dueDate = new Date(regDate);
+          dueDate.setFullYear(dueDate.getFullYear() + yr);
+          const windowStart = new Date(dueDate);
+          windowStart.setMonth(windowStart.getMonth() - (rule.window * 12));
+          const daysUntil = Math.floor((dueDate - now) / (1000 * 60 * 60 * 24));
+          if (daysUntil < -365) continue;
+          if (daysUntil > 365 * 15) break;
+          obligations.push({
+            type: rule.type,
+            desc: rule.desc,
+            dueDate,
+            windowStart,
+            daysUntil,
+            critical: rule.critical,
+            actionable: daysUntil <= 180 && daysUntil > 0,
+            overdue: daysUntil < 0,
+            inWindow: now >= windowStart && daysUntil > 0
+          });
+        }
+      });
+
+      return obligations.sort((a, b) => a.daysUntil - b.daysUntil);
+    };
 
     const getDaysBadgeColor = (days) => {
       if (days <= 90) return { bg: 'rgba(235,87,87,0.08)', color: '#eb5757', text: `${days}d` };
@@ -1020,30 +1252,104 @@
       coreSection.appendChild(grid);
       body.appendChild(coreSection);
 
-      // Timeline
+      // Horizontal Timeline — Track 1: Pre-registration
       const timelineSection = h('div', 'detail-section');
       timelineSection.appendChild(h('div', 'detail-section-title', 'TIMELINE'));
-      const timeline = h('div', 'detail-timeline');
 
-      const timelineEvents = [
-        { label: 'Applied', date: trademark.application_date, dot: 'blue' },
-        { label: 'Published', date: trademark.publication_date, dot: 'blue' },
-        { label: 'Granted', date: trademark.grant_date, dot: 'green' },
-        { label: 'Registered', date: trademark.registration_date, dot: 'green' },
-        { label: 'Office Action', date: trademark.office_action_date, dot: 'orange' },
-        { label: 'Expiry', date: trademark.expiry_date, dot: days <= 365 ? 'red' : 'gray' }
-      ];
+      const fmtShort = (d) => { if (!d) return ''; const dt = new Date(d); return dt.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }); };
+      const now = new Date();
 
-      timelineEvents.forEach(evt => {
-        if (!evt.date) return;
-        const item = h('div', 'timeline-item');
-        const dot = h('div', `timeline-dot ${evt.dot}`);
-        item.appendChild(dot);
-        item.appendChild(h('span', 'timeline-label', evt.label));
-        item.appendChild(h('span', 'timeline-value', fmtD(evt.date)));
-        timeline.appendChild(item);
+      // Track 1: Pre-registration milestones
+      const track1Container = h('div', 'htimeline-container');
+      track1Container.appendChild(h('div', 'htimeline-label', 'Registration'));
+      const track1 = h('div', 'htimeline-track');
+      track1.appendChild(h('div', 'htimeline-line'));
+
+      const preEvents = [
+        { label: 'Filed', date: trademark.application_date },
+        { label: 'Published', date: trademark.publication_date },
+        { label: 'Granted', date: trademark.grant_date },
+        { label: 'Registered', date: trademark.registration_date }
+      ].filter(e => e.date);
+
+      if (trademark.office_action_date) {
+        preEvents.push({ label: 'Office Action', date: trademark.office_action_date });
+        preEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+      }
+
+      preEvents.forEach(evt => {
+        const event = h('div', 'htimeline-event');
+        const evtDate = new Date(evt.date);
+        const isPast = evtDate <= now;
+        const dotClass = evt.label === 'Office Action' ? 'warning' :
+                         evt.label === 'Registered' || evt.label === 'Granted' ? 'filled' :
+                         isPast ? 'active' : 'future';
+        event.appendChild(h('div', 'htimeline-evt-label', evt.label));
+        event.appendChild(h('div', `htimeline-dot ${dotClass}`));
+        event.appendChild(h('div', 'htimeline-evt-date', fmtShort(evt.date)));
+        track1.appendChild(event);
       });
-      timelineSection.appendChild(timeline);
+      track1Container.appendChild(track1);
+      timelineSection.appendChild(track1Container);
+
+      // Track 2: Post-registration obligations
+      const obligations = getObligationsForTrademark(trademark);
+      const postEvents = [];
+      if (trademark.expiry_date) {
+        postEvents.push({ label: 'Expiry', date: trademark.expiry_date, isExpiry: true });
+      }
+      obligations.forEach(ob => {
+        postEvents.push({ label: ob.type, date: ob.dueDate.toISOString(), obligation: ob });
+      });
+      postEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      if (postEvents.length > 0) {
+        const track2Container = h('div', 'htimeline-container');
+        track2Container.appendChild(h('div', 'htimeline-label', 'Post-Registration Obligations'));
+        const track2 = h('div', 'htimeline-track');
+        track2.appendChild(h('div', 'htimeline-line'));
+
+        postEvents.slice(0, 6).forEach(evt => {
+          const event = h('div', 'htimeline-event');
+          const evtDate = new Date(evt.date);
+          const daysTo = Math.floor((evtDate - now) / (1000 * 60 * 60 * 24));
+          let dotClass = 'future';
+          if (daysTo < 0) dotClass = 'filled';
+          else if (daysTo <= 90) dotClass = 'danger';
+          else if (daysTo <= 180) dotClass = 'warning';
+          else if (evt.isExpiry && daysTo <= 365) dotClass = 'danger';
+          event.appendChild(h('div', 'htimeline-evt-label', evt.label));
+          event.appendChild(h('div', `htimeline-dot ${dotClass}`));
+          event.appendChild(h('div', 'htimeline-evt-date', fmtShort(evt.date)));
+          track2.appendChild(event);
+        });
+        track2Container.appendChild(track2);
+        timelineSection.appendChild(track2Container);
+      }
+
+      // Obligation details list
+      if (obligations.length > 0) {
+        const obList = h('div');
+        obList.style.marginTop = '12px';
+        obligations.forEach(ob => {
+          const obItem = h('div', 'htimeline-obligation');
+          const obDot = h('div', 'ob-dot');
+          obDot.style.backgroundColor = ob.overdue ? '#eb5757' : ob.actionable ? '#f2994a' : ob.inWindow ? '#0f7b6c' : '#d3d1cb';
+          obItem.appendChild(obDot);
+          obItem.appendChild(h('span', 'ob-label', ob.desc));
+          obItem.appendChild(h('span', 'ob-date', fmtD(ob.dueDate.toISOString())));
+          if (ob.actionable || ob.overdue) {
+            const badge = h('span', 'ob-badge');
+            badge.textContent = ob.overdue ? 'Overdue' : `${ob.daysUntil}d`;
+            badge.style.backgroundColor = ob.overdue ? 'rgba(235,87,87,0.08)' : 'rgba(242,153,74,0.08)';
+            badge.style.color = ob.overdue ? '#eb5757' : '#f2994a';
+            obItem.appendChild(badge);
+          }
+          obList.appendChild(obItem);
+        });
+        timelineSection.appendChild(obList);
+      }
+
       body.appendChild(timelineSection);
 
       // Goods & Services
@@ -1115,16 +1421,109 @@
         body.appendChild(relSection);
       }
 
-      // Notes
+      // Publication notes (from API)
       if (trademark.publication_notes || trademark.notes) {
-        const notesSection = h('div', 'detail-section');
-        notesSection.appendChild(h('div', 'detail-section-title', 'NOTES'));
+        const pubNotesSection = h('div', 'detail-section');
+        pubNotesSection.appendChild(h('div', 'detail-section-title', 'PUBLICATION NOTES'));
         const noteText = h('div');
         noteText.style.cssText = 'font-size:13px;color:#37352f;line-height:1.5;padding:12px 14px;border:1px solid #e8e5e0;border-radius:8px;background:#fbfbfa;';
         noteText.textContent = trademark.publication_notes || trademark.notes || '';
-        notesSection.appendChild(noteText);
-        body.appendChild(notesSection);
+        pubNotesSection.appendChild(noteText);
+        body.appendChild(pubNotesSection);
       }
+
+      // User notes (Notion-style)
+      const userNotesSection = h('div', 'detail-section');
+      const existingNotes = getNotesForTrademark(trademark.id);
+      userNotesSection.appendChild(h('div', 'detail-section-title', `NOTES${existingNotes.length > 0 ? ' (' + existingNotes.length + ')' : ''}`));
+
+      // Composer
+      const composer = h('div', 'notes-composer');
+      const textarea = document.createElement('textarea');
+      textarea.placeholder = 'Add a note\u2026 (e.g., renewal instructions, case reference, DMS link)';
+      composer.appendChild(textarea);
+
+      const actions = h('div', 'notes-composer-actions');
+      const linkInput = document.createElement('input');
+      linkInput.className = 'notes-link-input';
+      linkInput.type = 'url';
+      linkInput.placeholder = 'Paste link (Teams, Google Docs, DMS\u2026)';
+
+      const linkBtn = h('button', 'notes-btn-link', '\uD83D\uDD17 Link');
+      linkBtn.onclick = () => {
+        linkInput.classList.toggle('visible');
+        linkBtn.classList.toggle('active');
+        if (linkInput.classList.contains('visible')) linkInput.focus();
+      };
+      actions.appendChild(linkBtn);
+      actions.appendChild(linkInput);
+
+      const saveBtn = h('button', 'notes-btn-save', 'Add note');
+      saveBtn.disabled = true;
+      textarea.oninput = () => { saveBtn.disabled = !textarea.value.trim(); };
+
+      const notesList = h('div');
+      notesList.id = 'notesList-' + trademark.id;
+
+      const renderNotes = () => {
+        notesList.textContent = '';
+        const notes = getNotesForTrademark(trademark.id);
+        if (notes.length === 0) {
+          notesList.appendChild(h('div', 'note-empty', 'No notes yet'));
+          return;
+        }
+        notes.forEach(note => {
+          const card = h('div', 'note-card');
+          const noteHeader = h('div', 'note-header');
+          noteHeader.appendChild(h('div', 'note-avatar', note.author || 'MK'));
+          const meta = h('div', 'note-meta');
+          const strong = document.createElement('strong');
+          strong.textContent = note.authorFull || 'Mark Kingsley-Williams';
+          meta.appendChild(strong);
+          meta.appendChild(document.createTextNode(' \u00B7 ' + fmtD(note.date)));
+          noteHeader.appendChild(meta);
+          const delBtn = h('button', 'note-delete', '\u00D7');
+          delBtn.title = 'Delete note';
+          delBtn.onclick = () => { deleteNote(trademark.id, note.id); renderNotes(); };
+          noteHeader.appendChild(delBtn);
+          card.appendChild(noteHeader);
+          card.appendChild(h('div', 'note-text', note.text));
+          if (note.link) {
+            const chipLink = document.createElement('a');
+            chipLink.className = 'note-link-chip';
+            chipLink.href = note.link;
+            chipLink.target = '_blank';
+            chipLink.rel = 'noopener';
+            const domain = (() => { try { return new URL(note.link).hostname.replace('www.',''); } catch { return 'link'; } })();
+            chipLink.textContent = '\uD83D\uDD17 ' + domain;
+            card.appendChild(chipLink);
+          }
+          notesList.appendChild(card);
+        });
+      };
+
+      saveBtn.onclick = () => {
+        const text = textarea.value.trim();
+        if (!text) return;
+        const link = linkInput.value.trim() || null;
+        addNote(trademark.id, text, link);
+        textarea.value = '';
+        linkInput.value = '';
+        linkInput.classList.remove('visible');
+        linkBtn.classList.remove('active');
+        saveBtn.disabled = true;
+        renderNotes();
+        // Update section title count
+        const titleEl = userNotesSection.querySelector('.detail-section-title');
+        const count = getNotesForTrademark(trademark.id).length;
+        if (titleEl) titleEl.textContent = `NOTES (${count})`;
+      };
+      actions.appendChild(saveBtn);
+      composer.appendChild(actions);
+      userNotesSection.appendChild(composer);
+      userNotesSection.appendChild(notesList);
+      renderNotes();
+      body.appendChild(userNotesSection);
 
       panel.appendChild(body);
 
@@ -1219,6 +1618,73 @@
         renewalList.appendChild(item);
       });
       rightPanel.appendChild(renewalList);
+
+      // Deadline Management section
+      const deadlineHeader = h('div');
+      deadlineHeader.classList.add('view-all');
+      deadlineHeader.appendChild(h('div', 'panel-section-title', 'Actionable Deadlines'));
+      rightPanel.appendChild(deadlineHeader);
+
+      // Collect all actionable deadlines (within 6 months)
+      const allDeadlines = [];
+      data.trademarks.forEach(tm => {
+        const obs = getObligationsForTrademark(tm);
+        obs.forEach(ob => {
+          if (ob.actionable || ob.inWindow) {
+            allDeadlines.push({ trademark: tm, obligation: ob });
+          }
+        });
+      });
+      allDeadlines.sort((a, b) => a.obligation.daysUntil - b.obligation.daysUntil);
+
+      if (allDeadlines.length > 0) {
+        // Jira export bar
+        const jiraBar = h('div', 'jira-export-bar');
+        jiraBar.appendChild(h('span', 'jira-label', `${allDeadlines.length} actionable deadline${allDeadlines.length > 1 ? 's' : ''}`));
+        const jiraBtn = h('button', 'jira-export-btn');
+        jiraBtn.innerHTML = '\uD83D\uDCCB Copy for Jira';
+        jiraBtn.onclick = () => {
+          const lines = allDeadlines.map(d => {
+            const tm = d.trademark;
+            const ob = d.obligation;
+            const due = ob.dueDate.toISOString().split('T')[0];
+            return `[${tm.mark_text}] ${ob.type} - ${tm.registry_name} ${tm.application_number} | Due: ${due} (${ob.daysUntil}d) | ${ob.desc}`;
+          });
+          const text = 'BRANDVAULT DEADLINES\n' + '='.repeat(40) + '\n' + lines.join('\n');
+          navigator.clipboard.writeText(text).then(() => {
+            jiraBtn.classList.add('copied');
+            jiraBtn.textContent = '\u2705 Copied!';
+            setTimeout(() => { jiraBtn.classList.remove('copied'); jiraBtn.innerHTML = '\uD83D\uDCCB Copy for Jira'; }, 2000);
+          });
+        };
+        jiraBar.appendChild(jiraBtn);
+        rightPanel.appendChild(jiraBar);
+
+        // Individual deadline cards
+        allDeadlines.slice(0, 8).forEach(d => {
+          const tm = d.trademark;
+          const ob = d.obligation;
+          const urgency = ob.daysUntil <= 60 ? 'urgent' : ob.daysUntil <= 120 ? 'soon' : 'upcoming';
+          const card = h('div', `deadline-card ${urgency}`);
+
+          const info = h('div', 'deadline-info');
+          info.appendChild(h('div', 'deadline-mark', `${tm.mark_text} \u00B7 ${tm.registry_name}`));
+          info.appendChild(h('div', 'deadline-desc', ob.type + ' \u2014 ' + ob.desc));
+          card.appendChild(info);
+
+          const daysBadge = getDaysBadgeColor(ob.daysUntil);
+          const badge = h('div', 'deadline-badge');
+          badge.textContent = `${ob.daysUntil}d`;
+          badge.style.backgroundColor = daysBadge.bg;
+          badge.style.color = daysBadge.color;
+          card.appendChild(badge);
+
+          card.onclick = () => showTrademarkDetail(tm);
+          rightPanel.appendChild(card);
+        });
+      } else {
+        rightPanel.appendChild(h('div', 'deadline-empty', 'No actionable deadlines in the next 6 months'));
+      }
     };
 
     let reportFilters = { offices: [], statuses: [], mark: 'all', format: 'csv' };
