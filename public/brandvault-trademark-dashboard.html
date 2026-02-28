@@ -68,7 +68,8 @@
     .page-title { font-size: 26px; font-weight: 700; color: #37352f; margin-bottom: 4px; }
     .page-desc { font-size: 13px; color: #9b9a97; margin-bottom: 24px; }
     .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border: 1px solid #e8e5e0; border-radius: 12px; overflow: hidden; margin-bottom: 28px; background: #fff; }
-    .stat-card { padding: 20px 24px; border-right: 1px solid #e8e5e0; }
+    .stat-card { padding: 20px 24px; border-right: 1px solid #e8e5e0; cursor: pointer; transition: background 0.12s; }
+    .stat-card:hover { background: #fbfbfa; }
     .stat-card:last-child { border-right: none; }
     .stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #9b9a97; margin-bottom: 8px; }
     .stat-value { font-size: 32px; font-weight: 700; color: #37352f; }
@@ -367,6 +368,29 @@
           markItem.appendChild(h('span', '', mark));
           const badge = h('div', 'badge-muted', count.toString());
           markItem.appendChild(badge);
+          markItem.onclick = () => {
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            markItem.classList.add('active');
+            switchTab('by-mark');
+            setTimeout(() => {
+              const cards = document.querySelectorAll('.family-card');
+              cards.forEach(card => {
+                const name = card.querySelector('.family-name');
+                const body = card.querySelector('.family-body');
+                const toggle = card.querySelector('.family-toggle');
+                if (name && name.textContent === mark) {
+                  if (!body.classList.contains('expanded')) {
+                    body.classList.add('expanded');
+                    if (toggle) toggle.textContent = '\u25B2';
+                  }
+                  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else if (body && body.classList.contains('expanded')) {
+                  body.classList.remove('expanded');
+                  if (toggle) toggle.textContent = '\u25BC';
+                }
+              });
+            }, 50);
+          };
           sidebar.appendChild(markItem);
         });
       }
@@ -443,21 +467,44 @@
       const published = data.trademarks.filter(t => t.status === 'Published').length;
 
       const stat1 = h('div', 'stat-card');
+      stat1.style.cursor = 'pointer';
       stat1.appendChild(h('div', 'stat-label', 'TOTAL MARKS'));
       stat1.appendChild(h('div', 'stat-value', data.count.toString()));
       stat1.appendChild(h('div', 'stat-change', `${data.count} marks`));
+      stat1.onclick = () => switchTab('by-mark');
       statsRow.appendChild(stat1);
 
       const stat2 = h('div', 'stat-card');
+      stat2.style.cursor = 'pointer';
       stat2.appendChild(h('div', 'stat-label', 'REGISTERED'));
       stat2.appendChild(h('div', 'stat-value', registered.toString()));
       stat2.appendChild(h('div', 'stat-change', 'Active protection'));
+      stat2.onclick = () => {
+        switchTab('by-mark');
+        setTimeout(() => {
+          document.querySelectorAll('.family-card').forEach(card => {
+            const body = card.querySelector('.family-body');
+            const toggle = card.querySelector('.family-toggle');
+            const rows = card.querySelectorAll('.patent-row');
+            const hasRegistered = Array.from(rows).some(r => {
+              const s = r.querySelector('.patent-status');
+              return s && s.textContent === 'Registered';
+            });
+            if (hasRegistered && body && !body.classList.contains('expanded')) {
+              body.classList.add('expanded');
+              if (toggle) toggle.textContent = '\u25B2';
+            }
+          });
+        }, 50);
+      };
       statsRow.appendChild(stat2);
 
       const stat3 = h('div', 'stat-card');
+      stat3.style.cursor = 'pointer';
       stat3.appendChild(h('div', 'stat-label', 'PENDING / PUBLISHED'));
       stat3.appendChild(h('div', 'stat-value', (pending + published).toString()));
       stat3.appendChild(h('div', 'stat-change', 'In prosecution'));
+      stat3.onclick = () => switchTab('pipeline');
       statsRow.appendChild(stat3);
 
       const needsAction = data.trademarks.filter(t => {
@@ -466,9 +513,11 @@
       }).length;
 
       const stat4 = h('div', 'stat-card alert-top');
+      stat4.style.cursor = 'pointer';
       stat4.appendChild(h('div', 'stat-label', 'NEEDS ACTION'));
       stat4.appendChild(h('div', 'stat-value alert', needsAction.toString()));
       stat4.appendChild(h('div', 'stat-change down', 'Renewals & deadlines'));
+      stat4.onclick = () => switchTab('actions-required');
       statsRow.appendChild(stat4);
 
       contentArea.appendChild(statsRow);
