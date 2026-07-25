@@ -33,3 +33,6 @@ export async function createNotification(input: {
   });
   return { id: n.id, link: notificationLink(n.id) };
 }
+
+/** Deep link to the side-by-side comparison for a third-party filing notice. */
+export const watchNoticeLink = (id: string) => `${APP_BASE_URL}/watch/${id}`;

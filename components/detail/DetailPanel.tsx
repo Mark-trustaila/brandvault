@@ -13,9 +13,11 @@ function sanitiseHtml(html: string): string {
 import styles from './DetailPanel.module.css';
 import { useDashboard } from '../../context/DashboardContext';
 import { useNotes } from '../../hooks/useNotes';
-import { BADGE_COLORS, NICE_CLASS_COLORS, formatDate, getStatusStyle, getObligationsForTrademark } from '../../lib/utils';
+import { formatDate, getStatusStyle, getObligationsForTrademark } from '../../lib/utils';
 import { computeCompleteness } from '../../lib/completeness';
 import { discrepancyTooltip, reconciliationForMark } from '../../lib/reconciliation';
+import WatchNoticeLink from './WatchNoticeLink';
+import MarkTile from '../ui/MarkTile';
 import type { Trademark } from '../../types/trademark';
 
 const NICE_CLASS_NAMES: Record<number, string> = {
@@ -192,15 +194,13 @@ function RightsRecord({ trademark }: { trademark: Trademark }) {
           <div className={`${styles.field} ${styles.fieldFull}`}>
             <div className={styles.fieldLabel}>Goods &amp; Services</div>
             <div className={styles.gsInlineRow}>
-              {gsClasses.map((gs, idx) => {
+              {gsClasses.map((gs) => {
                 const classNum = gs.search_class.number;
-                const color = NICE_CLASS_COLORS[idx % NICE_CLASS_COLORS.length];
                 const isActive = activeGsClass === classNum;
                 return (
                   <span
                     key={classNum}
                     className={`${styles.gsInlineBadge} ${isActive ? styles.gsInlineBadgeActive : ''}`}
-                    style={{ backgroundColor: color }}
                     onClick={() => setActiveGsClass(isActive ? null : classNum)}
                   >
                     Class {classNum}
@@ -214,7 +214,7 @@ function RightsRecord({ trademark }: { trademark: Trademark }) {
               return (
                 <div className={styles.gsExpandedDetail}>
                   <div className={styles.gsExpandedClassName}>
-                    Class {activeGsClass} — {NICE_CLASS_NAMES[activeGsClass] || 'General'}
+                    Class {activeGsClass}: {NICE_CLASS_NAMES[activeGsClass] || 'General'}
                   </div>
                   <div>{gs.text}</div>
                 </div>
@@ -312,9 +312,12 @@ export default function DetailPanel() {
       {/* When the Bree panel (360px, right:0) is open, sit alongside it, not over it. */}
       <div className={styles.panel} style={breeOpen ? { right: 360 } : undefined}>
         <div className={styles.header}>
-          <div className={styles.headerBadge} style={{ backgroundColor: BADGE_COLORS[0] }}>
-            {selectedTrademark.mark_text.slice(0, 2).toUpperCase()}
-          </div>
+          <MarkTile
+            className={styles.headerBadge}
+            color="#2e6b8a"
+            imageUrl={selectedTrademark.image_url}
+            applicationNumber={selectedTrademark.application_number}
+          />
           <div className={styles.headerInfo}>
             <h2 className={styles.headerTitle}>{selectedTrademark.mark_text}</h2>
             <div className={styles.headerSub}>
@@ -342,6 +345,7 @@ export default function DetailPanel() {
               </div>
             );
           })()}
+          <WatchNoticeLink trademarkId={selectedTrademark.id} />
           {isRegistered ? (
             <>
               <NotesSection trademark={selectedTrademark} />

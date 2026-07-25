@@ -7,3 +7,4 @@
 {"file":"euipo-login-notification.eml","registry":"EUIPO","type":"euipo_login_notification","refs":["018444555"],"expectHigh":false,"action":"alert 'retrieve from User Area'; placeholder action item"}
 {"file":"forwarded-ref-in-pdf.eml","registry":"UKIPO","type":"examination_report","refs":["UK00003555444"],"expectHigh":false,"action":"ref only in PDF; alert + extract 30 Sep 2026 deadline"}
 {"file":"ambiguous-client-question.eml","registry":"unknown","type":"ambiguous","refs":[],"expectHigh":false,"action":"no action; low confidence; do not invent a reference"}
+{"file":"ukipo-watch-notice-earlier-rights.eml","registry":"UKIPO","type":"watch_notice","refs":["UK00002530115"],"expectHigh":false,"action":"alert only; anchor a WatchNotice to UK00002530115; third party Assos UK00004437218 classes 18+25; opposition deadline 2026-08-26; FIXTURE (invented applicant and application number)"}

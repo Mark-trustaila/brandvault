@@ -33,7 +33,7 @@ All on branch demo/real-gb-data in brandvault-asos (merge to main first if not y
     ABORT the import, never default.
   - Dates: take the registry's calendar date, pin to UTC midnight (avoids the +01:00
     timezone shifting filings back a day — 96/173 ASOS marks were affected).
-  - Device marks (no verbal element): mark_text = "[device mark — no verbal element]
+  - Device marks (no verbal element): mark_text = "[device mark, no verbal element]
     <application number>" so every view renders something identifiable.
   - Deadlines: generated only for live statuses (gate in the loader; the obligation engine
     itself has no status gating — logged as a known issue in the repo CLAUDE.md).

@@ -1,7 +1,8 @@
 'use client';
 import styles from './ActionsTab.module.css';
+import MarkTile from '../ui/MarkTile';
 import { useDashboard } from '../../context/DashboardContext';
-import { BADGE_COLORS, calculateDaysRemaining, getDaysBadgeStyle, getInitials } from '../../lib/utils';
+import { BADGE_COLORS, calculateDaysRemaining, getDaysBadgeStyle } from '../../lib/utils';
 
 export default function ActionsTab() {
   const { filteredTrademarks, setSelectedTrademark, selectedTrademark } = useDashboard();
@@ -36,12 +37,12 @@ export default function ActionsTab() {
                 className={`${styles.card} ${isSelected ? styles.cardSelected : ''}`}
                 onClick={() => setSelectedTrademark(mark)}
               >
-                <div
+                <MarkTile
                   className={styles.initials}
-                  style={{ backgroundColor: BADGE_COLORS[idx % BADGE_COLORS.length] }}
-                >
-                  {getInitials(mark.mark_text)}
-                </div>
+                  color={BADGE_COLORS[idx % BADGE_COLORS.length]}
+                  imageUrl={mark.image_url}
+                  applicationNumber={mark.application_number}
+                />
                 <div className={styles.info}>
                   <div className={styles.markName}>{mark.mark_text}</div>
                   <div className={styles.sub}>Renewal due in {days} days</div>

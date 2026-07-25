@@ -194,7 +194,7 @@ change to the delete set — say so and I will make it, but I would not.
    `UK00003819949`, `UK00003834437`, `UK00003843033`, `UK00906273701`,
    `UK00909134181` — carrying only a `MarkImageUri`. This is the nature of the
    mark, not incomplete data, so `needsData` stays false.
-   **Proposed:** store the literal `[device mark — no verbal element]`.
+   **Proposed:** store the literal `[device mark, no verbal element]`.
    Alternatives: use the application number as the display text, or skip the 7
    (loading 166). I recommend the placeholder — it is honest in the UI and keeps
    the portfolio complete.
@@ -306,7 +306,7 @@ shared Azure database (`brandvault-mysql…/brandvault`).
   `Abandoned←Withdrawn` 6, `Pending←Examination` 1,
   `Published←Application Published` 1.
 - Deadline gate holds: Registered 291, Published 2, Pending 1, **Abandoned 0**.
-- 7 device marks stored as `[device mark — no verbal element] UK000…`,
+- 7 device marks stored as `[device mark, no verbal element] UK000…`,
   `needsData = false`.
 - Calendar dates preserved: `UK00000945589` ("Miss Selfridge") filed
   **1969-07-15**, not 1969-07-14.

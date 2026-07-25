@@ -20,10 +20,10 @@ const withBree = (text: string, blocks: Block[], appLink?: string): BreeMessage 
 
 export function renewalAlert(o: { markText: string; registry: string; type: string; dueDate: string; daysRemaining: number; appLink?: string }): BreeMessage {
   return withBree(
-    `${o.type} for ${o.markText} (${o.registry}) due in ${o.daysRemaining} days — ${o.dueDate}`,
+    `${o.type} for ${o.markText} (${o.registry}) due in ${o.daysRemaining} days. Due ${o.dueDate}`,
     [
       header('Renewal approaching'),
-      section(`*${o.markText}* · ${o.registry}\n${o.type} due *${o.dueDate}* — *${o.daysRemaining} days* remaining`),
+      section(`*${o.markText}* · ${o.registry}\n${o.type} due *${o.dueDate}*. *${o.daysRemaining} days* remaining`),
     ],
     o.appLink
   );
@@ -43,12 +43,12 @@ export function weeklyDigest(o: {
   appLink?: string;
 }): BreeMessage {
   const lines = o.upcoming.length
-    ? o.upcoming.map((u) => `• *${u.markText}* (${u.registry}) — ${u.type} in ${u.daysRemaining}d · ${u.dueDate}`).join('\n')
+    ? o.upcoming.map((u) => `• *${u.markText}* (${u.registry}): ${u.type} in ${u.daysRemaining}d · ${u.dueDate}`).join('\n')
     : '_Nothing due soon._';
   return withBree(
     `Weekly digest for ${o.companyName}: ${o.upcoming.length} upcoming`,
     [
-      header(`Weekly digest — ${o.companyName}`),
+      header(`Weekly digest: ${o.companyName}`),
       section(o.upcoming.length ? `*${o.upcoming.length}* upcoming deadline${o.upcoming.length === 1 ? '' : 's'}:` : 'Nothing due soon.'),
       section(lines),
     ],
@@ -70,7 +70,7 @@ export function portfolioSummary(o: { companyName: string; total: number; regist
 
 export function renewalsList(o: { items: { markText: string; registry: string; dueDate: string; daysRemaining: number }[] }): BreeMessage {
   if (o.items.length === 0) return withBree('No upcoming renewals', [section('No renewals coming up.')]);
-  const lines = o.items.map((i) => `• *${i.markText}* (${i.registry}) — *${i.daysRemaining}d* · ${i.dueDate}`).join('\n');
+  const lines = o.items.map((i) => `• *${i.markText}* (${i.registry}): *${i.daysRemaining}d* · ${i.dueDate}`).join('\n');
   return withBree(`${o.items.length} upcoming renewals`, [header('Next renewals'), section(lines)]);
 }
 
@@ -85,14 +85,14 @@ export function markStatusMsg(o: { query: string; groups: StatusGroup[] }): Bree
         const d = r.nextDeadline
           ? `next ${r.nextDeadline.type} *${r.nextDeadline.dueDate}* (${r.nextDeadline.daysRemaining}d)`
           : 'no upcoming deadline';
-        return `• *${r.registry}* — ${r.status} · ${d}`;
+        return `• *${r.registry}*: ${r.status} · ${d}`;
       })
       .join('\n');
     blocks.push(section(`*${g.markText}*\n${lines}`));
   }
   const regs = o.groups.reduce((n, g) => n + g.rows.length, 0);
   const names = o.groups.length;
-  const summary = names === 1 ? `${o.groups[0].markText} — ${regs} registration${regs === 1 ? '' : 's'}` : `${regs} registrations across ${names} marks`;
+  const summary = names === 1 ? `${o.groups[0].markText}: ${regs} registration${regs === 1 ? '' : 's'}` : `${regs} registrations across ${names} marks`;
   return withBree(summary, [header('Mark status'), ...blocks]);
 }
 
@@ -103,15 +103,50 @@ const TYPE_LABEL: Record<string, string> = {
   examination_report: 'Examination report',
   opposition_notice: 'Opposition filed against your mark',
   opposition_procedural: 'Opposition/tribunal update',
-  watch_notice: 'Watch alert — a mark may conflict',
+  watch_notice: 'Third-party filing notice',
   cancellation_notice: 'Cancellation reported',
-  euipo_login_notification: 'EUIPO communication — retrieve from User Area',
+  euipo_login_notification: 'EUIPO communication. Retrieve from User Area',
   ambiguous: 'Correspondence',
   other: 'Registry correspondence',
 };
 
 const markLine = (markText?: string, registry?: string) =>
   markText ? `*${markText}*${registry ? ` · ${registry}` : ''}` : '_mark not in your portfolio_';
+
+/**
+ * watch_notice → a third party has applied for a mark the registry flagged
+ * against one of ours. Alert only: nothing is mutated, nothing is proposed.
+ *
+ * Both application numbers are in the text. Two ASOS marks can share a due date
+ * and a mark name, so the number is what makes the right identifiable in the
+ * alert itself. No em dashes.
+ */
+export function watchNoticeAlert(o: {
+  thirdPartyMarkText: string;
+  thirdPartyApplicationNumber: string;
+  registry: string;
+  classes: number[];
+  ourMarkText: string;
+  ourApplicationNumber: string;
+  oppositionDeadline?: string | null;
+  daysToOpposition?: number | null;
+  appLink?: string;
+}): BreeMessage {
+  const classList = o.classes.length ? `class${o.classes.length === 1 ? '' : 'es'} ${o.classes.join(', ')}` : 'classes not stated';
+  const summary = `Third-party filing notice: ${o.thirdPartyMarkText} (${o.thirdPartyApplicationNumber}) applied for at ${o.registry}`;
+
+  const lines = [
+    `*${o.thirdPartyMarkText}* (${o.thirdPartyApplicationNumber}) applied for at ${o.registry}, ${classList}.`,
+    `Potentially relevant to your *${o.ourMarkText}* (${o.ourApplicationNumber}).`,
+  ];
+  if (o.oppositionDeadline) {
+    const countdown = typeof o.daysToOpposition === 'number' ? ` (${o.daysToOpposition} days)` : '';
+    lines.push(`Opposition period ends *${o.oppositionDeadline}*${countdown}.`);
+  }
+  if (o.appLink) lines.push(`<${o.appLink}|See in app →>`);
+
+  return withBree(summary, [header('Third-party filing notice'), section(lines.join('\n'))]);
+}
 
 // registration_certificate → mark set Registered + renewal deadline calculated.
 export function emailRegistered(o: { markText: string; registry: string; renewalDate?: string }): BreeMessage {
@@ -134,18 +169,18 @@ export function renewalReconcileMatch(o: { markText: string; registry: string; d
 // renewal_reminder reconciliation — MISMATCH (data error or engine bug).
 export function renewalReconcileMismatch(o: { markText: string; registry: string; ourDate: string | null; theirDate: string | null }): BreeMessage {
   return withBree(`${o.markText}: renewal date MISMATCH (registry ${o.theirDate ?? '?'} vs ours ${o.ourDate ?? '?'})`, [
-    header('Renewal date mismatch — please review'),
+    header('Renewal date mismatch. Please review'),
     section(
       `${markLine(o.markText, o.registry)}\nRegistry says renewal is due *${o.theirDate ?? 'unknown'}*, but our deadline is *${o.ourDate ?? 'none calculated'}*.` +
-        `\nThis is either a portfolio-data error or a deadline-engine issue — both worth checking.`
+        `\nThis is either a portfolio-data error or a deadline-engine issue. Both are worth checking.`
     ),
   ]);
 }
 
 type ApprovalAction = 'renewal_confirmation' | 'registration_certificate';
 const APPROVAL_HEADING: Record<ApprovalAction, string> = {
-  renewal_confirmation: 'Approval needed — record renewal',
-  registration_certificate: 'Approval needed — mark registered',
+  renewal_confirmation: 'Approval needed: record renewal',
+  registration_certificate: 'Approval needed: mark registered',
 };
 
 // A mark-mutating action Bree wants to take, proposed for human approval.
@@ -159,9 +194,9 @@ export function emailApprovalRequest(o: {
   detail: string;
 }): BreeMessage {
   const heading = APPROVAL_HEADING[o.action];
-  return withBree(`${heading} — ${o.markText} (${o.registry})`, [
+  return withBree(`${heading}: ${o.markText} (${o.registry})`, [
     header(heading),
-    section(`${markLine(o.markText, o.registry)}\n${o.detail}\n\n_No data has changed yet — Bree will make this change only if you approve._`),
+    section(`${markLine(o.markText, o.registry)}\n${o.detail}\n\n_No data has changed yet. Bree will make this change only if you approve._`),
     {
       type: 'actions',
       block_id: `approval:${o.approvalId}`,
@@ -184,7 +219,7 @@ export function emailApprovalResolved(o: {
   effect: string;
 }): BreeMessage {
   const verb = o.decision === 'approved' ? 'Approved' : 'Rejected';
-  return withBree(`${verb} by ${o.by} — ${o.markText} (${o.registry})`, [
+  return withBree(`${verb} by ${o.by}: ${o.markText} (${o.registry})`, [
     header(APPROVAL_HEADING[o.action]),
     section(`${markLine(o.markText, o.registry)}\n*${verb}* by ${o.by}.\n${o.effect}`),
   ]);
@@ -193,7 +228,7 @@ export function emailApprovalResolved(o: {
 // renewal_confirmation → deadline marked complete.
 export function renewalCompleted(o: { markText: string; registry: string; dueDate?: string }): BreeMessage {
   return withBree(`${o.markText}: renewal recorded, deadline cleared`, [
-    section(`${markLine(o.markText, o.registry)}\nRegistry confirmed the renewal was processed — the renewal deadline${o.dueDate ? ` (${o.dueDate})` : ''} is now complete.`),
+    section(`${markLine(o.markText, o.registry)}\nRegistry confirmed the renewal was processed. The renewal deadline${o.dueDate ? ` (${o.dueDate})` : ''} is now complete.`),
   ]);
 }
 
@@ -209,11 +244,11 @@ export function emailAlert(o: {
   const label = TYPE_LABEL[o.type] ?? 'Registry correspondence';
   const lines: string[] = [];
   if (o.urgency === 'high') lines.push('*Priority: High.*');
-  lines.push(`${markLine(o.markText, o.registry)} — *${label}*`);
+  lines.push(`${markLine(o.markText, o.registry)}: *${label}*`);
   if (o.deadline) lines.push(`Deadline: *${o.deadline}*`);
-  if (o.type === 'cancellation_notice' && o.markText) lines.push(`_Status change reported — please confirm. The record has NOT been changed._`);
+  if (o.type === 'cancellation_notice' && o.markText) lines.push(`_Status change reported. Please confirm. The record has NOT been changed._`);
   if (o.summary) lines.push(`_${o.summary}_`);
-  return withBree(`${label}${o.markText ? ` — ${o.markText}` : ''}`, [header(label), section(lines.join('\n'))]);
+  return withBree(`${label}${o.markText ? `: ${o.markText}` : ''}`, [header(label), section(lines.join('\n'))]);
 }
 
 // A matched reference points at a mark not in the portfolio (feature, not error).
@@ -237,10 +272,10 @@ export function help(): BreeMessage {
   return withBree('Bree commands', [
     header('Bree commands'),
     section(
-      '`/bree portfolio` — portfolio summary\n' +
-        '`/bree renewals` — next 5 upcoming renewals\n' +
-        '`/bree status [mark]` — a mark’s status + next deadline\n' +
-        '`/bree help` — this message'
+      '`/bree portfolio` gives a portfolio summary\n' +
+        '`/bree renewals` lists the next 5 upcoming renewals\n' +
+        '`/bree status [mark]` gives a mark’s status and next deadline\n' +
+        '`/bree help` shows this message'
     ),
   ]);
 }

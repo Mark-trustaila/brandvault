@@ -133,6 +133,52 @@ see the Phase 4 note below. SMTP email channel still not wired.
 Post-MEV, not started: 5. CSV self-service import · 6. Bree command surface
 expansion · 7. Multi-jurisdiction rules + teams.
 
+## Device-mark images
+
+The seven GB figurative marks render their actual mark image in the avatar tile
+and the detail header, from `trademarks.image_url`. Everything else keeps a
+plain coloured tile with no lettering: initials read to an IP audience as a
+mark's logo or device version, which is misleading for a word mark.
+
+- **Images are served from the LawPanel CDN** (`lawpanel-data.azureedge.net`).
+  This is a deliberate ONE-DIRECTIONAL dependency: BrandVault reads, never
+  writes, and a CDN outage degrades to the plain tile rather than breaking a
+  view. When the facade is built, its contract gains an `imageUrl` field and
+  BrandVault reads the URL from there instead of holding its own copy.
+- **URLs are stored verbatim, never templated.** `UK00002182599` is served as
+  `UK00002182599_1_0.jpg`, which no `{appnum}.jpg` rule would produce. The
+  mapping is fixed data in `scripts/load-device-images.ts`, and a test asserts
+  that entry has not been replaced by a rule.
+- `image_url` is null on almost every record and is deliberately NOT part of
+  completeness scoring. Its absence is normal, not a gap.
+
+## Intake taxonomy
+
+`COMMUNICATION_TYPES` in `lib/email-types.ts` has already drifted past the "v1
+taxonomy" its own comment describes: `watch_notice` and `opposition_procedural`
+were both added after it was written. Treat that comment as history, not as the
+current list.
+
+`watch_notice` is the first type to get a **persistence model and a view** of
+its own rather than an alert alone: third-party filing notices anchor a
+`WatchNotice` row to the cited customer mark and open a side-by-side comparison.
+It stays **alert-only**. Nothing in this path mutates mark data, nothing
+proposes an approval, and no flag promotes it to auto-act.
+
+Two rules it establishes for anything that follows:
+
+- **Anchor on cited numbers, never on mark text.** `lib/watch-notices.ts`
+  resolves the customer mark from the application number the notice quotes. A
+  cited number matching nothing in the portfolio produces no notice at all and
+  routes alert-only to `/inbox` with a "no matching right" note. Mark-text
+  matching is not implemented and must not be added: "Assos" against "ASOS" is
+  exactly the case where a string-similarity guess attaches a notice to the
+  wrong right.
+- **Present the conflict, do not assess it.** The comparison view computes a
+  class-number set intersection and nothing else. No similarity score, no
+  likelihood-of-confusion indicator, no recommended action. A test asserts those
+  words do not appear.
+
 ## Renewal date invariant
 
 Renewal deadlines reconcile registry expiry against the calculated date.

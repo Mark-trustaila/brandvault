@@ -52,6 +52,35 @@ export const STATUS_MAP: Record<string, MarkStatus> = {
 export const NO_DEADLINE_STATUSES = new Set<MarkStatus>([MarkStatus.Abandoned, MarkStatus.Expired]);
 
 /**
+ * UKIPO single-number convention, applied as an explicit documented load rule.
+ *
+ * The source export carries no registration-number element at all: 680 distinct
+ * leaf elements across the file, none of them a registration number. So there is
+ * nothing to backfill FROM, and the number has to come from the convention or
+ * stay null.
+ *
+ * UKIPO issues one number per right. For a UK000 national mark and for a UK009
+ * comparable mark (created as a registered right on EU exit, with a UK number
+ * UKIPO itself assigned) that number IS the registration identifier once the
+ * mark is registered, so writing it describes a fact rather than inventing one.
+ *
+ * UK008 is deliberately excluded: that number identifies the international
+ * registration designating the UK, not a UK registration number. It stays null
+ * pending a separate decision.
+ *
+ * THIS IS UKIPO ONLY AND MUST NOT BE GENERALISED. EUIPO, USPTO and WIPO issue
+ * registration numbers distinct from the application number; copying one across
+ * in those registries would fabricate an identifier.
+ */
+export const REG_NUMBER_PREFIXES = ['UK000', 'UK009'] as const;
+
+export function ukRegistrationNumber(applicationNumber: string, status: MarkStatus): string | null {
+  if (status !== MarkStatus.Registered) return null;
+  if (!REG_NUMBER_PREFIXES.some((p) => applicationNumber.startsWith(p))) return null;
+  return applicationNumber;
+}
+
+/**
  * Display text for a figurative mark with no verbal element.
  *
  * The application number is part of the stored string rather than added by the
@@ -61,7 +90,7 @@ export const NO_DEADLINE_STATUSES = new Set<MarkStatus>([MarkStatus.Abandoned, M
  * marks identifiable in every view without touching display code before a demo.
  */
 export const deviceMarkLabel = (applicationNumber: string) =>
-  `[device mark — no verbal element] ${applicationNumber}`;
+  `[device mark, no verbal element] ${applicationNumber}`;
 
 /* ── source types ─────────────────────────────────────────────── */
 export interface FieldPair { field: string; value: string }
@@ -171,9 +200,7 @@ export function transform(mk: ExportMark): MappedMark {
     status,
     registryStatusRaw: mk.status,
     applicationNumber: mk.application_number,
-    // GB has no separate registration number — the application number carries
-    // through on registration. Left null rather than duplicated.
-    registrationNumber: null,
+    registrationNumber: ukRegistrationNumber(mk.application_number, status),
     filingDate,
     registrationDate,
     expiryDate: dateAt(mk, 'TradeMark/ExpiryDate'),

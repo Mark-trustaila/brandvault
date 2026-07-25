@@ -27,6 +27,12 @@ export function serializeTrademark(m: Trademark & { goodsServices: GoodsService[
     representative_name: m.representativeName ?? undefined,
     representative_reference: m.representativeReference ?? undefined,
     needs_data: m.needsData ?? false,
+    // Verbatim registry status, written by the registry loader. Its presence is
+    // what marks a record as registry-synced rather than hand-entered.
+    registry_status_raw: m.registryStatusRaw ?? undefined,
+    // Device-mark image (LawPanel CDN). Null on almost every record; the UI
+    // falls back to the plain tile.
+    image_url: m.imageUrl ?? undefined,
     good_and_services: m.goodsServices.map((g) => ({
       search_class: { number: g.classNumber },
       text: g.text,

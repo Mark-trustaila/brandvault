@@ -9,12 +9,7 @@ Azure MySQL database** (see the root `CLAUDE.md` env table). A migration sitting
 in `prisma/migrations/` is one stray `npm run db:deploy` away from altering
 production. Staging it here removes that path entirely.
 
-## Staged now
-
-- `20260725130000_deadline_reconciliation` — additive nullable
-  `registry_expiry_date`, `calculated_due_date` and `dates_differ` on
-  `deadlines`. Provenance only: the reconciliation behaviour and the flagged
-  display both work without it. See `lib/reconciliation.ts`.
+Currently empty — nothing is staged.
 
 ## Promotion sequence
 
@@ -39,6 +34,16 @@ For any migration staged here, all steps need explicit approval:
 
 ## History
 
+- `20260725140000_trademark_image_url` — nullable `trademarks.image_url` for
+  device-mark images. Approved and promoted 2026-07-25 as
+  `prisma/migrations/20260725140000_trademark_image_url`; the seven URLs were
+  loaded by `scripts/load-device-images.ts`.
+- `20260725120000_watch_notices` — `watch_notices` table for third-party
+  filing notices. Approved and promoted 2026-07-25 as
+  `prisma/migrations/20260725120000_watch_notices`.
+- `20260725130000_deadline_reconciliation` — provenance columns on
+  `deadlines`. Approved and promoted 2026-07-25 as
+  `prisma/migrations/20260725130000_deadline_reconciliation`.
 - `20260724_trademark_registry_status_raw` — added
   `trademarks.registry_status_raw VARCHAR(191) NULL` to hold verbatim registry
   status alongside the mapped `MarkStatus` enum. Approved and promoted

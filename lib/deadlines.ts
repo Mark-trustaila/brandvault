@@ -101,6 +101,12 @@ export async function recalcDeadlines(
   const obligations = getObligationsForTrademark(shaped);
   const needsData = obligations.some((o) => o.uncertain);
   const concrete = reconcileObligations(obligations, mark.expiryDate, mark.status, now);
+  // The engine's own next future renewal, before reconciliation added anything.
+  const nextCalculated =
+    obligations
+      .filter((o) => o.type === 'Renewal' && !o.uncertain && o.dueDate && (o.dueDate as Date) > now)
+      .map((o) => o.dueDate as Date)
+      .sort((a, b) => a.getTime() - b.getTime())[0] ?? null;
 
   await prisma.$transaction([
     prisma.deadline.deleteMany({ where: { trademarkId: mark.id } }),
@@ -113,6 +119,18 @@ export async function recalcDeadlines(
               description: o.desc,
               dueDate: o.dueDate as Date,
               windowStart: (o.windowStart ?? o.dueDate) as Date,
+              // Provenance: which date the registry stated, which the engine
+              // derived, and whether they disagreed when this row was written.
+              ...(o.type === 'Renewal'
+                ? {
+                    registryExpiryDate: mark.expiryDate,
+                    calculatedDueDate: nextCalculated,
+                    datesDiffer:
+                      mark.expiryDate !== null &&
+                      nextCalculated !== null &&
+                      !sameDay(mark.expiryDate, nextCalculated),
+                  }
+                : {}),
             })),
             skipDuplicates: true,
           }),

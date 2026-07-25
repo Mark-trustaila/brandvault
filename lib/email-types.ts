@@ -48,7 +48,29 @@ export type Confidence = (typeof CONFIDENCE_LEVELS)[number];
 
 export type MentionedDeadline = { date: string; description: string };
 
+/**
+ * Extraction for watch_notice only. The third party's details plus the
+ * customer's own marks that the notice cites.
+ *
+ * citedMarkReferences is the anchor: a WatchNotice is only ever created against
+ * a mark whose application number the notice actually quotes. Nothing here is
+ * matched by mark text. Every field is nullable because a watch-service alert
+ * states less than a registry notification does, and an absent field must read
+ * as "not stated", never as a default.
+ */
+export type WatchNoticeDetails = {
+  thirdPartyMarkText: string | null;
+  thirdPartyApplicationNumber: string | null;
+  thirdPartyClasses: number[];
+  filingDate: string | null;
+  publicationDate: string | null;
+  oppositionDeadline: string | null;
+  citedMarkReferences: string[];
+};
+
 export type Classification = {
+  /** Present only for watch_notice. */
+  watchNotice?: WatchNoticeDetails | null;
   registry: Registry;
   communicationType: CommunicationType;
   referenceNumbers: string[];
