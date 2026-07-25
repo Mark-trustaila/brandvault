@@ -9,7 +9,11 @@ import { recalcDeadlines } from '../lib/deadlines';
 
 async function main() {
   const marks = await prisma.trademark.findMany({
-    select: { id: true, registryName: true, filingDate: true, registrationDate: true },
+    select: {
+      id: true, registryName: true, filingDate: true, registrationDate: true,
+      // Reconciliation inputs: the registry expiry and the liveness guard.
+      expiryDate: true, status: true,
+    },
   });
   let deadlines = 0;
   let needsData = 0;

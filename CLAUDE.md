@@ -133,7 +133,34 @@ see the Phase 4 note below. SMTP email channel still not wired.
 Post-MEV, not started: 5. CSV self-service import · 6. Bree command surface
 expansion · 7. Multi-jurisdiction rules + teams.
 
+## Renewal date invariant
+
+Renewal deadlines reconcile registry expiry against the calculated date.
+Disagreements are flagged, never silently resolved. The earlier future date
+governs alerts. A live registry status overrides a past calculated date. No
+age-based trust rules.
+
+Implemented in `lib/reconciliation.ts` (pure) and applied in `recalcDeadlines`
+(`lib/deadlines.ts`). The obligation engine in `lib/utils.ts` is unchanged: it
+still derives dates from filing/registration, and reconciliation shapes what it
+returned rather than altering how it derives. `scripts/reconcile-report.ts` is
+the read-only before/after check; run it before any recalc of a live portfolio.
+
+The reason this exists: on the 2026-07-24 GB load, 38 of 205 ASOS marks with a
+registry expiry had no calculated renewal on that date, because the engine's
+term grid runs from the filing date and the true expiry does not always sit on
+it. Two of them (TOPMAN BRANDED, HOT SHOP) were the most urgent marks in the
+portfolio and could never alert: their only rows were one in the past and one a
+decade out.
+
 ## Outstanding / deferred
+
+- **Goods and services descriptions were not loaded from the GB export.**
+  All 1,134 goods rows in `asos-gb-20260724.json` carry full description text;
+  the loaded rows have class numbers with `description` null. Backfill from the
+  export is queued: needed for completeness prompts and for any future
+  specification-versus-specification comparison. Class-number features (the
+  watch-notice overlap view) are unaffected.
 
 - **Deadline engine does not gate on mark status (post-demo product issue).**
   `getObligationsForTrademark` derives UKIPO renewals from the **filing** date

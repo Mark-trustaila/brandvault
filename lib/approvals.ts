@@ -34,13 +34,15 @@ export async function doCompleteRenewal(deadlineId: string, now: Date): Promise<
   return { dueDate: isoDay(d.dueDate), changed: true };
 }
 
-type MarkForRegister = { id: string; status: string; registryName: string; filingDate: Date | null; registrationDate: Date | null };
+type MarkForRegister = { id: string; status: string; registryName: string; filingDate: Date | null; registrationDate: Date | null; expiryDate: Date | null };
 
 /** Set a mark Registered and recalculate its deadlines. Returns the prior status + next renewal. */
 export async function doRegister(mark: MarkForRegister): Promise<{ from: string; persisted: number; renewalDate: string | null }> {
   const from = mark.status;
   await prisma.trademark.update({ where: { id: mark.id }, data: { status: 'Registered' } });
-  const r = await recalcDeadlines(mark);
+  // Recalc with the status we just wrote, not the one this object was read with:
+  // the liveness guard in reconciliation depends on the mark being live.
+  const r = await recalcDeadlines({ ...mark, status: 'Registered' });
   const renewal = await prisma.deadline.findFirst({ where: { trademarkId: mark.id, type: 'Renewal' }, orderBy: { dueDate: 'asc' } });
   return { from, persisted: r.persisted, renewalDate: renewal ? isoDay(renewal.dueDate) : null };
 }

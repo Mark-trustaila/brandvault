@@ -117,6 +117,31 @@
 
 .fieldValue { font-size: 13px; color: #37352f; font-weight: 500; }
 
+/* Registry expiry when the calculated renewal disagrees. Near-standard weight:
+   the registry date is still the headline, it just carries a warning. */
+.fieldValueFlagged {
+  font-size: 13px;
+  color: #37352f;
+  font-weight: 450;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.discrepancyIcon {
+  font-size: 11px;
+  color: #f2994a;
+  cursor: help;
+  line-height: 1;
+}
+
+/* The calculated date sits beneath, quieter, never competing with the registry. */
+.calculatedBeneath {
+  font-size: 11px;
+  color: #9b9a97;
+  margin-top: 2px;
+}
+
 .statusBadge {
   display: inline-block;
   font-size: 12px;

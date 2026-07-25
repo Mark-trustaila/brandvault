@@ -9,7 +9,12 @@ Azure MySQL database** (see the root `CLAUDE.md` env table). A migration sitting
 in `prisma/migrations/` is one stray `npm run db:deploy` away from altering
 production. Staging it here removes that path entirely.
 
-Currently empty — nothing is staged.
+## Staged now
+
+- `20260725130000_deadline_reconciliation` — additive nullable
+  `registry_expiry_date`, `calculated_due_date` and `dates_differ` on
+  `deadlines`. Provenance only: the reconciliation behaviour and the flagged
+  display both work without it. See `lib/reconciliation.ts`.
 
 ## Promotion sequence
 

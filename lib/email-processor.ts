@@ -51,7 +51,7 @@ export async function matchTrademark(companyId: string, refs: string[]) {
   if (!cores.size) return null;
   const marks = await prisma.trademark.findMany({
     where: { companyId },
-    select: { id: true, markText: true, registryName: true, status: true, applicationNumber: true, registrationNumber: true, filingDate: true, registrationDate: true },
+    select: { id: true, markText: true, registryName: true, status: true, applicationNumber: true, registrationNumber: true, filingDate: true, registrationDate: true, expiryDate: true },
   });
   for (const m of marks) {
     for (const cand of [m.applicationNumber, m.registrationNumber]) {
