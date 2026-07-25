@@ -15,6 +15,13 @@ production. Staging it here removes that path entirely.
   `registry_expiry_date`, `calculated_due_date` and `dates_differ` on
   `deadlines`. Provenance only: the reconciliation behaviour and the flagged
   display both work without it. See `lib/reconciliation.ts`.
+- `20260725120000_watch_notices` — additive `watch_notices` table for
+  third-party filing notices (UKIPO notification of earlier rights), anchored to
+  the cited customer mark. Awaiting review. The matching `WatchNotice` model
+  patch for `prisma/schema.prisma` is in the migration file's header comment and
+  is NOT yet applied to the schema, per step 2 of the sequence below.
+
+Both are independent of each other and can be promoted in either order.
 
 ## Promotion sequence
 
