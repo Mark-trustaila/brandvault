@@ -21,6 +21,10 @@ export interface Trademark {
   representative_name?: string;
   representative_reference?: string;
   needs_data?: boolean;
+  /** Verbatim registry status. Present only on registry-synced records. */
+  registry_status_raw?: string;
+  /** Device-mark image, served from the LawPanel CDN. Null on most records. */
+  image_url?: string;
   good_and_services?: GoodsAndServices[];
   publication_notes?: string;
 }

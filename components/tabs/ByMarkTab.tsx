@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import styles from './ByMarkTab.module.css';
 import { useDashboard } from '../../context/DashboardContext';
-import { BADGE_COLORS, getInitials, getStatusStyle } from '../../lib/utils';
+import { BADGE_COLORS, getStatusStyle } from '../../lib/utils';
 
 export default function ByMarkTab() {
   const { filteredTrademarks, setSelectedTrademark, focusedMark, setFocusedMark } = useDashboard();
@@ -46,9 +46,8 @@ export default function ByMarkTab() {
               <div
                 className={styles.familyInitials}
                 style={{ backgroundColor: BADGE_COLORS[idx % BADGE_COLORS.length] }}
-              >
-                {getInitials(markName)}
-              </div>
+                aria-hidden="true"
+              />
               <div className={styles.familyInfo}>
                 <div className={styles.familyName}>{markName}</div>
                 <div className={styles.familyMeta}>{registryNames}</div>

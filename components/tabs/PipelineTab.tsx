@@ -1,7 +1,8 @@
 'use client';
 import styles from './PipelineTab.module.css';
+import MarkTile from '../ui/MarkTile';
 import { useDashboard } from '../../context/DashboardContext';
-import { BADGE_COLORS, getInitials, getStatusStyle } from '../../lib/utils';
+import { BADGE_COLORS, getStatusStyle } from '../../lib/utils';
 
 const PIPELINE_STAGES = [
   { key: 'FILED', label: 'Filed' },
@@ -66,12 +67,12 @@ export default function PipelineTab() {
             const statusStyle = getStatusStyle(mark.status);
             return (
               <div key={mark.id} className={styles.markRow} onClick={() => setSelectedTrademark(mark)}>
-                <div
+                <MarkTile
                   className={styles.initials}
-                  style={{ backgroundColor: BADGE_COLORS[idx % BADGE_COLORS.length] }}
-                >
-                  {getInitials(mark.mark_text)}
-                </div>
+                  color={BADGE_COLORS[idx % BADGE_COLORS.length]}
+                  imageUrl={mark.image_url}
+                  applicationNumber={mark.application_number}
+                />
                 <div className={styles.markInfo}>
                   <div className={styles.markName}>{mark.mark_text}</div>
                   <div className={styles.markSub}>{mark.registry_name} · {mark.application_number}</div>

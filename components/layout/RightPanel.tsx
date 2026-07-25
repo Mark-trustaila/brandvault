@@ -1,5 +1,6 @@
 'use client';
 import styles from './RightPanel.module.css';
+import MarkTile from '../ui/MarkTile';
 import { useDashboard } from '../../context/DashboardContext';
 import {
   BADGE_COLORS,
@@ -7,7 +8,6 @@ import {
   RENEWAL_WINDOW_DAYS,
   calculateDaysRemaining,
   getDaysBadgeStyle,
-  getInitials,
   formatDate,
   renewalsDueWithin,
 } from '../../lib/utils';
@@ -83,9 +83,12 @@ export default function RightPanel() {
               const badge = getDaysBadgeStyle(days);
               return (
                 <div key={t.id} className={styles.renewalItem} onClick={() => setSelectedTrademark(t)}>
-                  <div className={styles.renewalInitials} style={{ background: BADGE_COLORS[idx % BADGE_COLORS.length] }}>
-                    {getInitials(t.mark_text)}
-                  </div>
+                  <MarkTile
+                    className={styles.renewalInitials}
+                    color={BADGE_COLORS[idx % BADGE_COLORS.length]}
+                    imageUrl={t.image_url}
+                    applicationNumber={t.application_number}
+                  />
                   <div className={styles.renewalInfo}>
                     <div className={styles.renewalTitle}>{t.mark_text}</div>
                     <div className={styles.renewalSub}>{t.registry_name} · {formatDate(t.expiry_date)}</div>

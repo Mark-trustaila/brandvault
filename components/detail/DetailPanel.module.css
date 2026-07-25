@@ -161,13 +161,16 @@
   font-weight: 600;
   padding: 3px 10px;
   border-radius: 14px;
-  color: #fff;
+  /* Neutral for every class. The old per-class colours carried no meaning and
+     read as though they encoded one. */
+  background: #f0efec;
+  color: #37352f;
   cursor: pointer;
   transition: all 0.15s;
   border: 2px solid transparent;
 }
 
-.gsInlineBadge:hover { opacity: 0.85; transform: scale(1.05); }
+.gsInlineBadge:hover { background: #e8e5e0; }
 .gsInlineBadgeActive { border-color: #37352f; }
 
 .gsExpandedDetail {

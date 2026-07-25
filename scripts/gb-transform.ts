@@ -90,7 +90,7 @@ export function ukRegistrationNumber(applicationNumber: string, status: MarkStat
  * marks identifiable in every view without touching display code before a demo.
  */
 export const deviceMarkLabel = (applicationNumber: string) =>
-  `[device mark — no verbal element] ${applicationNumber}`;
+  `[device mark, no verbal element] ${applicationNumber}`;
 
 /* ── source types ─────────────────────────────────────────────── */
 export interface FieldPair { field: string; value: string }
