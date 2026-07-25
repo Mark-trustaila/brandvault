@@ -103,7 +103,7 @@ const TYPE_LABEL: Record<string, string> = {
   examination_report: 'Examination report',
   opposition_notice: 'Opposition filed against your mark',
   opposition_procedural: 'Opposition/tribunal update',
-  watch_notice: 'Watch alert — a mark may conflict',
+  watch_notice: 'Third-party filing notice',
   cancellation_notice: 'Cancellation reported',
   euipo_login_notification: 'EUIPO communication — retrieve from User Area',
   ambiguous: 'Correspondence',
@@ -112,6 +112,41 @@ const TYPE_LABEL: Record<string, string> = {
 
 const markLine = (markText?: string, registry?: string) =>
   markText ? `*${markText}*${registry ? ` · ${registry}` : ''}` : '_mark not in your portfolio_';
+
+/**
+ * watch_notice → a third party has applied for a mark the registry flagged
+ * against one of ours. Alert only: nothing is mutated, nothing is proposed.
+ *
+ * Both application numbers are in the text. Two ASOS marks can share a due date
+ * and a mark name, so the number is what makes the right identifiable in the
+ * alert itself. No em dashes.
+ */
+export function watchNoticeAlert(o: {
+  thirdPartyMarkText: string;
+  thirdPartyApplicationNumber: string;
+  registry: string;
+  classes: number[];
+  ourMarkText: string;
+  ourApplicationNumber: string;
+  oppositionDeadline?: string | null;
+  daysToOpposition?: number | null;
+  appLink?: string;
+}): BreeMessage {
+  const classList = o.classes.length ? `class${o.classes.length === 1 ? '' : 'es'} ${o.classes.join(', ')}` : 'classes not stated';
+  const summary = `Third-party filing notice: ${o.thirdPartyMarkText} (${o.thirdPartyApplicationNumber}) applied for at ${o.registry}`;
+
+  const lines = [
+    `*${o.thirdPartyMarkText}* (${o.thirdPartyApplicationNumber}) applied for at ${o.registry}, ${classList}.`,
+    `Potentially relevant to your *${o.ourMarkText}* (${o.ourApplicationNumber}).`,
+  ];
+  if (o.oppositionDeadline) {
+    const countdown = typeof o.daysToOpposition === 'number' ? ` (${o.daysToOpposition} days)` : '';
+    lines.push(`Opposition period ends *${o.oppositionDeadline}*${countdown}.`);
+  }
+  if (o.appLink) lines.push(`<${o.appLink}|See in app →>`);
+
+  return withBree(summary, [header('Third-party filing notice'), section(lines.join('\n'))]);
+}
 
 // registration_certificate → mark set Registered + renewal deadline calculated.
 export function emailRegistered(o: { markText: string; registry: string; renewalDate?: string }): BreeMessage {

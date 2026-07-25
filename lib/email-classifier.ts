@@ -36,6 +36,8 @@ confidence:
 - medium: type is fairly clear but not auto-actable, or a key detail (registry/reference) is uncertain.
 - low: genuinely ambiguous, or not registry correspondence.
 
+For watch_notice ONLY, also fill the watchNotice object. A registry notification of this kind describes TWO marks: the recipient's own earlier right, and the later third-party application that has been published. Keep them apart. thirdPartyMarkText / thirdPartyApplicationNumber / thirdPartyClasses / filingDate / publicationDate describe the THIRD PARTY's application. citedMarkReferences lists the RECIPIENT's own earlier mark numbers that the notice quotes. Set oppositionDeadline only when the notice states the date the opposition period ends; do not compute it from a publication date. Use null for anything not stated. Leave watchNotice out entirely for every other communicationType.
+
 Return every reference number you can find, verbatim as written. List any deadline dates the text mentions with a short description. Write a one-sentence summary. Never fabricate a reference number or deadline that is not present.`;
 
 const TOOL = {
@@ -57,6 +59,25 @@ const TOOL = {
       },
       confidence: { type: 'string', enum: [...CONFIDENCE_LEVELS] },
       summary: { type: 'string' },
+      watchNotice: {
+        type: 'object',
+        description:
+          'Populate ONLY when communicationType is watch_notice. Use null for any field the notice does not state.',
+        properties: {
+          thirdPartyMarkText: { type: ['string', 'null'] },
+          thirdPartyApplicationNumber: { type: ['string', 'null'] },
+          thirdPartyClasses: { type: 'array', items: { type: 'integer' } },
+          filingDate: { type: ['string', 'null'], description: 'ISO date, the third party application filing date' },
+          publicationDate: { type: ['string', 'null'], description: 'ISO date' },
+          oppositionDeadline: { type: ['string', 'null'], description: 'ISO date the opposition period ends, only if stated' },
+          citedMarkReferences: {
+            type: 'array',
+            items: { type: 'string' },
+            description: "The RECIPIENT's own earlier mark numbers that the notice cites, verbatim.",
+          },
+        },
+        required: ['thirdPartyMarkText', 'thirdPartyApplicationNumber', 'thirdPartyClasses', 'citedMarkReferences'],
+      },
     },
     required: ['registry', 'communicationType', 'referenceNumbers', 'deadlinesMentioned', 'confidence', 'summary'],
   },

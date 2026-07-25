@@ -95,7 +95,18 @@ export async function postToSlack(
     const res = await fetch('https://slack.com/api/chat.postMessage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json; charset=utf-8', Authorization: `Bearer ${botToken}` },
-      body: JSON.stringify({ channel, text: msg.text, blocks: msg.blocks, username: 'Bree', icon_url: BREE_ICON_URL }),
+      // Unfurling is suppressed on every Bree message. Deep links point at
+      // company-scoped routes, so Slack's unauthenticated crawler gets a 404
+      // and renders it as a broken preview under an otherwise clean alert.
+      body: JSON.stringify({
+        channel,
+        text: msg.text,
+        blocks: msg.blocks,
+        username: 'Bree',
+        icon_url: BREE_ICON_URL,
+        unfurl_links: false,
+        unfurl_media: false,
+      }),
     });
     return (await res.json()) as { ok: boolean; error?: string };
   } catch (e) {
