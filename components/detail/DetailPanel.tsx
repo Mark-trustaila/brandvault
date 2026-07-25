@@ -15,6 +15,7 @@ import { useDashboard } from '../../context/DashboardContext';
 import { useNotes } from '../../hooks/useNotes';
 import { BADGE_COLORS, NICE_CLASS_COLORS, formatDate, getStatusStyle, getObligationsForTrademark } from '../../lib/utils';
 import { computeCompleteness } from '../../lib/completeness';
+import { discrepancyTooltip, reconciliationForMark } from '../../lib/reconciliation';
 import type { Trademark } from '../../types/trademark';
 
 const NICE_CLASS_NAMES: Record<number, string> = {
@@ -118,6 +119,9 @@ function NotesSection({ trademark }: { trademark: Trademark }) {
 function RightsRecord({ trademark }: { trademark: Trademark }) {
   const [activeGsClass, setActiveGsClass] = useState<number | null>(null);
   const statusStyle = getStatusStyle(trademark.status);
+  // Registry expiry vs calculated renewal. Where they agree this is inert and
+  // the field renders exactly as before.
+  const reconciliation = reconciliationForMark(trademark);
 
   const gsClasses = trademark.good_and_services || [];
 
@@ -151,7 +155,26 @@ function RightsRecord({ trademark }: { trademark: Trademark }) {
         </div>
         <div className={styles.field}>
           <div className={styles.fieldLabel}>Expiry Date</div>
-          <div className={styles.fieldValue}>{formatDate(trademark.expiry_date)}</div>
+          {reconciliation.datesDiffer ? (
+            <>
+              <div className={styles.fieldValueFlagged}>
+                {formatDate(trademark.expiry_date)}
+                <span
+                  className={styles.discrepancyIcon}
+                  title={discrepancyTooltip(reconciliation, (d) => formatDate(d.toISOString()))}
+                  aria-label="Registry and calculated renewal dates differ"
+                  role="img"
+                >
+                  ⚠
+                </span>
+              </div>
+              <div className={styles.calculatedBeneath}>
+                Calculated renewal {formatDate(reconciliation.calculatedDue?.toISOString())}
+              </div>
+            </>
+          ) : (
+            <div className={styles.fieldValue}>{formatDate(trademark.expiry_date)}</div>
+          )}
         </div>
         {trademark.owner_name && (
           <div className={styles.field}>
