@@ -9,14 +9,7 @@ Azure MySQL database** (see the root `CLAUDE.md` env table). A migration sitting
 in `prisma/migrations/` is one stray `npm run db:deploy` away from altering
 production. Staging it here removes that path entirely.
 
-## Staged now
-
-- `20260725140000_trademark_image_url` — additive nullable
-  `trademarks.image_url` for device-mark images. The frontend, the MarkTile
-  component and every render site already fall back to the plain tile while the
-  column is absent, so nothing depends on this landing. The data patch for the
-  seven marks is `scripts/load-device-images.ts`, which refuses to run until the
-  column exists.
+Currently empty — nothing is staged.
 
 ## Promotion sequence
 
@@ -41,6 +34,10 @@ For any migration staged here, all steps need explicit approval:
 
 ## History
 
+- `20260725140000_trademark_image_url` — nullable `trademarks.image_url` for
+  device-mark images. Approved and promoted 2026-07-25 as
+  `prisma/migrations/20260725140000_trademark_image_url`; the seven URLs were
+  loaded by `scripts/load-device-images.ts`.
 - `20260725120000_watch_notices` — `watch_notices` table for third-party
   filing notices. Approved and promoted 2026-07-25 as
   `prisma/migrations/20260725120000_watch_notices`.

@@ -122,6 +122,7 @@ model Trademark {
   // "Application Published"). `status` above holds the conservative mapping onto
   // our five-value enum; this keeps the original so the mapping stays auditable
   // and reversible without re-importing. Null for hand-entered marks.
+  imageUrl          String?   @map("image_url") @db.VarChar(1024)
   registryStatusRaw String? @map("registry_status_raw")
 
   // Optional — incomplete records are first-class citizens
