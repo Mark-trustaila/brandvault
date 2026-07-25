@@ -1,18 +1,27 @@
 'use client';
 import styles from './RightPanel.module.css';
 import { useDashboard } from '../../context/DashboardContext';
-import { BADGE_COLORS, calculateDaysRemaining, getDaysBadgeStyle, getInitials, formatDate } from '../../lib/utils';
+import {
+  BADGE_COLORS,
+  RENEWAL_URGENT_DAYS,
+  RENEWAL_WINDOW_DAYS,
+  calculateDaysRemaining,
+  getDaysBadgeStyle,
+  getInitials,
+  formatDate,
+  renewalsDueWithin,
+} from '../../lib/utils';
 
 export default function RightPanel() {
   const { data, setSelectedTrademark } = useDashboard();
 
-  const upcomingRenewals = data?.trademarks
-    .filter(t => {
-      const days = calculateDaysRemaining(t.expiry_date);
-      return days > 0 && days <= 365;
-    })
-    .sort((a, b) => calculateDaysRemaining(a.expiry_date) - calculateDaysRemaining(b.expiry_date))
-    .slice(0, 5) ?? [];
+  // Same window and same records as the StatsBar's Needs Action count, so the two
+  // always agree. These are individual rights records, not distinct mark names.
+  const dueInWindow = renewalsDueWithin(data?.trademarks ?? [], RENEWAL_WINDOW_DAYS)
+    .sort((a, b) => calculateDaysRemaining(a.expiry_date) - calculateDaysRemaining(b.expiry_date));
+  const dueCount = dueInWindow.length;
+  const urgentCount = renewalsDueWithin(dueInWindow, RENEWAL_URGENT_DAYS).length;
+  const upcomingRenewals = dueInWindow.slice(0, 5);
 
   const registryCount = new Set(data?.trademarks.map(t => t.registry_name)).size;
   const class9count = data?.trademarks.filter(t =>
@@ -28,9 +37,17 @@ export default function RightPanel() {
 
       <div>
         <div className={styles.alertTitle}>BrandVault Alert</div>
-        <div className={styles.alertCard}>
+        <div className={`${styles.alertCard} ${urgentCount > 0 ? styles.alertCardUrgent : ''}`}>
           <div className={styles.alertText}>
-            {upcomingRenewals.length} marks need renewal attention within the next 12 months.
+            {dueCount} renewal {dueCount === 1 ? 'deadline' : 'deadlines'} in the next 12 months.
+            {urgentCount > 0 && (
+              <>
+                {' '}
+                <span className={styles.alertUrgent}>
+                  {urgentCount} {urgentCount === 1 ? 'falls' : 'fall'} due within 60 days.
+                </span>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -85,10 +102,17 @@ export default function RightPanel() {
         )}
       </div>
 
-      <div>
-        <div className={styles.sectionTitle}>Actionable Deadlines</div>
-        <div className={styles.emptyState}>No actionable deadlines in the next 6 months</div>
-      </div>
+      {/* Actionable Deadlines is hidden by default: the only source for it is the
+          Deadlines table, which currently disagrees with the registry expiry dates
+          this panel counts (see the expiry/deadline divergence). Showing an empty
+          section under a line stating N deadlines exist reads as a contradiction.
+          Flip NEXT_PUBLIC_SHOW_ACTIONABLE_DEADLINES=true once it is computed. */}
+      {process.env.NEXT_PUBLIC_SHOW_ACTIONABLE_DEADLINES === 'true' && (
+        <div>
+          <div className={styles.sectionTitle}>Actionable Deadlines</div>
+          <div className={styles.emptyState}>No actionable deadlines in the next 6 months</div>
+        </div>
+      )}
     </aside>
   );
 }
