@@ -5,7 +5,28 @@ import crypto from 'crypto';
  * (SLACK_CLIENT_ID / SLACK_CLIENT_SECRET / SLACK_SIGNING_SECRET). The bot the
  * user installs posts as "Bree".
  */
-export const APP_BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://brandvault-asos.vercel.app';
+export const DEFAULT_APP_BASE_URL = 'https://brandvault-asos.vercel.app';
+
+/**
+ * Normalise the configured base URL.
+ *
+ * Every deep link in the product is built from this one value, and a dashboard
+ * or CLI slip puts characters in it that break every link at once rather than
+ * failing loudly. Both have happened here: the value was saved empty (`??`
+ * accepts an empty string, so links came out relative and Slack could not
+ * render them), and then saved with a trailing newline (non-empty, so `||`
+ * would accept it, and the newline lands in the middle of every URL).
+ *
+ * So: trim surrounding whitespace, drop trailing slashes so a configured
+ * "https://host/" cannot produce "https://host//watch/x", and fall back on
+ * anything that is empty after trimming.
+ */
+export function normaliseBaseUrl(raw: string | undefined, fallback = DEFAULT_APP_BASE_URL): string {
+  const trimmed = (raw ?? '').trim().replace(/\/+$/, '');
+  return trimmed || fallback;
+}
+
+export const APP_BASE_URL = normaliseBaseUrl(process.env.NEXT_PUBLIC_APP_URL);
 
 // Bot-token scopes requested at install (must match the Slack app config).
 export const SLACK_SCOPES = ['chat:write', 'chat:write.public', 'channels:read', 'team:read', 'commands'];
