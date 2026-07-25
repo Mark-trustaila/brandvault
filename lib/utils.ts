@@ -14,6 +14,17 @@ export const calculateDaysRemaining = (expiryDate?: string): number => {
   return Math.floor((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 };
 
+// Renewal windows, shared so the StatsBar and the Intelligence panel cannot drift.
+// Both count individual rights records, never distinct mark names.
+export const RENEWAL_WINDOW_DAYS = 365;
+export const RENEWAL_URGENT_DAYS = 60;
+
+export const renewalsDueWithin = (trademarks: Trademark[], days: number): Trademark[] =>
+  trademarks.filter(t => {
+    const remaining = calculateDaysRemaining(t.expiry_date);
+    return remaining > 0 && remaining <= days;
+  });
+
 export const formatDate = (dateStr?: string): string => {
   if (!dateStr) return '—';
   return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });

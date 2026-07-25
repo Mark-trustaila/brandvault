@@ -1,7 +1,7 @@
 'use client';
 import styles from './StatsBar.module.css';
 import { useDashboard } from '../../context/DashboardContext';
-import { calculateDaysRemaining } from '../../lib/utils';
+import { RENEWAL_WINDOW_DAYS, renewalsDueWithin } from '../../lib/utils';
 
 export default function StatsBar() {
   const { data, setActiveTab, setPipelineFilter } = useDashboard();
@@ -11,10 +11,7 @@ export default function StatsBar() {
   const registered = data.trademarks.filter(t => t.status === 'Registered').length;
   const pending = data.trademarks.filter(t => t.status === 'Pending').length;
   const published = data.trademarks.filter(t => t.status === 'Published').length;
-  const needsAction = data.trademarks.filter(t => {
-    const days = calculateDaysRemaining(t.expiry_date);
-    return days > 0 && days <= 365;
-  }).length;
+  const needsAction = renewalsDueWithin(data.trademarks, RENEWAL_WINDOW_DAYS).length;
 
   return (
     <div className={styles.statsRow}>
