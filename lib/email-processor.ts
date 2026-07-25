@@ -14,6 +14,8 @@ import { sendBree } from './alerts';
 import { autoActEnabled } from './email-config';
 import { proposeApproval, doRegister } from './approvals';
 import * as bree from './bree-messages';
+import { anchorWatchNotice, daysToOpposition } from './watch-notices';
+import { watchNoticeLink } from './notifications';
 
 const ALERT_ONLY: CommunicationType[] = [
   'examination_report',
@@ -122,7 +124,7 @@ export async function processInboundEmail(id: string, now = new Date()): Promise
 
   // 2. Match to a trademark (company-scoped, by reference number).
   const mark = await matchTrademark(companyId, c.referenceNumbers);
-  const matchedTrademarkId = mark?.id ?? null;
+  let matchedTrademarkId = mark?.id ?? null;
 
   // 3. Route.
   let status: InboundEmailStatus = 'needs_review';
@@ -186,6 +188,90 @@ export async function processInboundEmail(id: string, now = new Date()): Promise
         await audit('bree.email.review', 'InboundEmail', id, { type: c.communicationType, note: 'no open renewal deadline' });
         await alert(bree.emailAlert({ type: 'other', urgency: 'normal', markText: mark.markText, registry: mark.registryName, summary: c.summary }));
       }
+    }
+  } else if (c.communicationType === 'watch_notice') {
+    // Third-party filing notice. ALERT ONLY: a WatchNotice row is created and
+    // Bree posts a comparison link, but no mark data is touched and nothing is
+    // proposed for approval. The anchor is the cited application number only.
+    const portfolio = await prisma.trademark.findMany({
+      where: { companyId },
+      select: { id: true, applicationNumber: true, markText: true, registryName: true },
+    });
+    const anchor = anchorWatchNotice(c.watchNotice, portfolio);
+
+    for (const a of anchor.anchored) {
+      const ours = portfolio.find((p) => p.id === a.trademarkId)!;
+      // Upsert on (trademarkId, thirdPartyApplicationNumber): re-processing the
+      // same letter, or a duplicate forward, updates rather than duplicates.
+      const wn = await prisma.watchNotice.upsert({
+        where: {
+          trademarkId_thirdPartyApplicationNumber: {
+            trademarkId: a.trademarkId,
+            thirdPartyApplicationNumber: a.thirdPartyApplicationNumber,
+          },
+        },
+        create: {
+          companyId,
+          trademarkId: a.trademarkId,
+          thirdPartyMarkText: a.thirdPartyMarkText,
+          thirdPartyApplicationNumber: a.thirdPartyApplicationNumber,
+          thirdPartyClasses: a.thirdPartyClasses,
+          filingDate: a.filingDate,
+          oppositionDeadline: a.oppositionDeadline,
+          sourceEmailId: id,
+        },
+        update: {
+          thirdPartyMarkText: a.thirdPartyMarkText,
+          thirdPartyClasses: a.thirdPartyClasses,
+          filingDate: a.filingDate,
+          oppositionDeadline: a.oppositionDeadline,
+          sourceEmailId: id,
+        },
+      });
+
+      actions.push(`watch notice ${wn.id} anchored to ${ours.markText} (${ours.applicationNumber})`);
+      await audit('bree.email.watch_notice', 'Trademark', a.trademarkId, {
+        inboundEmailId: id,
+        watchNoticeId: wn.id,
+        thirdParty: a.thirdPartyApplicationNumber,
+        classes: a.thirdPartyClasses,
+      });
+      await alert(
+        bree.watchNoticeAlert({
+          thirdPartyMarkText: a.thirdPartyMarkText,
+          thirdPartyApplicationNumber: a.thirdPartyApplicationNumber,
+          registry: c.registry === 'unknown' ? ours.registryName : c.registry,
+          classes: a.thirdPartyClasses,
+          ourMarkText: ours.markText,
+          ourApplicationNumber: ours.applicationNumber ?? 'no number',
+          oppositionDeadline: a.oppositionDeadline ? isoDay(a.oppositionDeadline) : null,
+          daysToOpposition: daysToOpposition(a.oppositionDeadline, now),
+          appLink: watchNoticeLink(wn.id),
+        })
+      );
+    }
+
+    if (anchor.anchored.length > 0) {
+      status = 'needs_review';
+      matchedTrademarkId = anchor.anchored[0].trademarkId;
+    } else {
+      // No cited right resolves: alert-only to the inbox, never a guessed match.
+      status = 'unmatched';
+      const note = anchor.unmatchedReferences.length
+        ? `no matching right for cited ${anchor.unmatchedReferences.join(', ')}`
+        : `no matching right (${anchor.skippedReason ?? 'nothing cited'})`;
+      actions.push(`watch notice: ${note}`);
+      await audit('bree.email.watch_notice_unmatched', 'InboundEmail', id, {
+        citedRefs: anchor.unmatchedReferences,
+        reason: anchor.skippedReason,
+      });
+      await alert(
+        bree.emailAlert({
+          type: 'watch_notice',
+          urgency: 'normal',
+          summary: `${c.summary} (${note})`,
+        })
+      );
     }
   } else if (ALERT_ONLY.includes(c.communicationType)) {
     status = mark ? 'needs_review' : 'unmatched';

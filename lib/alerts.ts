@@ -128,7 +128,7 @@ export async function runDailyAlerts(now = new Date()): Promise<Summary> {
         trademarkId: d.trademark.id,
         type: 'renewal_alert',
         title: 'Renewal approaching',
-        body: `${d.type} for ${d.trademark.markText} (${d.trademark.registryName}) due ${dueDate} — ${days} days`,
+        body: `${d.type} for ${d.trademark.markText} (${d.trademark.registryName}) due ${dueDate}. ${days} days remaining`,
       });
       const msg = bree.renewalAlert({
         markText: d.trademark.markText,

@@ -16,6 +16,7 @@ import { useNotes } from '../../hooks/useNotes';
 import { BADGE_COLORS, NICE_CLASS_COLORS, formatDate, getStatusStyle, getObligationsForTrademark } from '../../lib/utils';
 import { computeCompleteness } from '../../lib/completeness';
 import { discrepancyTooltip, reconciliationForMark } from '../../lib/reconciliation';
+import WatchNoticeLink from './WatchNoticeLink';
 import type { Trademark } from '../../types/trademark';
 
 const NICE_CLASS_NAMES: Record<number, string> = {
@@ -342,6 +343,7 @@ export default function DetailPanel() {
               </div>
             );
           })()}
+          <WatchNoticeLink trademarkId={selectedTrademark.id} />
           {isRegistered ? (
             <>
               <NotesSection trademark={selectedTrademark} />

@@ -59,6 +59,7 @@ model Company {
   notifications   Notification[]
   breeQueryLogs   BreeQueryLog[]
   approvals       Approval[]
+  watchNotices    WatchNotice[]
 
   @@map("companies")
 }
@@ -155,6 +156,7 @@ model Trademark {
   notifications Notification[]
   breeQueryLogs BreeQueryLog[]
   approvals     Approval[]
+  watchNotices  WatchNotice[]
 
   // company_id is stored on the mark directly (not only via family) so
   // portfolio queries don't need a join. Both FKs indexed.
@@ -205,6 +207,11 @@ model Deadline {
   alert180Sent Boolean   @default(false) @map("alert_180_sent")
   alert90Sent  Boolean   @default(false) @map("alert_90_sent")
   alert30Sent  Boolean   @default(false) @map("alert_30_sent")
+  // Reconciliation provenance: which date came from the registry, which the
+  // engine derived, and whether they disagreed when the row was written.
+  registryExpiryDate DateTime? @map("registry_expiry_date")
+  calculatedDueDate  DateTime? @map("calculated_due_date")
+  datesDiffer        Boolean   @default(false) @map("dates_differ")
   // Set when a renewal_confirmation email reports the deadline as satisfied.
   completedAt  DateTime? @map("completed_at")
 
@@ -334,6 +341,7 @@ model InboundEmail {
   matchedTrademark Trademark?        @relation(fields: [matchedTrademarkId], references: [id], onDelete: SetNull)
   attachments      EmailAttachment[]
   approvals        Approval[]
+  watchNotices     WatchNotice[]
 
   // Idempotent ingestion: the same content never lands twice for a company.
   @@unique([companyId, contentHash])
@@ -428,4 +436,32 @@ model BreeQueryLog {
 
   @@index([companyId, createdAt])
   @@map("bree_query_logs")
+}
+
+/// Third-party filing notice (UKIPO notification of earlier rights, or the
+/// commercial watch-service equivalent). One row per CITED customer mark, so a
+/// letter citing two rights produces two rows and each comparison view has a
+/// single subject. trademarkId is required by design: a notice matching nothing
+/// in the portfolio is never written here, it stays alert-only on the inbox.
+/// Alert-only throughout. Nothing in this path mutates mark data.
+model WatchNotice {
+  id                          String    @id @default(cuid())
+  companyId                   String    @map("company_id")
+  trademarkId                 String    @map("trademark_id")
+  thirdPartyMarkText          String    @map("third_party_mark_text")
+  thirdPartyApplicationNumber String    @map("third_party_application_number")
+  thirdPartyClasses           Json      @map("third_party_classes")
+  filingDate                  DateTime? @map("filing_date")
+  oppositionDeadline          DateTime? @map("opposition_deadline")
+  sourceEmailId               String?   @map("source_email_id")
+  createdAt                   DateTime  @default(now()) @map("created_at")
+
+  company     Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  trademark   Trademark     @relation(fields: [trademarkId], references: [id], onDelete: Cascade)
+  sourceEmail InboundEmail? @relation(fields: [sourceEmailId], references: [id], onDelete: SetNull)
+
+  @@unique([trademarkId, thirdPartyApplicationNumber])
+  @@index([companyId, createdAt])
+  @@index([trademarkId])
+  @@map("watch_notices")
 }
