@@ -243,7 +243,7 @@ function FeedbackBox() {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
-  const [result, setResult] = useState<'sent' | 'undelivered' | 'error' | null>(null);
+  const [result, setResult] = useState<'sent' | 'undelivered' | 'cross_tenant' | 'error' | null>(null);
 
   async function submit() {
     const body = text.trim();
@@ -260,8 +260,8 @@ function FeedbackBox() {
         setResult('error');
         return;
       }
-      const { delivered } = await res.json();
-      setResult(delivered ? 'sent' : 'undelivered');
+      const { delivered, reason } = await res.json();
+      setResult(delivered ? 'sent' : reason === 'cross_tenant' ? 'cross_tenant' : 'undelivered');
       if (delivered) {
         setText('');
         setOpen(false);
@@ -312,6 +312,9 @@ function FeedbackBox() {
       </div>
       {result === 'undelivered' && (
         <p className="mt-1 text-xs text-amber-700">Slack is not connected for your company, so this was not sent.</p>
+      )}
+      {result === 'cross_tenant' && (
+        <p className="mt-1 text-xs text-amber-700">You are acting as another company. Feedback is not sent from a switched context.</p>
       )}
       {result === 'error' && <p className="mt-1 text-xs text-amber-700">That did not send. Try again.</p>}
     </div>

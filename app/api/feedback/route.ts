@@ -21,11 +21,22 @@ const MAX_LENGTH = 2000;
  * Because there is no fallback store, delivery is reported honestly. When the
  * company has not connected Slack, or Slack rejects the post, this returns
  * `delivered: false` so the panel can say the feedback did not get through
- * rather than thanking the user for something that went nowhere.
+ * rather than thanking the user for something that went nowhere. A refusal
+ * carries a `reason` so the panel can tell the two cases apart: "your Slack is
+ * not connected" and "you are acting as another company" are different facts
+ * and must not share a message.
  */
 export async function POST(req: Request) {
   const { ctx, error } = await getRequestContext(req);
   if (error) return NextResponse.json({ error: error.message }, { status: error.status });
+
+  // A platform admin with a customer's company switched in is not that
+  // customer. Their feedback must never post to the customer's channel, so it
+  // is refused here rather than misrouted. Enforced server-side on purpose:
+  // hiding the link in the panel would leave this route callable.
+  if (ctx.crossTenant) {
+    return NextResponse.json({ delivered: false, reason: 'cross_tenant' });
+  }
 
   const body = await req.json().catch(() => null);
   const text = typeof body?.text === 'string' ? body.text.trim() : '';
