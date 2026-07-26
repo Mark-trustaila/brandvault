@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="BrandVault">
+  <!--
+    BrandVault tab mark. The product, not the assistant: this is deliberately
+    NOT the Bree icon (public/bree-icon.png), which identifies the Slack
+    assistant and is used only on Bree's own surfaces.
+
+    Derived from the app's own tokens:
+      #37352f  ink.DEFAULT in tailwind.config, and the exact fill of the
+               existing "Ai" monogram in Sidebar.module.css .logoMark
+      rx 113   22% of the canvas, matching the mark tile's 8px-on-36px
+               (.initials) and .logoMark's 6px-on-28px
+
+    The letterforms are paths, not <text>. An SVG favicon renders in an
+    isolated context with no access to the page's webfonts, so live text would
+    fall back to a different system font on every viewer's machine. Paths render
+    identically everywhere and let the stroke weight be tuned for the tab.
+
+    Tuned for 16x16: the B counters are the first thing to close up when
+    downscaled, so the bowls are lighter than the stem (38 vs 50 units) and the
+    cap height is large (264 of 512) inside a 16% frame. Verified by rendering
+    the master to 16px and inspecting the pixel grid, not by eye at full size.
+  -->
+  <rect width="512" height="512" rx="113" ry="113" fill="#37352f"/>
+  <path d="M82,124 H168 A64,64 0 0 1 168,252 A64,68 0 0 1 168,388 H82 Z M132,162 H168 A26,26 0 0 1 168,214 H132 Z M132,290 H164 A30,30 0 0 1 164,350 H132 Z" fill="#fff" fill-rule="evenodd"/>
+  <path d="M258,124 H314 L344,312 L374,124 H430 L378,388 H310 Z" fill="#fff"/>
+</svg>
