@@ -279,3 +279,23 @@ export function help(): BreeMessage {
     ),
   ]);
 }
+
+// ---- Product feedback ----
+
+// Feedback typed into the Bree panel. The Slack message is the whole record:
+// nothing is stored, so the text is quoted verbatim rather than summarised, and
+// the company and the person are named so a reply has somewhere to go.
+//
+// Slack's mrkdwn treats a leading ">" as a quote and continues it to the end of
+// the line, so each line of the submitted text is prefixed individually.
+export function feedback(o: { companyName: string; userName: string; text: string }): BreeMessage {
+  const quoted = o.text
+    .split('\n')
+    .map((line) => `> ${line}`)
+    .join('\n');
+  return withBree(`Feedback from ${o.userName} (${o.companyName})`, [
+    header('Product feedback'),
+    section(`*${o.userName}* · ${o.companyName}`),
+    section(quoted),
+  ]);
+}

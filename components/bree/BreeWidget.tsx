@@ -222,10 +222,99 @@ export default function BreeWidget() {
                 {busy ? '…' : 'Send'}
               </button>
             </div>
+            <FeedbackBox />
           </div>
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * "Send feedback" in the panel footer, opening a plain text box.
+ *
+ * The Slack message the API posts is the whole record, so this stores nothing
+ * and asks for nothing beyond the text. Delivery is reported as the route
+ * reports it: when the company has not connected Slack there is nowhere for the
+ * feedback to go, and saying so is better than a thank-you for a message that
+ * was never sent.
+ */
+function FeedbackBox() {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<'sent' | 'undelivered' | 'error' | null>(null);
+
+  async function submit() {
+    const body = text.trim();
+    if (!body || sending) return;
+    setSending(true);
+    setResult(null);
+    try {
+      const res = await bvFetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: body }),
+      });
+      if (!res.ok) {
+        setResult('error');
+        return;
+      }
+      const { delivered } = await res.json();
+      setResult(delivered ? 'sent' : 'undelivered');
+      if (delivered) {
+        setText('');
+        setOpen(false);
+      }
+    } catch {
+      setResult('error');
+    } finally {
+      setSending(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <div className="mt-2 text-right">
+        <button
+          onClick={() => { setOpen(true); setResult(null); }}
+          className="text-xs text-slate-400 underline-offset-2 hover:text-slate-700 hover:underline"
+        >
+          Send feedback
+        </button>
+        {result === 'sent' && <p className="mt-1 text-xs text-slate-500">Thanks, that went to your Slack channel.</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2">
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={3}
+        autoFocus
+        maxLength={2000}
+        placeholder="What is working, what is not?"
+        className="w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm"
+      />
+      <div className="mt-1.5 flex items-center justify-end gap-2">
+        <button onClick={() => { setOpen(false); setResult(null); }} className="text-xs text-slate-400 hover:text-slate-700">
+          Cancel
+        </button>
+        <button
+          onClick={submit}
+          disabled={sending || !text.trim()}
+          className="rounded-lg bg-bree px-3 py-1.5 text-xs font-medium text-white hover:bg-bree-hover disabled:opacity-50"
+        >
+          {sending ? 'Sending…' : 'Send feedback'}
+        </button>
+      </div>
+      {result === 'undelivered' && (
+        <p className="mt-1 text-xs text-amber-700">Slack is not connected for your company, so this was not sent.</p>
+      )}
+      {result === 'error' && <p className="mt-1 text-xs text-amber-700">That did not send. Try again.</p>}
+    </div>
   );
 }
 
