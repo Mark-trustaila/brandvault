@@ -230,6 +230,12 @@ decade out.
   check) and surface unverified senders in the approval/review UI.
 - SMTP email alert channel not wired (alerts count + skip email gracefully).
 - Shared Preview/Prod Azure DB — separate before the first external customer.
+- **Feedback fallback store (small table) when a non-Slack company exists.**
+  `/api/feedback` posts to the company's Slack channel and stores nothing: the
+  Slack message is the record. A company with Slack unconnected therefore has
+  nowhere for feedback to go, so the route returns `delivered: false` and the
+  Bree panel says it was not sent rather than thanking the user. Known and
+  accepted while every company is Slack-connected. Queued, not built.
 
 ## Naming
 
