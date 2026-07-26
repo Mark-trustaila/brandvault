@@ -32,18 +32,13 @@ export function PlatformAdminBar() {
   const [open, setOpen] = useState(false);
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [orgs, setOrgs] = useState<ClerkOrg[] | null>(null);
-  const [collapsed, setCollapsed] = useState(false); // default expanded; SSR-safe
+  // Always starts collapsed, on every arrival including a Slack deep link.
+  // It expands only on click. Within a session the state survives client-side
+  // navigation because the component is not remounted; a fresh page load
+  // deliberately starts collapsed again.
+  const [collapsed, setCollapsed] = useState(true);
 
-  // Restore the per-session collapsed preference on the client (after hydration).
-  useEffect(() => {
-    setCollapsed(sessionStorage.getItem('bv:adminBarCollapsed') === '1');
-  }, []);
-  const toggleCollapsed = () =>
-    setCollapsed((c) => {
-      const next = !c;
-      sessionStorage.setItem('bv:adminBarCollapsed', next ? '1' : '0');
-      return next;
-    });
+  const toggleCollapsed = () => setCollapsed((c) => !c);
 
   useEffect(() => {
     setActingId(getActingCompany()?.id ?? null);

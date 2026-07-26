@@ -42,7 +42,7 @@ function timeAgo(iso: string): string {
 }
 
 export default function BreeWidget() {
-  const { breeOpen, setBreeOpen, data, setSelectedTrademark } = useDashboard();
+  const { breeOpen, setBreeOpen, data, setSelectedTrademark, showReport, editTarget } = useDashboard();
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const [unread, setUnread] = useState(0);
   const [search, setSearch] = useState('');
@@ -126,8 +126,16 @@ export default function BreeWidget() {
   return (
     <>
       {/* Toggle — floating bottom-right (clear of the crowded Topbar); hidden
-          while the panel is open (the panel has its own close button). */}
-      {!breeOpen && (
+          while the panel is open (the panel has its own close button).
+
+          The bottom-right corner is reserved, so the pill yields to anything
+          that needs it. ReportPanel's action row is justify-content: flex-end,
+          which puts Download directly under the pill and made it unclickable.
+          The edit form is a modal and the pill would otherwise float above its
+          scrim. DetailPanel is deliberately NOT included: its footer is
+          left-aligned, so nothing collides, and Bree stays reachable while a
+          mark is open, which is the main flow. */}
+      {!breeOpen && !showReport && !editTarget && (
         <button
           onClick={() => setBreeOpen(true)}
           style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 9999 }}

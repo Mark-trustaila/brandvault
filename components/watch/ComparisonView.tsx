@@ -112,7 +112,12 @@ export default function ComparisonView({ ours, theirs, oppositionDeadline, now }
 
   return (
     <section className="mx-auto w-full max-w-3xl p-4">
-      <h1 className="mb-1 text-lg font-semibold text-neutral-800">Third-party filing notice</h1>
+      <div className="mb-1 flex items-center gap-2">
+        <h1 className="text-lg font-semibold text-neutral-800">Third-party filing notice</h1>
+        <span className="rounded-md border border-neutral-200 bg-neutral-50 px-2 py-0.5 text-xs font-medium text-neutral-600">
+          Beta
+        </span>
+      </div>
       <p className="mb-5 text-sm text-neutral-500">
         {overlapSentence(overlap)}
       </p>
