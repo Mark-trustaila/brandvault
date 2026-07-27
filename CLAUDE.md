@@ -286,6 +286,26 @@ decade out.
   Bree panel says it was not sent rather than thanking the user. Known and
   accepted while every company is Slack-connected. Queued, not built.
 
+- **Watch notices are Slack-only: the app has no awareness surface.** A watch
+  notice anchors a `WatchNotice` row and posts a Bree alert, but writes no
+  `Notification` — `createNotification` is called only from `lib/alerts.ts`
+  (renewal alert, status change, digest), while the processor's watch path calls
+  a local `alert()` that is `sendBree` alone. So a filing notice never reaches
+  the BreePanel threads bar the way a renewal alert does, and there is no
+  portfolio-level view of open notices. The comparison view at `/watch/[id]` is
+  the *decision* surface; what is missing is the surface that tells someone a
+  decision is waiting. A GC who missed the Slack message cannot discover a live
+  opposition window. Queued:
+  1. Watch alerts write `Notification` rows like renewals do (type badge + deep
+     link), so there is one alert pipeline rather than a Slack-only side path.
+  2. A portfolio-level surface for open notices. Dashboard intelligence-panel
+     line first ("1 open filing notice, opposition window closes in 30 days",
+     urgency-styled like the renewal line); a Watch section listing notices by
+     opposition deadline, soonest first, only when volume justifies it.
+  3. The mark-detail entry point stays as is.
+  Alert-only throughout, unchanged: nothing in this path mutates mark data,
+  proposes an approval, or assesses the conflict.
+
 ## Deep-link landings
 
 Where a Slack link puts you. One landing per kind of message, defined and parsed
