@@ -5,6 +5,7 @@
  */
 import { prisma } from './db';
 import { postToSlack } from './slack';
+import { orderByGoverningDeadline } from './bree-ordering';
 import * as bree from './bree-messages';
 import { createNotification } from './notifications';
 
@@ -150,13 +151,18 @@ export async function runDailyAlerts(now = new Date()): Promise<Summary> {
     }
 
     if (isMonday) {
-      const upcoming = deadlines.slice(0, 10).map((u) => ({
-        markText: u.trademark.markText,
-        registry: u.trademark.registryName,
-        type: u.type,
-        dueDate: u.dueDate.toISOString().slice(0, 10),
-        daysRemaining: daysUntil(u.dueDate, now),
-      }));
+      // Already soonest-first from the query above; ordered through the shared
+      // helper so the digest cannot drift from the rule the other replies use.
+      const upcoming = orderByGoverningDeadline(
+        deadlines.slice(0, 10).map((u) => ({
+          markText: u.trademark.markText,
+          registry: u.trademark.registryName,
+          type: u.type,
+          dueDate: u.dueDate.toISOString().slice(0, 10),
+          daysRemaining: daysUntil(u.dueDate, now),
+        })),
+        (u) => u.daysRemaining
+      );
       const company = await prisma.company.findUnique({ where: { id: p.companyId } });
       const notif = await createNotification({
         companyId: p.companyId,

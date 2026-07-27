@@ -3,6 +3,7 @@
  * formatters in bree-messages.ts expect.
  */
 import { prisma } from './db';
+import { orderByGoverningDeadline, soonestRank } from './bree-ordering';
 
 const isoDay = (d: Date) => d.toISOString().slice(0, 10);
 const daysFrom = (d: Date, now: Date) => Math.floor((d.getTime() - now.getTime()) / 86_400_000);
@@ -27,12 +28,18 @@ export async function upcomingRenewals(companyId: string, limit = 5, now = new D
     orderBy: { dueDate: 'asc' },
     take: limit,
   });
-  return rows.map((d) => ({
-    markText: d.trademark.markText,
-    registry: d.trademark.registryName,
-    dueDate: isoDay(d.dueDate),
-    daysRemaining: daysFrom(d.dueDate, now),
-  }));
+  // The SQL already returns these soonest-first. Sorting through the shared
+  // helper anyway so the ordering rule has one definition rather than relying
+  // on each query's ORDER BY staying correct independently.
+  return orderByGoverningDeadline(
+    rows.map((d) => ({
+      markText: d.trademark.markText,
+      registry: d.trademark.registryName,
+      dueDate: isoDay(d.dueDate),
+      daysRemaining: daysFrom(d.dueDate, now),
+    })),
+    (r) => r.daysRemaining
+  );
 }
 
 export type MarkStatusRow = {
@@ -81,5 +88,15 @@ export async function markStatus(companyId: string, query: string, now = new Dat
       nextDeadline: next ? { type: next.type, dueDate: isoDay(next.dueDate), daysRemaining: daysFrom(next.dueDate, now) } : undefined,
     });
   }
-  return Array.from(groups.values());
+
+  // Order by urgency, not by registry name. The DB order above is retained only
+  // as the tie-break: rights sharing a deadline stay registry-alphabetical.
+  // Rows are ordered within each mark, then the marks themselves by their most
+  // urgent right, so a multi-name match cannot bury an urgent right either.
+  const days = (r: MarkStatusRow) => r.nextDeadline?.daysRemaining;
+  const ordered = Array.from(groups.values()).map((g) => ({
+    ...g,
+    rows: orderByGoverningDeadline(g.rows, days),
+  }));
+  return orderByGoverningDeadline(ordered, (g) => soonestRank(g.rows, days));
 }
