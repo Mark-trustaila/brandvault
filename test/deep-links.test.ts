@@ -4,6 +4,7 @@ import {
   breePanelLink,
   searchQueryFromUrl,
   panelOpenFromUrl,
+  withoutSearchParam,
   SEARCH_PARAM,
   PANEL_PARAM,
 } from '../lib/deep-links';
@@ -68,6 +69,37 @@ describe('searchQueryFromUrl', () => {
 
   it('ignores other params alongside it', () => {
     expect(searchQueryFromUrl('?bree=1&q=ASOS&x=y')).toBe('ASOS');
+  });
+});
+
+describe('withoutSearchParam', () => {
+  it('removes the only param, leaving no query string', () => {
+    expect(withoutSearchParam('?q=TOPSHOP')).toBe('');
+  });
+
+  it('keeps the other params', () => {
+    expect(withoutSearchParam('?q=TOPSHOP&bree=1')).toBe('?bree=1');
+    expect(withoutSearchParam('?notification=abc&q=X')).toBe('?notification=abc');
+  });
+
+  it('is a no-op when there is no search to clear', () => {
+    expect(withoutSearchParam('')).toBe('');
+    expect(withoutSearchParam('?bree=1')).toBe('?bree=1');
+  });
+
+  it('removes an encoded value as readily as a plain one', () => {
+    expect(withoutSearchParam('?q=TOPSHOP%20UNIQUE&bree=1')).toBe('?bree=1');
+  });
+
+  // The point of the helper: what it leaves behind must not re-seed a search.
+  it('leaves nothing the arrival effect would read back as a search', () => {
+    for (const s of ['?q=TOPSHOP', '?q=TOPSHOP&bree=1', '?q=A%26B']) {
+      expect(searchQueryFromUrl(withoutSearchParam(s))).toBe('');
+    }
+  });
+
+  it('does not disturb a panel arrival while clearing the search', () => {
+    expect(panelOpenFromUrl(withoutSearchParam('?q=TOPSHOP&bree=1'))).toBe(true);
   });
 });
 

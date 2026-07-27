@@ -2,7 +2,22 @@
 import { useState, useEffect } from 'react';
 import styles from './SearchBar.module.css';
 import { useDashboard } from '../../context/DashboardContext';
-import { searchQueryFromUrl } from '../../lib/deep-links';
+import { searchQueryFromUrl, withoutSearchParam } from '../../lib/deep-links';
+
+/**
+ * Drop ?q= from the address bar when the search is cleared, so the URL agrees
+ * with the view and a refresh cannot resurrect the filter.
+ *
+ * replaceState rather than a router navigation: nothing needs to re-render or
+ * re-run an arrival effect, only the address bar needs to catch up. Replacing
+ * rather than pushing also keeps the back button meaning "the page before this
+ * one" instead of "the filter you just dismissed".
+ */
+function clearSearchFromUrl() {
+  const { pathname, search, hash } = window.location;
+  if (!search) return;
+  window.history.replaceState(null, '', `${pathname}${withoutSearchParam(search)}${hash}`);
+}
 
 export default function SearchBar() {
   const { searchQuery, setSearchQuery, data, filteredTrademarks } = useDashboard();
@@ -50,7 +65,7 @@ export default function SearchBar() {
       )}
       <button
         className={`${styles.clear} ${inputValue ? styles.clearVisible : ''}`}
-        onClick={() => { setInputValue(''); setSearchQuery(''); }}
+        onClick={() => { setInputValue(''); setSearchQuery(''); clearSearchFromUrl(); }}
       >
         ✕
       </button>

@@ -59,6 +59,25 @@ export function searchQueryFromUrl(search: string): string {
 }
 
 /**
+ * The same query string with the search param removed, e.g. '?q=X&bree=1' to
+ * '?bree=1' and '?q=X' to ''. Ready to hand to `history.replaceState`.
+ *
+ * Clearing the search has to clear the URL too. Otherwise the filter is gone
+ * from the view but still in the address bar, and the next refresh brings it
+ * back from the arrival effect.
+ */
+export function withoutSearchParam(search: string): string {
+  try {
+    const params = new URLSearchParams(search);
+    params.delete(SEARCH_PARAM);
+    const rest = params.toString();
+    return rest ? `?${rest}` : '';
+  } catch {
+    return '';
+  }
+}
+
+/**
  * Whether an arrival asks for the Bree panel.
  *
  * Present-and-not-negated, so `?bree=1` and a bare `?bree` both open it while

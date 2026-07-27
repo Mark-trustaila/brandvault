@@ -1,10 +1,11 @@
 'use client';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import styles from './Sidebar.module.css';
 import { useDashboard } from '../../context/DashboardContext';
 
 export default function Sidebar() {
-  const { data, setActiveTab, setFocusedMark } = useDashboard();
+  const { data, setActiveTab, setFocusedMark, setSearchQuery, setBreeOpen } = useDashboard();
   const router = useRouter();
 
   const marksByName: Record<string, number> = {};
@@ -14,12 +15,23 @@ export default function Sidebar() {
 
   return (
     <nav className={styles.sidebar}>
-      <div className={styles.brand}>
+      {/* Logo goes home: back to the bare dashboard, clearing any ?q= or
+          ?bree= arrival. The href alone is not enough — navigating to "/" is a
+          same-route navigation, so the provider is never remounted and the
+          search and panel state would survive a cleaned URL. Clearing them on
+          click is what makes the URL and the view agree. */}
+      <Link
+        href="/"
+        className={styles.brand}
+        style={{ textDecoration: 'none', color: 'inherit' }}
+        onClick={() => { setSearchQuery(''); setBreeOpen(false); }}
+        aria-label="BrandVault home"
+      >
         <div className={styles.logoMark}>Ai</div>
         <div>
           <div className={styles.orgName}>{data?.company?.name ?? 'BrandVault'}</div>
         </div>
-      </div>
+      </Link>
 
       <div className={styles.sectionLabel}>BRANDVAULT</div>
 
