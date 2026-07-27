@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { waitUntil } from '@vercel/functions';
 import { prisma } from '../../../../lib/db';
-import { slackConfig, verifySlackSignature } from '../../../../lib/slack';
+import { APP_BASE_URL, slackConfig, verifySlackSignature } from '../../../../lib/slack';
 import { parseBreeCommand, type BreeCommand } from '../../../../lib/bree-commands';
 import * as bree from '../../../../lib/bree-messages';
 import { answerBree, type BreeAnswer } from '../../../../lib/bree-service';
@@ -31,11 +31,13 @@ async function buildDataReply(teamId: string, cmd: BreeCommand): Promise<BreeMsg
 function renderSlackAnswer(answer: BreeAnswer): BreeMsg {
   switch (answer.kind) {
     case 'portfolio':
-      return bree.portfolioSummary(answer);
+      return bree.portfolioSummary({ ...answer, appLink: APP_BASE_URL });
     case 'renewals':
-      return bree.renewalsList({ items: answer.items });
+      return bree.renewalsList({ items: answer.items, appLink: APP_BASE_URL });
     case 'status':
-      return answer.groups.length ? bree.markStatusMsg({ query: answer.query, groups: answer.groups }) : bree.notFound(answer.query);
+      return answer.groups.length
+        ? bree.markStatusMsg({ query: answer.query, groups: answer.groups, appLink: APP_BASE_URL })
+        : bree.notFound(answer.query); // nothing found, so nothing to go and see
     case 'help':
       return bree.help();
   }

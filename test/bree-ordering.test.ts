@@ -117,6 +117,57 @@ describe('the /bree status TOPSHOP case', () => {
     const firstLine = body.slice(body.indexOf('TOPSHOP')).split('\\n')[1];
     expect(firstLine).toContain('99d');
   });
+
+  it('carries one See in app link, in the footer, when given one', () => {
+    const out = orderByGoverningDeadline(alphabetical, days);
+    const link = 'https://brandvault-asos.vercel.app';
+    const msg = bree.markStatusMsg({ query: 'TOPSHOP', groups: [{ markText: 'TOPSHOP', rows: out }], appLink: link });
+    const body = JSON.stringify(msg.blocks);
+
+    // Exactly one link: ten linked lines would be noise, and there is no
+    // mark-route URL to point a per-line link at anyway.
+    expect(body.split('See in app').length - 1).toBe(1);
+    expect(body).toContain(`<${link}|See in app →>`);
+
+    // It belongs to the footer context row that every Bree message signs off
+    // with, not to any right's line.
+    const last = msg.blocks[msg.blocks.length - 1] as { type: string; elements: { text: string }[] };
+    expect(last.type).toBe('context');
+    expect(last.elements[0].text).toContain('See in app');
+    expect(last.elements[0].text).toContain('Bree · BrandVault');
+  });
+
+  it('omits the link entirely when none is given', () => {
+    const msg = bree.markStatusMsg({ query: 'TOPSHOP', groups: [{ markText: 'TOPSHOP', rows: alphabetical }] });
+    expect(JSON.stringify(msg.blocks)).not.toContain('See in app');
+  });
+});
+
+describe('See in app links on the other slash replies', () => {
+  const link = 'https://brandvault-asos.vercel.app';
+
+  it('portfolio carries one footer link', () => {
+    const msg = bree.portfolioSummary({
+      companyName: 'ASOS plc', total: 222, registered: 200, pending: 12, published: 10, needsAttention: 36, appLink: link,
+    });
+    const body = JSON.stringify(msg.blocks);
+    expect(body.split('See in app').length - 1).toBe(1);
+    expect(body).toContain(`<${link}|See in app →>`);
+  });
+
+  it('renewals carries one footer link', () => {
+    const msg = bree.renewalsList({
+      items: [{ markText: 'TOPSHOP', registry: 'UKIPO', dueDate: '2026-11-03', daysRemaining: 99 }],
+      appLink: link,
+    });
+    expect(JSON.stringify(msg.blocks).split('See in app').length - 1).toBe(1);
+  });
+
+  // An empty answer is still an answer about the portfolio, so it stays linked.
+  it('renewals links even when nothing is due', () => {
+    const msg = bree.renewalsList({ items: [], appLink: link });
+    expect(JSON.stringify(msg.blocks)).toContain('See in app');
+  });
 });
 
 /** A multi-name match must not bury an urgent right under a calmer mark name. */

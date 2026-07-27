@@ -58,26 +58,42 @@ export function weeklyDigest(o: {
 
 // ---- Slash-command responses ----
 
-export function portfolioSummary(o: { companyName: string; total: number; registered: number; pending: number; published: number; needsAttention: number }): BreeMessage {
-  return withBree(`${o.companyName}: ${o.total} marks`, [
-    header(o.companyName),
-    section(
-      `*${o.total}* marks · *${o.registered}* registered · *${o.pending + o.published}* in prosecution\n` +
-        `*${o.needsAttention}* need attention (renewal within 12 months)`
-    ),
-  ]);
+/**
+ * Slash replies carry ONE "See in app →" link, in the footer, not one per line.
+ *
+ * Not a formatting preference: there is no mark-route URL to link a line to.
+ * The only mark-targeting deep link in the product is `/?notification={id}`,
+ * which resolves the mark by reading a Notification row, so a per-right link
+ * would mean writing a Notification per line of a read-only reply. The footer
+ * link therefore targets the dashboard, and `withBree` already renders it in
+ * the same context row every alert uses, so these replies now match the alerts.
+ */
+export function portfolioSummary(o: { companyName: string; total: number; registered: number; pending: number; published: number; needsAttention: number; appLink?: string }): BreeMessage {
+  return withBree(
+    `${o.companyName}: ${o.total} marks`,
+    [
+      header(o.companyName),
+      section(
+        `*${o.total}* marks · *${o.registered}* registered · *${o.pending + o.published}* in prosecution\n` +
+          `*${o.needsAttention}* need attention (renewal within 12 months)`
+      ),
+    ],
+    o.appLink
+  );
 }
 
-export function renewalsList(o: { items: { markText: string; registry: string; dueDate: string; daysRemaining: number }[] }): BreeMessage {
-  if (o.items.length === 0) return withBree('No upcoming renewals', [section('No renewals coming up.')]);
+export function renewalsList(o: { items: { markText: string; registry: string; dueDate: string; daysRemaining: number }[]; appLink?: string }): BreeMessage {
+  // Nothing due: still linked, so "no renewals" is one click from the portfolio
+  // that produced the answer.
+  if (o.items.length === 0) return withBree('No upcoming renewals', [section('No renewals coming up.')], o.appLink);
   const lines = o.items.map((i) => `• *${i.markText}* (${i.registry}): *${i.daysRemaining}d* · ${i.dueDate}`).join('\n');
-  return withBree(`${o.items.length} upcoming renewals`, [header('Next renewals'), section(lines)]);
+  return withBree(`${o.items.length} upcoming renewals`, [header('Next renewals'), section(lines)], o.appLink);
 }
 
 type StatusRow = { registry: string; status: string; nextDeadline?: { type: string; dueDate: string; daysRemaining: number } };
 type StatusGroup = { markText: string; rows: StatusRow[] };
 
-export function markStatusMsg(o: { query: string; groups: StatusGroup[] }): BreeMessage {
+export function markStatusMsg(o: { query: string; groups: StatusGroup[]; appLink?: string }): BreeMessage {
   const blocks: Block[] = [];
   for (const g of o.groups) {
     const lines = g.rows
@@ -93,7 +109,7 @@ export function markStatusMsg(o: { query: string; groups: StatusGroup[] }): Bree
   const regs = o.groups.reduce((n, g) => n + g.rows.length, 0);
   const names = o.groups.length;
   const summary = names === 1 ? `${o.groups[0].markText}: ${regs} registration${regs === 1 ? '' : 's'}` : `${regs} registrations across ${names} marks`;
-  return withBree(summary, [header('Mark status'), ...blocks]);
+  return withBree(summary, [header('Mark status'), ...blocks], o.appLink);
 }
 
 // ---- Inbound-email-driven alerts (Phase 4 Step 3) ----
