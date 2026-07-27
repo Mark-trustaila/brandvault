@@ -69,6 +69,19 @@ export default function Sidebar() {
         <span>Inbox</span>
       </div>
 
+      {/* Last item of the BRANDVAULT group. A Link rather than a router.push
+          div so it is a real anchor: middle-click, open-in-new-tab and the
+          status bar all work, which matters more here than on the in-app
+          routes because this page is public and gets shared. Same .navItem
+          class as the items above, so icon, weight, colour and hover match. */}
+      <Link href="/whats-new" className={styles.navItem}>
+        <svg viewBox="0 0 24 24" fill="none" strokeWidth="2">
+          <path d="m3 11 18-5v12L3 14v-3z" />
+          <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+        </svg>
+        <span>What&rsquo;s new</span>
+      </Link>
+
       <div className={styles.sectionLabel}>TRADEMARK MARKS</div>
 
       {Object.entries(marksByName).map(([mark, count]) => (
@@ -93,20 +106,6 @@ export default function Sidebar() {
         </svg>
         <span>Patents</span>
       </div>
-
-      {/* Quiet changelog line. It lives inside the sidebar's scroll container
-          (.sidebar is overflow-y: auto) rather than in the dashboard's main
-          column, where it sat below the tab content and was pushed out of sight
-          as soon as the portfolio loaded. Not floated into a corner either: the
-          bottom-right is reserved for Bree and the admin bar owns the area by
-          the sidebar footer. */}
-      <Link
-        href="/whats-new"
-        className={styles.whatsNew}
-        style={{ textDecoration: 'none' }}
-      >
-        What&rsquo;s new
-      </Link>
 
       <div className={styles.footer}>
         <div className={styles.navItem} style={{ cursor: 'default' }}>

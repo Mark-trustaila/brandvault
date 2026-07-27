@@ -55,6 +55,9 @@
   cursor: pointer;
   font-size: 13px;
   color: #37352f;
+  /* Nav items are a mix of divs and real anchors. Without this the anchors
+     pick up the browser's underline and read differently from the rest. */
+  text-decoration: none;
   transition: background 0.12s;
 }
 
@@ -99,20 +102,6 @@
 .disabled {
   opacity: 0.4;
   pointer-events: none;
-}
-
-/* Quiet changelog line. Sits at the end of the scrolling nav, above the account
-   footer. Deliberately understated: it is there for someone who goes looking,
-   not a call to action. */
-.whatsNew {
-  display: block;
-  margin-top: 16px;
-  padding: 6px 10px;
-  font-size: 11px;
-  color: #9b9a97;
-}
-.whatsNew:hover {
-  color: #37352f;
 }
 
 .footer {
