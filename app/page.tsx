@@ -1,5 +1,6 @@
 'use client';
 import { useEffect } from 'react';
+import Link from 'next/link';
 import { DashboardProvider, useDashboard } from '../context/DashboardContext';
 import Sidebar from '../components/layout/Sidebar';
 import Topbar from '../components/layout/Topbar';
@@ -49,6 +50,11 @@ function Dashboard() {
               {activeTab === 'pipeline' && <PipelineTab />}
               {activeTab === 'by-registry' && <ByRegistryTab />}
             </div>
+            {/* Quiet footer link. Deliberately below the content and unstyled
+                beyond grey text: it is there for someone who goes looking. */}
+            <footer className="mt-10 border-t border-slate-100 pt-4 text-xs text-slate-400">
+              <Link href="/whats-new" className="hover:text-slate-600">What&rsquo;s new</Link>
+            </footer>
           </div>
           <RightPanel />
         </div>
