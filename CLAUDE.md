@@ -231,6 +231,32 @@ decade out.
 - SMTP email alert channel not wired (alerts count + skip email gracefully).
 - Shared Preview/Prod Azure DB — separate before the first external customer.
 
+## Deep-link landings
+
+Where a Slack link puts you. One landing per kind of message, defined and parsed
+in `lib/deep-links.ts` so the writer and the reader of a link cannot drift.
+
+| Message | Link | Lands |
+|---|---|---|
+| Mark-specific reply (`/bree status`) | `?q=<text>` | dashboard, search-filtered |
+| Summary replies (`/bree renewals`, `/bree portfolio`) | `?bree=1` | dashboard, Bree panel open |
+| Notification alerts + weekly digest | `?notification=<id>` | panel open, on that item |
+
+- `?q=` initialises the **existing** search state. No new route and no new UI:
+  the arrival is identical to typing that text in the search bar, which is a
+  substring match across mark text, numbers, registry, status and agent. So
+  `?q=TOPSHOP` legitimately shows TOPSHOP and TOPSHOP UNIQUE together. The link
+  carries the text the user asked Bree about, not a resolved mark name. A `q`
+  matching nothing shows the search's ordinary empty state, and arrival is
+  company-scoped like every other route.
+- `?bree=1` rather than reusing the digest's link. The digest lands panel-open
+  because it writes a `Notification` row and links to it; a slash command is a
+  read-only question, so minting a row per `/bree renewals` would put a thread
+  in the panel for every question anyone asks. The param reaches the same
+  landing through the `breeOpen` state the panel already has.
+- Params are read in an effect, not in initial state: the server prerender has
+  no URL, so seeding from `window` there would be a hydration mismatch.
+
 ## Naming
 
 - The Slack assistant is called **Bree**.

@@ -1,7 +1,8 @@
 'use client';
-import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo, useEffect, type ReactNode } from 'react';
 import type { Trademark, TrademarkData } from '../types/trademark';
 import { matchesSearch } from '../lib/utils';
+import { searchQueryFromUrl } from '../lib/deep-links';
 
 interface DashboardContextType {
   data: TrademarkData | null;
@@ -37,6 +38,16 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [focusedMark, setFocusedMark] = useState<string | null>(null);
   const [editTarget, setEditTarget] = useState<Trademark | 'new' | null>(null);
   const [breeOpen, setBreeOpen] = useState(false);
+
+  // Arriving from a Slack link with ?q=<text>: apply that search immediately,
+  // so the dashboard lands filtered rather than showing the whole portfolio
+  // first. Read in an effect rather than in the initial state because the
+  // server prerender has no URL, and initialising from `window` there would be
+  // a hydration mismatch. SearchBar reads the same param for its input value.
+  useEffect(() => {
+    const q = searchQueryFromUrl(window.location.search);
+    if (q) setSearchQuery(q);
+  }, []);
 
   const filteredTrademarks = useMemo(
     () => data?.trademarks.filter(t => matchesSearch(t, searchQuery)) ?? [],

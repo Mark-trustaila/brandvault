@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { orderByGoverningDeadline, soonestRank, deadlineRank } from '../lib/bree-ordering';
+import { dashboardSearchLink, breePanelLink, searchQueryFromUrl, panelOpenFromUrl } from '../lib/deep-links';
 import * as bree from '../lib/bree-messages';
 
 type Row = { registry: string; status: string; nextDeadline?: { type: string; dueDate: string; daysRemaining: number } };
@@ -167,6 +168,65 @@ describe('See in app links on the other slash replies', () => {
   it('renewals links even when nothing is due', () => {
     const msg = bree.renewalsList({ items: [], appLink: link });
     expect(JSON.stringify(msg.blocks)).toContain('See in app');
+  });
+});
+
+/**
+ * The landing scheme, asserted end to end at the message level: a mark-specific
+ * reply lands search-filtered, summary replies land panel-open. These are the
+ * links a reader actually clicks out of Slack.
+ */
+describe('landing scheme per reply kind', () => {
+  const BASE = 'https://brandvault-asos.vercel.app';
+  const linkIn = (msg: { blocks: unknown[] }) => {
+    const m = JSON.stringify(msg.blocks).match(/<([^|]+)\|See in app/);
+    return m ? m[1] : null;
+  };
+
+  it('status lands search-filtered on the text that was asked about', () => {
+    const msg = bree.markStatusMsg({
+      query: 'TOPSHOP',
+      groups: [{ markText: 'TOPSHOP', rows: [row('UKIPO', 99)] }],
+      appLink: dashboardSearchLink('TOPSHOP', BASE),
+    });
+    expect(linkIn(msg)).toBe(`${BASE}/?q=TOPSHOP`);
+    expect(panelOpenFromUrl(new URL(linkIn(msg)!).search)).toBe(false);
+  });
+
+  it('status encodes a multi-word name in its landing', () => {
+    const msg = bree.markStatusMsg({
+      query: 'TOPSHOP UNIQUE',
+      groups: [{ markText: 'TOPSHOP UNIQUE', rows: [row('UKIPO', 4600)] }],
+      appLink: dashboardSearchLink('TOPSHOP UNIQUE', BASE),
+    });
+    const url = new URL(linkIn(msg)!);
+    expect(url.search).toBe('?q=TOPSHOP%20UNIQUE');
+    expect(searchQueryFromUrl(url.search)).toBe('TOPSHOP UNIQUE');
+  });
+
+  it('renewals lands panel-open, not search-filtered', () => {
+    const msg = bree.renewalsList({ items: [], appLink: breePanelLink(BASE) });
+    const url = new URL(linkIn(msg)!);
+    expect(panelOpenFromUrl(url.search)).toBe(true);
+    expect(searchQueryFromUrl(url.search)).toBe('');
+  });
+
+  it('portfolio lands panel-open, not search-filtered', () => {
+    const msg = bree.portfolioSummary({
+      companyName: 'ASOS plc', total: 222, registered: 200, pending: 12, published: 10, needsAttention: 36,
+      appLink: breePanelLink(BASE),
+    });
+    const url = new URL(linkIn(msg)!);
+    expect(panelOpenFromUrl(url.search)).toBe(true);
+    expect(searchQueryFromUrl(url.search)).toBe('');
+  });
+
+  // The digest is unchanged: it keeps landing on its own notification.
+  it('the digest still lands on its notification', () => {
+    const msg = bree.weeklyDigest({ companyName: 'ASOS plc', upcoming: [], appLink: `${BASE}/?notification=abc123` });
+    const url = new URL(linkIn(msg)!);
+    expect(url.searchParams.get('notification')).toBe('abc123');
+    expect(searchQueryFromUrl(url.search)).toBe('');
   });
 });
 

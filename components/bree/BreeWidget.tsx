@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useDashboard } from '../../context/DashboardContext';
 import { bvFetch } from '../../lib/client/acting-company';
+import { panelOpenFromUrl } from '../../lib/deep-links';
 
 type Notif = {
   id: string;
@@ -81,9 +82,12 @@ export default function BreeWidget() {
     [markRead, openMark]
   );
 
-  // Initial load + deep link (/?notification=id): open panel, mark read, open mark.
+  // Initial load + deep links.
+  //   ?bree=1            → open the panel on the threads view (summary replies)
+  //   ?notification=id   → open the panel, mark read, open the mark
   useEffect(() => {
     load();
+    if (panelOpenFromUrl(window.location.search)) setBreeOpen(true);
     const id = new URLSearchParams(window.location.search).get('notification');
     if (!id) return;
     setBreeOpen(true);

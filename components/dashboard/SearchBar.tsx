@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import styles from './SearchBar.module.css';
 import { useDashboard } from '../../context/DashboardContext';
+import { searchQueryFromUrl } from '../../lib/deep-links';
 
 export default function SearchBar() {
   const { searchQuery, setSearchQuery, data, filteredTrademarks } = useDashboard();
@@ -18,6 +19,19 @@ export default function SearchBar() {
   useEffect(() => {
     if (searchQuery === '') setInputValue('');
   }, [searchQuery]);
+
+  // Arriving from a Slack link with ?q=<text>: show that text in the box, so
+  // the filtered view and the input agree and the user can edit or clear it
+  // exactly as if they had typed it.
+  //
+  // Declared last on purpose. On mount the effects above run first with
+  // searchQuery still '', and the clear-sync would otherwise wipe this seed.
+  // Effects run in declaration order, so seeding last survives; afterwards
+  // searchQuery is non-empty and the clear-sync no-ops.
+  useEffect(() => {
+    const q = searchQueryFromUrl(window.location.search);
+    if (q) setInputValue(q);
+  }, []);
 
   const matched = filteredTrademarks.length;
 

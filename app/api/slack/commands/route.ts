@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { waitUntil } from '@vercel/functions';
 import { prisma } from '../../../../lib/db';
-import { APP_BASE_URL, slackConfig, verifySlackSignature } from '../../../../lib/slack';
+import { slackConfig, verifySlackSignature } from '../../../../lib/slack';
+import { breePanelLink, dashboardSearchLink } from '../../../../lib/deep-links';
 import { parseBreeCommand, type BreeCommand } from '../../../../lib/bree-commands';
 import * as bree from '../../../../lib/bree-messages';
 import { answerBree, type BreeAnswer } from '../../../../lib/bree-service';
@@ -30,13 +31,15 @@ async function buildDataReply(teamId: string, cmd: BreeCommand): Promise<BreeMsg
 // prior output (same bree-messages formatters, same data) — no behaviour change.
 function renderSlackAnswer(answer: BreeAnswer): BreeMsg {
   switch (answer.kind) {
+    // Summary replies land panel-open; the mark-specific reply lands
+    // search-filtered on the text that was asked about. See lib/deep-links.
     case 'portfolio':
-      return bree.portfolioSummary({ ...answer, appLink: APP_BASE_URL });
+      return bree.portfolioSummary({ ...answer, appLink: breePanelLink() });
     case 'renewals':
-      return bree.renewalsList({ items: answer.items, appLink: APP_BASE_URL });
+      return bree.renewalsList({ items: answer.items, appLink: breePanelLink() });
     case 'status':
       return answer.groups.length
-        ? bree.markStatusMsg({ query: answer.query, groups: answer.groups, appLink: APP_BASE_URL })
+        ? bree.markStatusMsg({ query: answer.query, groups: answer.groups, appLink: dashboardSearchLink(answer.query) })
         : bree.notFound(answer.query); // nothing found, so nothing to go and see
     case 'help':
       return bree.help();
