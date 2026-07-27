@@ -1,6 +1,26 @@
 import { describe, it, expect } from 'vitest';
 import { changelogEntries, formatEntryDate } from '../lib/changelog';
 import { feedback } from '../lib/bree-messages';
+import { PUBLIC_ROUTE_PATTERNS } from '../lib/public-routes';
+
+describe('changelog page access', () => {
+  it('is served without a session', () => {
+    expect(PUBLIC_ROUTE_PATTERNS).toContain('/whats-new');
+  });
+
+  // Adding a public route is a security-relevant edit. Pinning the whole list
+  // makes an accidental addition fail here rather than pass unnoticed.
+  it('is the only public page route; everything else public is a machine endpoint', () => {
+    const pageRoutes = PUBLIC_ROUTE_PATTERNS.filter((p) => !p.startsWith('/api/'));
+    expect([...pageRoutes].sort()).toEqual(['/sign-in(.*)', '/sign-up(.*)', '/whats-new']);
+  });
+
+  it('does not expose the dashboard or any tenant API', () => {
+    for (const guarded of ['/', '/inbox', '/api/trademarks', '/api/notifications', '/api/me']) {
+      expect(PUBLIC_ROUTE_PATTERNS).not.toContain(guarded);
+    }
+  });
+});
 
 describe('changelogEntries', () => {
   const entries = changelogEntries();

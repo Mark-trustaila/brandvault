@@ -94,6 +94,20 @@ export default function Sidebar() {
         <span>Patents</span>
       </div>
 
+      {/* Quiet changelog line. It lives inside the sidebar's scroll container
+          (.sidebar is overflow-y: auto) rather than in the dashboard's main
+          column, where it sat below the tab content and was pushed out of sight
+          as soon as the portfolio loaded. Not floated into a corner either: the
+          bottom-right is reserved for Bree and the admin bar owns the area by
+          the sidebar footer. */}
+      <Link
+        href="/whats-new"
+        className={styles.whatsNew}
+        style={{ textDecoration: 'none' }}
+      >
+        What&rsquo;s new
+      </Link>
+
       <div className={styles.footer}>
         <div className={styles.navItem} style={{ cursor: 'default' }}>
           <div className={styles.avatar}>MK</div>

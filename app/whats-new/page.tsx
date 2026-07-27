@@ -21,7 +21,11 @@ export default function WhatsNewPage() {
       <h1 className="mt-6 text-2xl font-bold text-slate-800">What&rsquo;s new</h1>
       <p className="mt-1 text-sm text-slate-500">Changes to BrandVault, most recent first.</p>
 
-      <ol className="mt-10 space-y-9">
+      {/* list-none + pl-0 are load-bearing: Tailwind's Preflight is disabled
+          (see tailwind.config.ts), so without them the browser default styles
+          this as a numbered, indented list. A changelog numbered 1 to 7 reads
+          as a ranking. */}
+      <ol className="mt-10 list-none space-y-9 pl-0">
         {entries.map((e, i) => (
           <li key={`${e.date}-${i}`}>
             <div className="text-xs uppercase tracking-wide text-slate-400">{formatEntryDate(e.date)}</div>

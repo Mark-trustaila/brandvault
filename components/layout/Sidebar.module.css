@@ -101,6 +101,20 @@
   pointer-events: none;
 }
 
+/* Quiet changelog line. Sits at the end of the scrolling nav, above the account
+   footer. Deliberately understated: it is there for someone who goes looking,
+   not a call to action. */
+.whatsNew {
+  display: block;
+  margin-top: 16px;
+  padding: 6px 10px;
+  font-size: 11px;
+  color: #9b9a97;
+}
+.whatsNew:hover {
+  color: #37352f;
+}
+
 .footer {
   margin-top: auto;
   border-top: 1px solid #e8e5e0;
