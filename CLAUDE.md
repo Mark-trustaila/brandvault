@@ -270,6 +270,40 @@ decade out.
   check) and surface unverified senders in the approval/review UI.
 - SMTP email alert channel not wired (alerts count + skip email gracefully).
 - Shared Preview/Prod Azure DB — separate before the first external customer.
+- **Dashboard load latency — first-customer bundle, ordinary priority.**
+  Measured from a HAR on a slow load (2026-07-28): `/api/trademarks` 3376ms
+  total (TTFB 2803, download 546, **payload 3.0MB**), `/api/notifications`
+  2745ms TTFB **plus a duplicate call** at 1273ms, `/api/me` 2335ms TTFB for
+  **240 bytes**. All six `clerk.getbrandvault.com` requests were 53-333ms, so
+  Clerk is not implicated. TTFB dominates on every endpoint including one
+  returning 240 bytes, which points at shared backend cost rather than query
+  volume.
+
+  That day's tenancy changes were audited and ruled out: the email-adoption
+  branch in `resolveUser` is unreachable once the row matches, the role
+  reconcile writes the values it just compared so it settles after one request,
+  and `resolveCompany` now makes a single query where it previously also called
+  Clerk's API. `GET /api/trademarks` makes the same ~3 round trips it always
+  did. Three remedies:
+  1. **Connection reuse, Vercel to Azure Prisma.** Each cold function instance
+     opens its own pool and a strict-TLS handshake to Azure MySQL
+     (`connection_limit=5` in `DATABASE_URL`), which is where seconds of TTFB
+     go when several endpoints are hit at once. Weigh a connection pooler or
+     Prisma Accelerate against tuning the pool bound. Decide **alongside the
+     Preview/Prod database split above**, since both rewrite `DATABASE_URL`.
+  2. **`/api/trademarks` payload diet.** `serializeTrademark` emits
+     `good_and_services` carrying the full specification `text` for every class
+     of every mark. The list view never renders it. 3.0MB for 222 marks is the
+     real number behind the perceived lag. Split the list payload from the
+     detail payload, or drop `text` from the list and fetch it per mark.
+  3. **Duplicate `/api/notifications` fetch.** Cause identified, not a hunt:
+     `BreeWidget`'s arrival effect lists `openMark` in its dependency array, and
+     `openMark` is a `useCallback` keyed on `data`. When the portfolio lands,
+     `openMark` changes identity, the effect re-runs and calls `load()` a second
+     time — and re-runs the `?notification=` deep-link branch with it, so an
+     arrival can mark-read and re-open twice. Split the one-time arrival effect
+     from the data-dependent callback.
+
 - **Repo-wide button styling audit (Preflight disabled; native chrome leaking
   on bare buttons).** `corePlugins.preflight` is off in `tailwind.config.ts`, so
   Tailwind never emits the base reset that strips a `<button>`'s user-agent
