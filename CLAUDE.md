@@ -40,6 +40,26 @@ read when the function executes. `.env.example` documents all of them.
 | `SEED_CLERK_ORG_ID` | link seed data to a Clerk org | seed | – | – | opt | local seed only. |
 | `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` | email alert channel | runtime | – | – | – | **Not wired** — email deferred; the alert job counts + skips email gracefully. |
 
+## Hosting region
+
+Serverless functions are pinned to **`fra1`** (Frankfurt) in `vercel.json`,
+the nearest Vercel region to the Azure West Europe database.
+
+Nothing pinned a region until 2026-07-28: no `regions` key, no
+`preferredRegion` on any route, so functions ran in the project default (a US
+region) while the database sat in Europe. Every Prisma query crossed the
+Atlantic twice, plus a strict-TLS handshake per cold instance. The HAR that
+exposed it is the clearest statement of the problem: `/api/me` spent **2335ms
+returning 240 bytes**. No amount of query tuning explains 240 bytes, and every
+`clerk.getbrandvault.com` request in the same capture was 53-333ms, so the cost
+was not Clerk and not query volume. It was distance.
+
+Two things follow. Keep the region and the database in the same part of the
+world: moving either without the other reintroduces this. And **`vercel.json`
+is schema-validated, so it takes no comments** — a `"//"` key is valid JSON but
+Vercel rejects it and the deploy fails. Rationale for anything in that file
+belongs here instead.
+
 ## CSS rules
 
 - Existing components use CSS Modules. Do not migrate them.
@@ -241,12 +261,19 @@ decade out.
 
 ## Outstanding / deferred
 
-- **Goods and services descriptions were not loaded from the GB export.**
-  All 1,134 goods rows in `asos-gb-20260724.json` carry full description text;
-  the loaded rows have class numbers with `description` null. Backfill from the
-  export is queued: needed for completeness prompts and for any future
-  specification-versus-specification comparison. Class-number features (the
-  watch-notice overlap view) are unaffected.
+- **Specification-versus-specification comparison in the watch view: READY TO
+  BUILD.** The blocker was believed to be missing data. It was not. A previous
+  entry here claimed the GB export's descriptions were never loaded and queued a
+  backfill; that was wrong, and the backfill is deleted rather than deferred.
+  `scripts/load-gb-execute.ts:122` writes `text: g.description`, and production
+  holds **1,085 goods rows averaging 2,656 characters** (measured 2026-07-28).
+  The confusion was the column name: the model field is `GoodsService.text`, not
+  `description`, so a check against `description` reads as null.
+
+  Two consequences. Completeness prompts and any spec-vs-spec comparison have
+  the data they need today. And that prose is heavy: it was the bulk of the
+  3.0MB `/api/trademarks` response, which is why the list payload now carries
+  class numbers only and the full record is fetched per mark.
 
 - **Deadline engine does not gate on mark status (post-demo product issue).**
   `getObligationsForTrademark` derives UKIPO renewals from the **filing** date
@@ -270,39 +297,20 @@ decade out.
   check) and surface unverified senders in the approval/review UI.
 - SMTP email alert channel not wired (alerts count + skip email gracefully).
 - Shared Preview/Prod Azure DB — separate before the first external customer.
-- **Dashboard load latency — first-customer bundle, ordinary priority.**
-  Measured from a HAR on a slow load (2026-07-28): `/api/trademarks` 3376ms
-  total (TTFB 2803, download 546, **payload 3.0MB**), `/api/notifications`
-  2745ms TTFB **plus a duplicate call** at 1273ms, `/api/me` 2335ms TTFB for
-  **240 bytes**. All six `clerk.getbrandvault.com` requests were 53-333ms, so
-  Clerk is not implicated. TTFB dominates on every endpoint including one
-  returning 240 bytes, which points at shared backend cost rather than query
-  volume.
+- **Dashboard load latency — RESOLVED 2026-07-28, one item remaining.** See
+  "Hosting region" above for the cause and the fix. Shipped in `34b7e23`:
+  region pinned to `fra1`, the `/api/trademarks` payload slimmed to class
+  numbers with the full record fetched per mark, the duplicate
+  `/api/notifications` fetch removed, stale-while-revalidate on the dashboard
+  payloads, and skeletons on the first uncached load. Confirmed markedly faster
+  in production.
 
-  That day's tenancy changes were audited and ruled out: the email-adoption
-  branch in `resolveUser` is unreachable once the row matches, the role
-  reconcile writes the values it just compared so it settles after one request,
-  and `resolveCompany` now makes a single query where it previously also called
-  Clerk's API. `GET /api/trademarks` makes the same ~3 round trips it always
-  did. Three remedies:
-  1. **Connection reuse, Vercel to Azure Prisma.** Each cold function instance
-     opens its own pool and a strict-TLS handshake to Azure MySQL
-     (`connection_limit=5` in `DATABASE_URL`), which is where seconds of TTFB
-     go when several endpoints are hit at once. Weigh a connection pooler or
-     Prisma Accelerate against tuning the pool bound. Decide **alongside the
-     Preview/Prod database split above**, since both rewrite `DATABASE_URL`.
-  2. **`/api/trademarks` payload diet.** `serializeTrademark` emits
-     `good_and_services` carrying the full specification `text` for every class
-     of every mark. The list view never renders it. 3.0MB for 222 marks is the
-     real number behind the perceived lag. Split the list payload from the
-     detail payload, or drop `text` from the list and fetch it per mark.
-  3. **Duplicate `/api/notifications` fetch.** Cause identified, not a hunt:
-     `BreeWidget`'s arrival effect lists `openMark` in its dependency array, and
-     `openMark` is a `useCallback` keyed on `data`. When the portfolio lands,
-     `openMark` changes identity, the effect re-runs and calls `load()` a second
-     time — and re-runs the `?notification=` deep-link branch with it, so an
-     arrival can mark-read and re-open twice. Split the one-time arrival effect
-     from the data-dependent callback.
+  Still open: **connection reuse, Vercel to Azure Prisma.** Each cold function
+  instance still opens its own pool and a strict-TLS handshake
+  (`connection_limit=5` in `DATABASE_URL`). The region pin shortened every one
+  of those round trips but did not remove them, so a pooler or Prisma Accelerate
+  is still worth weighing against tuning the pool bound. Decide **alongside the
+  Preview/Prod database split above**, since both rewrite `DATABASE_URL`.
 
 - **Repo-wide button styling audit (Preflight disabled; native chrome leaking
   on bare buttons).** `corePlugins.preflight` is off in `tailwind.config.ts`, so
