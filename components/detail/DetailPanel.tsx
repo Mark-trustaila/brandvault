@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 
 // Sanitise pasted HTML — keep only safe inline formatting
 function sanitiseHtml(html: string): string {
@@ -19,6 +19,7 @@ import { discrepancyTooltip, reconciliationForMark } from '../../lib/reconciliat
 import WatchNoticeLink from './WatchNoticeLink';
 import MarkTile from '../ui/MarkTile';
 import type { Trademark } from '../../types/trademark';
+import { bvFetch } from '../../lib/client/acting-company';
 
 const NICE_CLASS_NAMES: Record<number, string> = {
   9: 'Technology', 16: 'Paper goods', 35: 'Business services', 36: 'Financial',
@@ -120,12 +121,30 @@ function NotesSection({ trademark }: { trademark: Trademark }) {
 
 function RightsRecord({ trademark }: { trademark: Trademark }) {
   const [activeGsClass, setActiveGsClass] = useState<number | null>(null);
+  const [full, setFull] = useState<Trademark | null>(null);
+
+  // Specification text lives only on the full record; the list payload stops
+  // at class numbers. Cancelled on change so a slow response for a previously
+  // opened mark cannot overwrite the current one.
+  useEffect(() => {
+    setFull(null);
+    let cancelled = false;
+    bvFetch(`/api/trademarks/${trademark.id}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: Trademark | null) => { if (!cancelled && d) setFull(d); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [trademark.id]);
+
   const statusStyle = getStatusStyle(trademark.status);
   // Registry expiry vs calculated renewal. Where they agree this is inert and
   // the field renders exactly as before.
   const reconciliation = reconciliationForMark(trademark);
 
-  const gsClasses = trademark.good_and_services || [];
+  // The list payload carries class numbers without specification text, so the
+  // full record is fetched when a mark is opened. Classes render immediately
+  // from what we already have; the text fills in when it arrives.
+  const gsClasses = (full ?? trademark).good_and_services || [];
 
   return (
     <div className={styles.section}>

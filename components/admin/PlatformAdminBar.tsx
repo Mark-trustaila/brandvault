@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { bvFetch, getActingCompany, setActingCompany } from '../../lib/client/acting-company';
+import { cacheKey, staleWhileRevalidate } from '../../lib/client/dashboard-cache';
 
 type Me = {
   isPlatformAdmin: boolean;
@@ -42,10 +43,13 @@ export function PlatformAdminBar() {
 
   useEffect(() => {
     setActingId(getActingCompany()?.id ?? null);
-    fetch('/api/me')
-      .then((r) => r.json())
-      .then(setMe)
-      .catch(() => {});
+    // Cached so the bar does not pop in on every visit while /api/me
+    // round-trips. Not company-scoped: this is who *you* are, not tenant data.
+    staleWhileRevalidate<Me>(
+      cacheKey('me', null),
+      () => fetch('/api/me').then((r) => (r.ok ? r.json() : null)),
+      setMe
+    );
   }, []);
 
   useEffect(() => {

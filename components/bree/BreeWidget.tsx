@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { useDashboard } from '../../context/DashboardContext';
-import { bvFetch } from '../../lib/client/acting-company';
+import { bvFetch, getActingCompany } from '../../lib/client/acting-company';
+import { cacheKey, staleWhileRevalidate } from '../../lib/client/dashboard-cache';
 import { panelOpenFromUrl } from '../../lib/deep-links';
 
 type Notif = {
@@ -50,13 +51,16 @@ export default function BreeWidget() {
   const [input, setInput] = useState('');
   const [session, setSession] = useState<{ q: string; a: BreeReply }[]>([]);
   const [busy, setBusy] = useState(false);
+  // Deep-linked mark, held until the portfolio arrives.
+  const [pendingMarkId, setPendingMarkId] = useState<string | null>(null);
 
+  // Threads render from the last response immediately, then refresh.
   const load = useCallback(async () => {
-    const res = await bvFetch('/api/notifications');
-    if (!res.ok) return;
-    const d = await res.json();
-    setNotifs(d.items ?? []);
-    setUnread(d.unread ?? 0);
+    await staleWhileRevalidate<{ items?: Notif[]; unread?: number }>(
+      cacheKey('notifications', getActingCompany()?.id ?? null),
+      () => bvFetch('/api/notifications').then((r) => (r.ok ? r.json() : null)),
+      (d) => { setNotifs(d.items ?? []); setUnread(d.unread ?? 0); }
+    );
   }, []);
 
   const markRead = useCallback(async (id: string) => {
@@ -82,9 +86,15 @@ export default function BreeWidget() {
     [markRead, openMark]
   );
 
-  // Initial load + deep links.
+  // Arrival, exactly once.
   //   ?bree=1            → open the panel on the threads view (summary replies)
-  //   ?notification=id   → open the panel, mark read, open the mark
+  //   ?notification=id   → open the panel, mark read, remember which mark to open
+  //
+  // This used to depend on `openMark`, which is keyed on `data`. When the
+  // portfolio landed, `openMark` changed identity, the effect re-ran and fired
+  // a second /api/notifications fetch (visible in the HAR as a duplicate), and
+  // re-ran the deep-link branch with it. The mark to open is parked in state
+  // instead and picked up below once the portfolio exists.
   useEffect(() => {
     load();
     if (panelOpenFromUrl(window.location.search)) setBreeOpen(true);
@@ -96,9 +106,18 @@ export default function BreeWidget() {
       if (!res.ok) return; // 404 = not this company's; silently ignore
       const { notification } = await res.json();
       markRead(id);
-      openMark(notification?.trademark?.id);
+      const markId = notification?.trademark?.id;
+      if (markId) setPendingMarkId(markId);
     })();
-  }, [load, setBreeOpen, markRead, openMark]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // The deep-linked mark can only be opened once the portfolio has loaded.
+  useEffect(() => {
+    if (!pendingMarkId || !data) return;
+    openMark(pendingMarkId);
+    setPendingMarkId(null);
+  }, [pendingMarkId, data, openMark]);
 
   const ask = useCallback(async (raw: string) => {
     const query = raw.trim();

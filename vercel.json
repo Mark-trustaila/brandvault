@@ -1,5 +1,7 @@
 {
   "buildCommand": "next build",
   "framework": "nextjs",
+  "//regions": "Frankfurt, nearest Vercel region to the Azure West Europe database. Nothing pinned the region before, so functions ran in the project default (a US region) and every Prisma query crossed the Atlantic twice, plus a strict-TLS handshake per cold instance. That is what the TTFB-dominated HAR was measuring: /api/me spent 2335ms returning 240 bytes.",
+  "regions": ["fra1"],
   "crons": [{ "path": "/api/cron/alerts", "schedule": "0 7 * * *" }]
 }

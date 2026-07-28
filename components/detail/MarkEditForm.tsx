@@ -33,6 +33,15 @@ export function MarkEditForm() {
   const [families, setFamilies] = useState<Family[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  /**
+   * True once `goods` reflects the mark's real specifications.
+   *
+   * The list payload carries class numbers without text, so the rows seeded
+   * from it would be dropped by the save filter and replace real
+   * specifications with nothing. Until the full record arrives, the payload
+   * omits goodsServices entirely, which PATCH treats as "leave them alone".
+   */
+  const [goodsHydrated, setGoodsHydrated] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -47,10 +56,25 @@ export function MarkEditForm() {
         ownerName: editing.owner_name ?? '', ownerCountry: editing.owner_country ?? '',
         representativeName: editing.representative_name ?? '', representativeReference: editing.representative_reference ?? '',
       });
-      setGoods((editing.good_and_services ?? []).map((g) => ({ classNumber: String(g.search_class.number), text: g.text })));
+      // Seed from what the list has so the classes render immediately, then
+      // hydrate the specification text from the full record.
+      setGoods((editing.good_and_services ?? []).map((g) => ({ classNumber: String(g.search_class.number), text: g.text ?? '' })));
+      setGoodsHydrated(false);
+      bvFetch(`/api/trademarks/${editing.id}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((full: Trademark | null) => {
+          if (!full) return;
+          // Do not clobber typing: if any row already has text, either the
+          // user has started editing or hydration already ran.
+          const hydrated = (full.good_and_services ?? []).map((g) => ({ classNumber: String(g.search_class.number), text: g.text ?? '' }));
+          setGoods((cur) => (cur.some((g) => g.text.trim()) ? cur : hydrated));
+          setGoodsHydrated(true);
+        })
+        .catch(() => {});
     } else {
       setF({ markText: '', registryName: '', status: 'Pending', applicationNumber: '', registrationNumber: '', filingDate: '', registrationDate: '', expiryDate: '', clientAgentName: '', familyId: '', ownerName: '', ownerCountry: '', representativeName: '', representativeReference: '' });
       setGoods([]);
+      setGoodsHydrated(true); // a new mark has no specifications to preserve
     }
     bvFetch('/api/families').then((r) => r.json()).then((d) => setFamilies(d.families ?? [])).catch(() => {});
   }, [editTarget]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -89,7 +113,12 @@ export function MarkEditForm() {
       clientAgentName: f.clientAgentName.trim() || null, familyId: familyId || null,
       ownerName: f.ownerName.trim() || null, ownerCountry: f.ownerCountry.trim() || null,
       representativeName: f.representativeName.trim() || null, representativeReference: f.representativeReference.trim() || null,
-      goodsServices: goods.filter((g) => g.classNumber && g.text.trim()).map((g) => ({ classNumber: Number(g.classNumber), text: g.text.trim() })),
+      // Only sent once hydrated. PATCH replaces goods when the key is present
+      // and leaves them untouched when it is absent, so omitting it is what
+      // stops a not-yet-loaded form wiping real specifications.
+      ...(goodsHydrated
+        ? { goodsServices: goods.filter((g) => g.classNumber && g.text.trim()).map((g) => ({ classNumber: Number(g.classNumber), text: g.text.trim() })) }
+        : {}),
       reason: reason.trim() || undefined,
     };
     const res = editing

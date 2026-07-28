@@ -42,6 +42,29 @@ export function serializeTrademark(m: Trademark & { goodsServices: GoodsService[
 }
 
 /**
+ * The list-view shape: everything `serializeTrademark` returns except the
+ * goods & services specification text.
+ *
+ * Class numbers stay, because the list genuinely uses them (RightPanel groups
+ * by class, completeness scoring counts them). The specification prose does not
+ * appear anywhere in the list, and for 222 marks it was the bulk of a 3.0MB
+ * response.
+ *
+ * A mark from here is NOT safe to save from: the edit form must hydrate the
+ * full record via /api/trademarks/:id first, or it would submit goods rows with
+ * no text and replace real specifications with nothing.
+ */
+export function serializeTrademarkListItem(
+  m: Trademark & { goodsServices: { classNumber: number }[] }
+) {
+  const full = serializeTrademark({ ...m, goodsServices: [] as GoodsService[] });
+  return {
+    ...full,
+    good_and_services: m.goodsServices.map((g) => ({ search_class: { number: g.classNumber } })),
+  };
+}
+
+/**
  * Map a DB note (+ its author) to the frontend Note shape. `text` carries the
  * sanitised HTML the composer produces (legacy from the localStorage version,
  * rendered via dangerouslySetInnerHTML).

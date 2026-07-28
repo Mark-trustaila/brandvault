@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { serializeTrademark, serializeNote, serializeAudit } from '../lib/serializers';
+import { serializeTrademarkListItem, serializeTrademark, serializeNote, serializeAudit } from '../lib/serializers';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -62,5 +62,37 @@ describe('serializeAudit', () => {
   it('falls back to Unknown when there is no user', () => {
     const s = serializeAudit({ ...base, isPlatformAdmin: false, user: null } as any);
     expect(s.actor).toBe('Unknown');
+  });
+});
+
+describe('serializeTrademarkListItem', () => {
+  const row = {
+    id: 't1', registryName: 'UKIPO', markText: 'ASOS', applicationNumber: 'UK1',
+    registrationNumber: null, status: 'Registered',
+    filingDate: new Date('2020-01-01'), registrationDate: null, expiryDate: null, publicationDate: null,
+    clientAgentName: null, companyId: 'c1', familyId: null, createdAt: new Date(), updatedAt: new Date(),
+    goodsServices: [{ classNumber: 25 }, { classNumber: 35 }],
+  } as any;
+
+  it('keeps class numbers, which the list actually uses', () => {
+    expect(serializeTrademarkListItem(row).good_and_services).toEqual([
+      { search_class: { number: 25 } },
+      { search_class: { number: 35 } },
+    ]);
+  });
+
+  // The 3.0MB the HAR measured was specification prose the list never renders.
+  it('omits the specification text', () => {
+    for (const g of serializeTrademarkListItem(row).good_and_services) {
+      expect('text' in g).toBe(false);
+    }
+  });
+
+  it('carries every other field the list needs', () => {
+    const s = serializeTrademarkListItem(row);
+    expect(s.mark_text).toBe('ASOS');
+    expect(s.registry_name).toBe('UKIPO');
+    expect(s.status).toBe('Registered');
+    expect(s.filing_date).toBe('2020-01-01T00:00:00.000Z');
   });
 });

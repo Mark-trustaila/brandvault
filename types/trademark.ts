@@ -1,6 +1,12 @@
 export interface GoodsAndServices {
   search_class: { number: number };
-  text: string;
+  /**
+   * The specification text. OPTIONAL because the list payload omits it: full
+   * specifications for 222 marks were 3.0MB and the list never renders them.
+   * Present only on a mark fetched from /api/trademarks/:id. Anything that
+   * edits or displays specifications must hydrate the mark first.
+   */
+  text?: string;
 }
 
 export interface Trademark {

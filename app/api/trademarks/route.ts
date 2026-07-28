@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../../lib/db';
-import { serializeTrademark } from '../../../lib/serializers';
+import { serializeTrademark, serializeTrademarkListItem } from '../../../lib/serializers';
 import { buildMarkData, parseGoods } from '../../../lib/marks';
 import { getActingCompany, getRequestContext, requireReasonIfAdmin } from '../../../lib/authz';
 import { writeAudit } from '../../../lib/audit';
@@ -15,14 +15,17 @@ export const runtime = 'nodejs';
 // expects (types/trademark.ts). Empty payload when no org is active.
 export async function GET(req: Request) {
   const company = await getActingCompany(req);
+  // Class numbers only: the specification text is never rendered in the list
+  // and was the bulk of a 3.0MB response. Narrowing the select cuts the work
+  // at the database too, not just on the wire.
   const marks = company
     ? await prisma.trademark.findMany({
         where: { companyId: company.id },
-        include: { goodsServices: true },
+        include: { goodsServices: { select: { classNumber: true } } },
         orderBy: { markText: 'asc' },
       })
     : [];
-  const trademarks = marks.map(serializeTrademark);
+  const trademarks = marks.map(serializeTrademarkListItem);
   return NextResponse.json({
     count: trademarks.length,
     trademarks,

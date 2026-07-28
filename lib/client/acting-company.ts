@@ -5,6 +5,8 @@
  * the x-bv-company-id header so reads + writes act on that company (cross-tenant).
  * Persisted in localStorage; null means "my own org".
  */
+import { clearCache } from './dashboard-cache';
+
 export type ActingCompany = { id: string; name: string } | null;
 
 const KEY = 'bv_acting_company';
@@ -22,6 +24,9 @@ export function setActingCompany(c: ActingCompany): void {
   if (typeof window === 'undefined') return;
   if (c) localStorage.setItem(KEY, JSON.stringify(c));
   else localStorage.removeItem(KEY);
+  // Cached payloads belong to the company that was being acted on. Switching
+  // tenants must not leave the previous one's portfolio on screen.
+  clearCache();
 }
 
 /**
