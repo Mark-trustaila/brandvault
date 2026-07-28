@@ -39,15 +39,21 @@ function mapRole(orgRole?: string | null): 'admin' | 'editor' | 'viewer' {
 // Exported for tests: this mapping decides write access, so it is worth pinning.
 export const __mapRoleForTest = mapRole;
 
-export async function resolveCompany(orgId: string): Promise<Company> {
-  const existing = await prisma.company.findUnique({ where: { clerkOrgId: orgId } });
-  if (existing) return existing;
-  const org = await (await clerkClient()).organizations.getOrganization({ organizationId: orgId });
-  return prisma.company.upsert({
-    where: { clerkOrgId: orgId },
-    update: {},
-    create: { name: org.name, slug: org.slug ?? orgId, clerkOrgId: orgId },
-  });
+/**
+ * The Company linked to a Clerk org, or null when the org is not linked.
+ *
+ * Deliberately does NOT create one. It used to: an unknown org was fetched from
+ * Clerk and a Company inserted for it. That contradicts the concierge
+ * onboarding model, where a platform admin creates the company and links the
+ * org to it, and it meant any Clerk org anyone created became a BrandVault
+ * tenant on first request. It is how a stray "Asos Plc" company appeared in
+ * production on 2026-07-28, minted by a sign-in against an unrelated org.
+ *
+ * Returning null instead makes an unlinked org a visible, recoverable state
+ * rather than a silent second tenant that strands the real portfolio.
+ */
+export async function resolveCompany(orgId: string): Promise<Company | null> {
+  return prisma.company.findUnique({ where: { clerkOrgId: orgId } });
 }
 
 export async function resolveUser(
@@ -88,5 +94,8 @@ export async function getCurrentUser(): Promise<User | null> {
   const { userId, orgId, orgRole } = await auth();
   if (!userId || !orgId) return null;
   const company = await resolveCompany(orgId);
+  // Unlinked org: no company to attach the user to, and creating one here is
+  // exactly the auto-provisioning this no longer does.
+  if (!company) return null;
   return resolveUser(userId, company.id, orgRole);
 }

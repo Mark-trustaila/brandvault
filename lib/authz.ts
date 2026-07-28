@@ -55,6 +55,15 @@ export function viewerWriteDenied(o: {
 
 export const VIEWER_WRITE_MESSAGE = 'Viewers have read-only access and cannot change portfolio data';
 
+/** The active Clerk org has no Company linked. Onboarding is concierge: a
+ *  platform admin creates the company and links the org to it. */
+export const ORG_NOT_LINKED_MESSAGE = 'This organization is not linked to a BrandVault company';
+
+/** Sent when x-bv-company-id names a company that no longer exists. The client
+ *  matches on this exact string to clear a stale acting company, so changing it
+ *  means changing lib/client/acting-company.ts too (a test pins the pair). */
+export const TARGET_COMPANY_MISSING_MESSAGE = 'Target company not found';
+
 // Platform admins may target a company other than their active org by passing
 // its id in this header (cross-tenant access for onboarding / data correction).
 const COMPANY_HEADER = 'x-bv-company-id';
@@ -83,6 +92,7 @@ export async function getRequestContext(
   if (!userId || !orgId) return { error: { status: 403, message: 'No active organization' } };
 
   const homeCompany = await resolveCompany(orgId);
+  if (!homeCompany) return { error: { status: 403, message: ORG_NOT_LINKED_MESSAGE } };
   const user = await resolveUser(userId, homeCompany.id, orgRole);
   const platformAdmin = await isPlatformAdmin(user.id);
 
@@ -96,7 +106,7 @@ export async function getRequestContext(
   if (targetId && targetId !== homeCompany.id) {
     if (!platformAdmin) return { error: { status: 403, message: 'Cross-tenant access denied' } };
     const target = await prisma.company.findUnique({ where: { id: targetId } });
-    if (!target) return { error: { status: 404, message: 'Target company not found' } };
+    if (!target) return { error: { status: 404, message: TARGET_COMPANY_MISSING_MESSAGE } };
     return { ctx: { user, company: target, isPlatformAdmin: true, crossTenant: true } };
   }
 
@@ -114,6 +124,7 @@ export async function getActingCompany(req: Request): Promise<Company | null> {
   if (!userId || !orgId) return null;
 
   const home = await resolveCompany(orgId);
+  if (!home) return null; // unlinked org: nothing to scope a read to
   const targetId = req.headers.get(COMPANY_HEADER);
   if (targetId && targetId !== home.id) {
     const user = await resolveUser(userId, home.id, orgRole);
