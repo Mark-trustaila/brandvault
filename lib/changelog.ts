@@ -20,6 +20,36 @@ export type ChangelogEntry = {
 
 const ENTRIES: ChangelogEntry[] = [
   {
+    date: '2026-07-28',
+    title: 'Read-only access enforced',
+    body:
+      'A viewer account can now see everything and change nothing. ' +
+      'Write routes refuse viewers server side, so read-only access is a property of the system rather than a promise.',
+  },
+  {
+    // Dated by the production cutover, not by a merge: this was a Clerk
+    // instance and DNS change, so no commit on main corresponds to it.
+    date: '2026-07-28',
+    title: 'Sign in on our own domain',
+    body:
+      'Authentication now runs on getbrandvault.com in production. ' +
+      'No third-party pages in the sign-in flow.',
+  },
+  {
+    date: '2026-07-27',
+    title: 'This page, and a way to talk back',
+    body:
+      'A public shipping history at /whats-new, and a Send feedback line in the Bree panel that reaches us directly.',
+  },
+  {
+    date: '2026-07-27',
+    title: 'Ask Bree in Slack, land in the right place',
+    body:
+      'Bree’s replies in Slack now link into the app. ' +
+      'Ask about a mark and the link opens the portfolio already filtered to that name; summary replies open with the alerts panel ready. ' +
+      'Replies listing several rights lead with the most urgent deadline.',
+  },
+  {
     date: '2026-07-25',
     title: 'Third-party filing notices',
     body:
