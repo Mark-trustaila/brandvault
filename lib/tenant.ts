@@ -13,11 +13,31 @@ import { prisma } from './db';
  * active org/user from the Clerk session.
  */
 
-// Clerk default org roles are org:admin / org:member. Members can maintain
-// their own data (editor); refine if custom Clerk roles are added.
-function mapRole(orgRole?: string | null): 'admin' | 'editor' {
-  return orgRole === 'org:admin' ? 'admin' : 'editor';
+/**
+ * Clerk org role -> our UserRole.
+ *
+ * Clerk's default roles are org:admin and org:member. Members map to VIEWER,
+ * not editor: an ordinary member of the org should not get write access to a
+ * live portfolio by default, and a reviewer account added as a member was
+ * silently landing as an editor of 222 production marks.
+ *
+ * Anything unrecognised also maps to viewer, so a custom Clerk role added
+ * later fails closed rather than granting more than intended.
+ *
+ * Consequence worth knowing: `editor` is now unreachable through login. Setting
+ * it by hand does not stick either, because resolveUser reconciles role on every
+ * authenticated request and would restore viewer. Reaching editor again needs a
+ * Clerk role that maps to it, added here deliberately.
+ *
+ * This mapping is a two-person-workspace expedient and the first real customer's
+ * role scheme is expected to supersede it. See CLAUDE.md.
+ */
+function mapRole(orgRole?: string | null): 'admin' | 'editor' | 'viewer' {
+  return orgRole === 'org:admin' ? 'admin' : 'viewer';
 }
+
+// Exported for tests: this mapping decides write access, so it is worth pinning.
+export const __mapRoleForTest = mapRole;
 
 export async function resolveCompany(orgId: string): Promise<Company> {
   const existing = await prisma.company.findUnique({ where: { clerkOrgId: orgId } });

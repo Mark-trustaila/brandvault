@@ -63,6 +63,35 @@ read when the function executes. `.env.example` documents all of them.
   completeness prompts, not blocking errors.
 - Deadline engine skips marks with missing dates and flags them as "needs data."
 
+## Clerk role mapping
+
+`mapRole` in `lib/tenant.ts` maps the Clerk org role to our `UserRole`:
+
+| Clerk | BrandVault |
+|---|---|
+| `org:admin` | `admin` |
+| `org:member` (and anything unrecognised) | `viewer` |
+
+Members map to **viewer, not editor**. An ordinary member should not get write
+access to a live portfolio by default; a reviewer account added as a member was
+landing as an editor of 222 production marks (2026-07-28).
+
+- **`editor` is currently unreachable through login.** Setting it by hand does
+  not stick: `resolveUser` reconciles role on every authenticated request and
+  restores the mapped value. Reaching editor again needs a Clerk role that maps
+  to it, added to `mapRole` deliberately.
+- **This mapping is deliberately provisional.** It suits a two-person workspace
+  (one `org:admin`, one member). **The first real customer's role scheme
+  supersedes it** — a customer with staff who genuinely need write access will
+  need real Clerk roles mapped here, and that supersession is expected, not a
+  regression.
+- **The role is barely enforced yet.** As of 2026-07-28 `viewer` is checked in
+  exactly one place (`/api/email/inbox/[id]`), and `admin` in two (Slack install,
+  alert preferences). The trademark write routes (`POST`/`PATCH`/`DELETE`
+  `/api/trademarks*`, notes) check **no role at all**, so a viewer can still edit
+  marks. Mapping someone to viewer labels them; it does not yet contain them.
+  Gating the write routes is queued, not built.
+
 ## Platform admin
 
 - Cross-tenant access for BrandVault operations (onboarding, data correction).
