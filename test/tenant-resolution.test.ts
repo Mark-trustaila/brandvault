@@ -104,6 +104,68 @@ describe('a linked org still works', () => {
 });
 
 /**
+ * A Clerk instance migration gives the same person a new user id. The old row
+ * still holds their email, which is unique, so inserting raises P2002 and every
+ * write 500s while reads keep working. Adopting the row instead is what makes
+ * that survivable — and keeps the platform-admin grant, which keys on users.id.
+ */
+describe('resolveUser when the Clerk user id has changed', () => {
+  const verifiedClerkUser = {
+    primaryEmailAddressId: 'idn_1',
+    emailAddresses: [{ id: 'idn_1', emailAddress: 'mkw@mkwassoc.co.uk', verification: { status: 'verified' } }],
+    firstName: 'Mark',
+    lastName: null,
+  };
+  const existingRow = { id: 'u_old', email: 'mkw@mkwassoc.co.uk', role: 'admin', companyId: ASOS.id, clerkUserId: 'user_dev_old' };
+
+  beforeEach(() => {
+    db.company.findUnique.mockResolvedValue(ASOS);
+    db.user.findUnique.mockImplementation(({ where }: { where: { clerkUserId?: string; email?: string } }) =>
+      Promise.resolve(where.email === existingRow.email ? existingRow : null)
+    );
+    clerk.users.getUser.mockResolvedValue(verifiedClerkUser);
+    db.user.update.mockImplementation(({ data }: { data: object }) => Promise.resolve({ ...existingRow, ...data }));
+  });
+
+  it('adopts the existing row instead of inserting a duplicate email', async () => {
+    clerk.auth.mockResolvedValue({ userId: 'user_prod_new', orgId: 'org_real', orgRole: 'org:admin' });
+    const { ctx, error } = await getRequestContext(req({}, 'POST'));
+    expect(error).toBeUndefined();
+    expect(db.user.upsert).not.toHaveBeenCalled();
+    expect(db.user.update).toHaveBeenCalledWith({
+      where: { id: 'u_old' },
+      data: { clerkUserId: 'user_prod_new', role: 'admin', companyId: ASOS.id },
+    });
+    expect(ctx?.user.id).toBe('u_old'); // same row, so the admin grant survives
+  });
+
+  it('refuses to adopt on an unverified email', async () => {
+    clerk.auth.mockResolvedValue({ userId: 'user_prod_new', orgId: 'org_real', orgRole: 'org:admin' });
+    clerk.users.getUser.mockResolvedValue({
+      ...verifiedClerkUser,
+      emailAddresses: [{ id: 'idn_1', emailAddress: 'mkw@mkwassoc.co.uk', verification: { status: 'unverified' } }],
+    });
+    db.user.upsert.mockResolvedValue({ ...existingRow, id: 'u_new', clerkUserId: 'user_prod_new' });
+    await getRequestContext(req({}, 'POST'));
+    expect(db.user.update).not.toHaveBeenCalled();
+    expect(db.user.upsert).toHaveBeenCalled(); // falls through, constraint still guards
+  });
+
+  it('still inserts for a genuinely new person', async () => {
+    clerk.auth.mockResolvedValue({ userId: 'user_brand_new', orgId: 'org_real', orgRole: 'org:member' });
+    clerk.users.getUser.mockResolvedValue({
+      ...verifiedClerkUser,
+      emailAddresses: [{ id: 'idn_2', emailAddress: 'someone.else@example.com', verification: { status: 'verified' } }],
+      primaryEmailAddressId: 'idn_2',
+    });
+    db.user.upsert.mockResolvedValue({ id: 'u_new', email: 'someone.else@example.com', role: 'viewer', companyId: ASOS.id });
+    await getRequestContext(req({}, 'POST'));
+    expect(db.user.update).not.toHaveBeenCalled();
+    expect(db.user.upsert).toHaveBeenCalled();
+  });
+});
+
+/**
  * The client clears a stale acting company on exactly that 404, which only
  * works while both sides agree on the wording.
  */

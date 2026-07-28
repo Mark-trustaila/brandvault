@@ -70,11 +70,39 @@ export async function resolveUser(
     return existing;
   }
   const cu = await (await clerkClient()).users.getUser(clerkUserId);
-  const email =
-    cu.emailAddresses.find((e) => e.id === cu.primaryEmailAddressId)?.emailAddress ??
-    cu.emailAddresses[0]?.emailAddress ??
-    `${clerkUserId}@unknown.local`;
+  const primary = cu.emailAddresses.find((e) => e.id === cu.primaryEmailAddressId) ?? cu.emailAddresses[0];
+  const email = primary?.emailAddress ?? `${clerkUserId}@unknown.local`;
   const name = [cu.firstName, cu.lastName].filter(Boolean).join(' ') || email;
+
+  /**
+   * Adopt an existing row with the same verified email rather than inserting.
+   *
+   * A Clerk instance migration gives the same person a new user id, so the
+   * lookup above misses while `users.email` still holds their address. The
+   * insert then violates that unique constraint, and the P2002 surfaces as an
+   * unhandled 500 on every authenticated request that resolves a context —
+   * which is every write, since only writes call this. Reads go through
+   * getActingCompany, which skips resolveUser unless a cross-tenant header is
+   * present, so the app looks healthy while nothing can be saved.
+   *
+   * Adopting keeps the row id, and with it the platform-admin grant, notes,
+   * audit entries, notification reads and Bree query logs, all of which key on
+   * users.id. Inserting a second row would orphan every one of them.
+   *
+   * Gated on the email being VERIFIED in Clerk. An unverified address must
+   * never let one account take over another's row; Clerk requires verification
+   * before an address can become primary, so this is belt and braces.
+   */
+  if (primary?.verification?.status === 'verified') {
+    const sameEmail = await prisma.user.findUnique({ where: { email } });
+    if (sameEmail) {
+      return prisma.user.update({
+        where: { id: sameEmail.id },
+        data: { clerkUserId, role, companyId },
+      });
+    }
+  }
+
   return prisma.user.upsert({
     where: { clerkUserId },
     update: { role, companyId },
