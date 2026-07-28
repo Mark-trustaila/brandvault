@@ -248,12 +248,18 @@ function FeedbackBox() {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<'sent' | 'undelivered' | 'cross_tenant' | 'error' | null>(null);
+  // The server's reason for a refusal. Without this every non-2xx collapsed
+  // into "try again", which hid four distinct causes behind one dead end —
+  // including a stale acting company in localStorage pointing at a deleted
+  // row, which 404s every write while reads keep working.
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
 
   async function submit() {
     const body = text.trim();
     if (!body || sending) return;
     setSending(true);
     setResult(null);
+    setErrorDetail(null);
     try {
       const res = await bvFetch('/api/feedback', {
         method: 'POST',
@@ -261,6 +267,8 @@ function FeedbackBox() {
         body: JSON.stringify({ text: body }),
       });
       if (!res.ok) {
+        const detail = await res.json().then((d) => d?.error).catch(() => null);
+        setErrorDetail(typeof detail === 'string' && detail ? detail : `Request failed (${res.status})`);
         setResult('error');
         return;
       }
@@ -303,7 +311,17 @@ function FeedbackBox() {
         rows={3}
         autoFocus
         maxLength={2000}
-        placeholder="What is working, what is not?"
+        // Enter sends, Shift+Enter starts a new line. Matches the Bree message
+        // input above, which sends on Enter, and the usual convention for a
+        // multi-line compose box. preventDefault stops the newline being
+        // inserted before the box is cleared.
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            submit();
+          }
+        }}
+        placeholder="What is working, what is not? Enter to send, Shift and Enter for a new line"
         className="w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm"
       />
       <div className="mt-1.5 flex items-center justify-end gap-2">
@@ -324,7 +342,11 @@ function FeedbackBox() {
       {result === 'cross_tenant' && (
         <p className="mt-1 text-xs text-amber-700">You are acting as another company. Feedback is not sent from a switched context.</p>
       )}
-      {result === 'error' && <p className="mt-1 text-xs text-amber-700">That did not send. Try again.</p>}
+      {result === 'error' && (
+        <p className="mt-1 text-xs text-amber-700">
+          That did not send{errorDetail ? `: ${errorDetail}` : ''}.
+        </p>
+      )}
     </div>
   );
 }
