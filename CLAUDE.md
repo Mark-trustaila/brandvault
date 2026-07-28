@@ -270,6 +270,15 @@ decade out.
   check) and surface unverified senders in the approval/review UI.
 - SMTP email alert channel not wired (alerts count + skip email gracefully).
 - Shared Preview/Prod Azure DB — separate before the first external customer.
+- **Repo-wide button styling audit (Preflight disabled; native chrome leaking
+  on bare buttons).** `corePlugins.preflight` is off in `tailwind.config.ts`, so
+  Tailwind never emits the base reset that strips a `<button>`'s user-agent
+  border and background. A bare `<button>` styled only with utilities can
+  therefore render with the browser's own button chrome underneath. Spotted
+  while rendering the Bree panel footer against the built stylesheet. Not
+  chased: if the production Send button looks right today then nothing is
+  visibly broken, and this keeps until a deliberate styling pass. Queued.
+
 - **Feedback fallback store (small table) when a non-Slack company exists.**
   `/api/feedback` posts to the company's Slack channel and stores nothing: the
   Slack message is the record. A company with Slack unconnected therefore has

@@ -282,7 +282,11 @@ function FeedbackBox() {
       <div className="mt-2 text-right">
         <button
           onClick={() => { setOpen(true); setResult(null); }}
-          className="text-xs text-slate-400 underline-offset-2 hover:text-slate-700 hover:underline"
+          // Quiet, but actually visible. At slate-400 with a hover-only
+          // underline this read as decoration and was missed entirely by the
+          // person who asked for it, sitting as it does under a much louder
+          // indigo Send button.
+          className="text-xs text-slate-500 underline underline-offset-2 hover:text-slate-700"
         >
           Send feedback
         </button>
