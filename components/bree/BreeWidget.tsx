@@ -298,7 +298,10 @@ function FeedbackBox() {
         >
           Send feedback
         </button>
-        {result === 'sent' && <p className="mt-1 text-xs text-slate-500">Thanks, that went to your Slack channel.</p>}
+        {/* Confirms receipt, not transport. The sender cares that it reached
+            us; "your Slack channel" is also wrong for anyone who is not the
+            workspace owner. */}
+        {result === 'sent' && <p className="mt-1 text-xs text-slate-500">Thanks, we&rsquo;ve received your feedback.</p>}
       </div>
     );
   }
