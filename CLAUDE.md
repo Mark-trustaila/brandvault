@@ -85,12 +85,23 @@ landing as an editor of 222 production marks (2026-07-28).
   supersedes it** — a customer with staff who genuinely need write access will
   need real Clerk roles mapped here, and that supersession is expected, not a
   regression.
-- **The role is barely enforced yet.** As of 2026-07-28 `viewer` is checked in
-  exactly one place (`/api/email/inbox/[id]`), and `admin` in two (Slack install,
-  alert preferences). The trademark write routes (`POST`/`PATCH`/`DELETE`
-  `/api/trademarks*`, notes) check **no role at all**, so a viewer can still edit
-  marks. Mapping someone to viewer labels them; it does not yet contain them.
-  Gating the write routes is queued, not built.
+- **Viewers are denied writes in the shared auth path, not per route.**
+  `getRequestContext` refuses a viewer on `POST`/`PUT`/`PATCH`/`DELETE` with 403
+  before resolving the target company, so **a route added later inherits the
+  gate**. Enforcing per route is what let `POST`/`PATCH`/`DELETE`
+  `/api/trademarks*`, bulk and notes ship with no role check at all.
+  - Opting out is deliberate and visible: `getRequestContext(req, { allowViewer:
+    true })`. Only three routes do, all cases where the verb is a transport
+    detail rather than a portfolio write — `/api/bree` (a query needing a body),
+    `/api/feedback` (sends a Slack message), `/api/notifications/[id]/read` (a
+    per-user read receipt). A test pins that list, so a fourth opt-out has to be
+    added on purpose.
+  - **Platform admins are exempt**, whatever their own row's role says:
+    cross-tenant correction is the point of the flag, and `crossTenant` already
+    governs which company they may touch.
+  - `admin` is still required by Slack install and alert preferences. The
+    explicit viewer check in `/api/email/inbox/[id]` is now redundant with the
+    shared gate and kept only as defence in depth.
 
 ## Platform admin
 

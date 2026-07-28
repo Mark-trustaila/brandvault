@@ -11,7 +11,9 @@ type Params = { params: { id: string } };
 // user (idempotent). Company-scoped: only marks notifications in the user's own
 // company. Called when a thread item is opened.
 export async function POST(req: Request, { params }: Params) {
-  const { ctx, error } = await getRequestContext(req);
+  // A per-user read receipt, not a change to tenant data. Viewers receive
+  // alerts, so viewers must be able to mark them read.
+  const { ctx, error } = await getRequestContext(req, { allowViewer: true });
   if (error) return NextResponse.json({ error: error.message }, { status: error.status });
 
   const owned = await prisma.notification.findFirst({

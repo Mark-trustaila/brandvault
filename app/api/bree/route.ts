@@ -14,7 +14,9 @@ export const runtime = 'nodejs';
 // logged to BreeQueryLog (Phase 5 evidence). Responses are ephemeral to the
 // session — nothing is persisted as conversation, nothing is synced to Slack.
 export async function POST(req: Request) {
-  const { ctx, error } = await getRequestContext(req);
+  // POST is a transport detail: this is a read-only question that needs a
+  // body. Viewers must be able to ask Bree about their own portfolio.
+  const { ctx, error } = await getRequestContext(req, { allowViewer: true });
   if (error) return NextResponse.json({ error: error.message }, { status: error.status });
 
   const body = await req.json().catch(() => ({}));

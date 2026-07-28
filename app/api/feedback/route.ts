@@ -27,7 +27,9 @@ const MAX_LENGTH = 2000;
  * and must not share a message.
  */
 export async function POST(req: Request) {
-  const { ctx, error } = await getRequestContext(req);
+  // Feedback changes no portfolio data — it sends a Slack message. A viewer
+  // is exactly the person most likely to have something to say.
+  const { ctx, error } = await getRequestContext(req, { allowViewer: true });
   if (error) return NextResponse.json({ error: error.message }, { status: error.status });
 
   // A platform admin with a customer's company switched in is not that
