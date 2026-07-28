@@ -39,7 +39,7 @@ const ENTRIES: ChangelogEntry[] = [
     date: '2026-07-27',
     title: 'This page, and a way to talk back',
     body:
-      'A public shipping history at /whats-new, and a Send feedback line in the Bree panel that reaches us directly.',
+      'A public shipping history at /whats-new, and a Send feedback line at the bottom of the Bree panel that reaches us directly.',
   },
   {
     date: '2026-07-27',
