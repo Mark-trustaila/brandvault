@@ -6,17 +6,23 @@
  * (gb-transform#readExportDoc), and cross-check parity against the frozen export
  * file the loader was validated against. Read-only; no DB writes.
  *
- * Run BEFORE building UI on the client (per the handoff gate).
- *
  *   REGISTRY_FACADE_URL=… REGISTRY_FACADE_KEY=… REGISTRY_FACADE_FN_KEY=… \
  *     npx tsx scripts/prove-facade-roundtrip.ts
  *
- *   [EXPORT_FILE=~/lawpanel/scratch/exports/asos-gb-20260724.json]  # parity source
+ * CHANGE-DETECTOR, not a fixed unit test. The pinned counts below are the LIVE
+ * GB truth as at the last rebaseline (2026-07-29, post-catch-up: ASOS 209
+ * distinct / 176 in-scope). They MOVE when live GB moves — a new filing or a
+ * status change on an ASOS mark will trip an assertion. A failure here means
+ * "the registry advanced, rebaseline these numbers", NOT "the client broke".
+ * (The previous baseline 204/173/138 was pre-catch-up; live GB advanced past the
+ * 2026-07-24 export snapshot on ~2026-07-29 — 3 new A.COLLECTIVE marks + one
+ * WEEKEND COLLECTIVE status refresh. The export file is now historical, so the
+ * file-parity checks were retired.)
  *
  * Exit 0 = all assertions pass, 1 = any failure.
  */
 import { searchByOwner, getMarks, getMark, health, CapExceededError } from '../lib/registry-facade';
-import { readExport, readExportDoc, applicantNames, type ExportMark } from '../lib/gb-transform';
+import { readExportDoc, type ExportMark } from '../lib/gb-transform';
 
 let pass = 0, fail = 0;
 const line: string[] = [];
@@ -25,8 +31,10 @@ const ok = (name: string, cond: boolean, detail = '') => {
   else { fail++; line.push(`  ❌ ${name}${detail ? ' — ' + detail : ''}`); }
 };
 
-const EXPORT_FILE = process.env.EXPORT_FILE || '~/lawpanel/scratch/exports/asos-gb-20260724.json';
 const ASOS_OWNERS = ['ASOS plc', 'ASOS HOLDINGS LIMITED']; // the in-scope proprietors
+
+// Live-GB baseline (rebaseline when the registry advances — see header).
+const BASE = { totalDistinct: 209, asosPlc: 105, asosHoldings: 71, shenzhen: 6, inScope: 176, series: { UK000: 141, UK008: 4, UK009: 31 } };
 
 async function main() {
   console.log('\nProve registry-facade client → live staging\n');
@@ -40,11 +48,11 @@ async function main() {
   // 1. search-by-owner('ASOS') — the checkbox step
   const sbo = await searchByOwner('ASOS');
   const by = Object.fromEntries(sbo.owners.map((o) => [o.ownerString, o]));
-  ok('search-by-owner: totalDistinctMarks = 204', sbo.totalDistinctMarks === 204, `${sbo.totalDistinctMarks}`);
-  ok('search-by-owner: ASOS plc = 102 (owner)', by['ASOS plc']?.markCount === 102 && by['ASOS plc']?.matchedVia.includes('owner'));
-  ok('search-by-owner: ASOS HOLDINGS LIMITED = 71 (owner)', by['ASOS HOLDINGS LIMITED']?.markCount === 71);
-  ok('search-by-owner: Shenzhen asos... = 6 (owner, unrelated party surfaced)', by['Shenzhen asos E-Commerce Ltd.']?.markCount === 6);
-  ok('search-by-owner: ASOS PLC = 133 (representative-only)', by['ASOS PLC']?.matchedVia.includes('representative') && !by['ASOS PLC']?.matchedVia.includes('owner'));
+  ok(`search-by-owner: totalDistinctMarks = ${BASE.totalDistinct}`, sbo.totalDistinctMarks === BASE.totalDistinct, `${sbo.totalDistinctMarks}`);
+  ok(`search-by-owner: ASOS plc = ${BASE.asosPlc} (owner)`, by['ASOS plc']?.markCount === BASE.asosPlc && by['ASOS plc']?.matchedVia.includes('owner'), `${by['ASOS plc']?.markCount}`);
+  ok(`search-by-owner: ASOS HOLDINGS LIMITED = ${BASE.asosHoldings} (owner)`, by['ASOS HOLDINGS LIMITED']?.markCount === BASE.asosHoldings);
+  ok(`search-by-owner: Shenzhen asos... = ${BASE.shenzhen} (owner, unrelated party surfaced)`, by['Shenzhen asos E-Commerce Ltd.']?.markCount === BASE.shenzhen);
+  ok('search-by-owner: ASOS PLC representative-only', by['ASOS PLC']?.matchedVia.includes('representative') && !by['ASOS PLC']?.matchedVia.includes('owner'));
 
   // The checkbox default per contract §3b.1: owner-matched checked, rep-only unchecked.
   const ownerChecked = sbo.owners.filter((o) => o.matchedVia.includes('owner')).map((o) => o.ownerString);
@@ -58,32 +66,21 @@ async function main() {
 
   // 3. feed the facade doc through the loader's own transform
   const r = readExportDoc(doc as { export: any; marks: ExportMark[] });
-  ok('transform: in-scope mapped = 173', r.mapped.length === 173, `${r.mapped.length}`);
+  ok(`transform: in-scope mapped = ${BASE.inScope}`, r.mapped.length === BASE.inScope, `${r.mapped.length}`);
   ok('transform: zero unmapped statuses (loader would not abort)', r.unmappedStatuses.length === 0, r.unmappedStatuses.join(','));
   ok('transform: no node_id leaked into marks', (doc.marks as ExportMark[]).every((m) => m.node_id === undefined));
   const series = r.mapped.reduce<Record<string, number>>((a, m) => ((a[m.seriesPrefix] = (a[m.seriesPrefix] ?? 0) + 1), a), {});
-  ok('transform: series UK000/UK008/UK009 = 138/4/31', series.UK000 === 138 && series.UK008 === 4 && series.UK009 === 31, JSON.stringify(series));
+  ok(`transform: series UK000/UK008/UK009 = ${BASE.series.UK000}/${BASE.series.UK008}/${BASE.series.UK009}`,
+    series.UK000 === BASE.series.UK000 && series.UK008 === BASE.series.UK008 && series.UK009 === BASE.series.UK009, JSON.stringify(series));
   const gs = r.mapped.reduce((n, m) => n + m.goodsServices.length, 0);
   const dl = r.mapped.reduce((n, m) => n + m.deadlines.length, 0);
   ok('transform: goods/services rows > 0', gs > 0, `${gs}`);
   console.log(`  · rows the loader would write: ${r.mapped.length} trademarks, ${gs} goods/services, ${dl} deadlines\n`);
 
-  // 4. parity vs the frozen export file (what the loader was validated on)
-  let expDoc: ReturnType<typeof readExport> | null = null;
-  try { expDoc = readExport(EXPORT_FILE); } catch { /* optional */ }
-  if (expDoc) {
-    const fileApps = new Set(expDoc.mapped.map((m) => m.applicationNumber));
-    const liveApps = new Set(r.mapped.map((m) => m.applicationNumber));
-    const missing = Array.from(fileApps).filter((a) => !liveApps.has(a));
-    const extra = Array.from(liveApps).filter((a) => !fileApps.has(a));
-    ok('parity: same application-number set as export file', missing.length === 0 && extra.length === 0, `missing ${missing.length}, extra ${extra.length}`);
-    const fileStatus = Object.fromEntries(expDoc.mapped.map((m) => [m.applicationNumber, m.registryStatusRaw]));
-    ok('parity: verbatim statuses match export file', r.mapped.every((m) => fileStatus[m.applicationNumber] === m.registryStatusRaw));
-  } else {
-    line.push(`  ⚠️  parity: export file not found at ${EXPORT_FILE} (skipped)`);
-  }
+  // (The 2026-07-24 export-file parity checks were retired at the 2026-07-29
+  //  rebaseline — live GB advanced past that snapshot, so the file is history.)
 
-  // 5. single-mark fetch + graceful cap handling
+  // 4. single-mark fetch + graceful cap handling
   const one = await getMark('UK00003648574');
   ok('mark: UK00003648574 = ASOS ACTUAL / Registered', one?.mark_text?.[0] === 'ASOS ACTUAL' && one?.status === 'Registered');
   ok('mark: unknown returns null (404 handled)', (await getMark('UK00009999999')) === null);
