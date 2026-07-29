@@ -82,11 +82,15 @@ automatically when the registry side advances:
 - **Non-UK registries** are not registry-synced — label provenance per mark
   (registry-synced vs manual) once multi-registry lands.
 
-## 3. Schema additions (staged — `migrations-pending/20260729120000_portfolio_import/`)
+## 3. Schema additions (APPLIED + promoted 2026-07-29 — `prisma/migrations/20260729120000_portfolio_import/`)
 
-Presented as staged SQL (in the migration file) + the matching `schema.prisma`
-patch to apply **on promotion** (per the pending-migrations README: DDL and model
-patch must land together, never split by a deploy). **Not applied here.**
+Preflight gate passed (`scripts/preflight-unique-index.ts`: 225 marks, 0 null
+app-numbers, 0 duplicate `(company, registry, appno)` groups). DDL applied to the
+shared Azure DB, `schema.prisma` patched (unique index + two models), Prisma
+Client generated, dir promoted from `migrations-pending/`, `migrate resolve
+--applied` recorded — `migrate status` = up to date, no drift. One correction
+during apply: the two new tables needed `DEFAULT CHARSET utf8mb4 COLLATE
+utf8mb4_unicode_ci` to match `companies.id` so the FK was accepted.
 
 ### 3.1 Idempotency as a DB invariant — unique index
 
@@ -138,20 +142,22 @@ New Prisma model `ImportRateLimit`.
   `snapshot.preImage` and restores.
 - **3.3** — `previewImport`/`executeImport` check and increment the window first.
 
-## 5. Open decisions for review
+## 5. Decisions (resolved 2026-07-29)
 
-1. **Snapshot storage** — inline JSON in `portfolio_imports.snapshot` (simple;
-   fine for typical portfolios) vs Azure blob + `snapshot_ref` (keeps rows lean;
-   needed near the 2,000-mark cap). Proposed: inline under a size threshold, blob
-   above it. Decide the threshold.
-2. **Absent-mark policy** — default keeps marks a re-import no longer covers and
-   reports them `stale` (deleting cascades user notes). `--prune` / a
-   `prune:true` action deletes them. Confirm the default for the admin UI
-   (recommend: show stale marks, let the admin choose per import).
-3. **Rate-limit window** — imports per company per hour (proposed: 5).
-4. **Move `gb-transform` to `lib/`** — the transform lives in `scripts/` and is
-   imported by `lib/import-portfolio`. Works, but promoting it to `lib/` is the
-   cleaner home now that it backs a service. Low-risk follow-up; flagged, not done.
+1. **Snapshot storage** — **inline JSON, 5 MB threshold; blob deferred to
+   volume.** `executeImport` inlines `portfolio_imports.snapshot` when the
+   serialized snapshot is < 5 MB; above it, the inline snapshot is omitted (a
+   marker recorded) until the blob path is built. `snapshot_ref` column is
+   reserved for that deferred blob work.
+2. **Absent-mark policy** — **keep-and-report-stale stands.** Deletion is a
+   human decision; `--prune` (CLI) / `prune:true` (action) stays manual. The
+   admin UI surfaces stale marks and lets the admin choose per import.
+3. **Rate-limit window** — spec defaults stand (per
+   `docs/self-serve-import-spec-v1.md`).
+4. **Move `gb-transform` to `lib/`** — **done** (`lib/gb-transform.ts`); all
+   importers updated.
+
+The staged migration was **applied and promoted 2026-07-29** — see §3 note.
 
 ## 6. Not in scope here
 

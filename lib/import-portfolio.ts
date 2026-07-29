@@ -32,7 +32,7 @@
 import { randomUUID } from 'node:crypto';
 import { prisma } from './db';
 import { getMarks, type MarksDoc } from './registry-facade';
-import { readExportDoc, type ExportMark, type MappedMark } from '../scripts/gb-transform';
+import { readExportDoc, type ExportMark, type MappedMark } from './gb-transform';
 
 export interface ImportOptions {
   companySlug: string;

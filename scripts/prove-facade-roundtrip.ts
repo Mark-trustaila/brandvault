@@ -16,7 +16,7 @@
  * Exit 0 = all assertions pass, 1 = any failure.
  */
 import { searchByOwner, getMarks, getMark, health, CapExceededError } from '../lib/registry-facade';
-import { readExport, readExportDoc, applicantNames, type ExportMark } from './gb-transform';
+import { readExport, readExportDoc, applicantNames, type ExportMark } from '../lib/gb-transform';
 
 let pass = 0, fail = 0;
 const line: string[] = [];

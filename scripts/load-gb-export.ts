@@ -9,7 +9,7 @@
  *   npx tsx scripts/load-gb-export.ts <export.json> --excluded   # what's skipped
  *   npx tsx scripts/load-gb-export.ts <export.json> --json       # mapped output
  */
-import { STATUS_MAP, applicantNames, readExport } from './gb-transform';
+import { STATUS_MAP, applicantNames, readExport } from '../lib/gb-transform';
 
 const argv = process.argv.slice(2);
 const file = argv.find((a) => !a.startsWith('--'));

@@ -40,7 +40,9 @@ CREATE TABLE `portfolio_imports` (
   KEY `portfolio_imports_created_at_idx` (`created_at`),
   CONSTRAINT `portfolio_imports_company_fk`
     FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE
-);
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- utf8mb4_unicode_ci matches companies.id / trademarks.company_id so the FK is
+-- compatible (MySQL rejects an FK across mismatched string collations).
 
 -- 3. Rate-limit state — bound how often an import runs per scope (company/user),
 --    protecting the shared BaseX lane behind the facade's own per-request cap.
@@ -49,4 +51,4 @@ CREATE TABLE `import_rate_limits` (
   `window_start` DATETIME(3)  NOT NULL,
   `count`        INT          NOT NULL DEFAULT 0,
   PRIMARY KEY (`scope`)
-);
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

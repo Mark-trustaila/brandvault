@@ -13,7 +13,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { MarkStatus } from '@prisma/client';
-import { getObligationsForTrademark } from '../lib/utils';
+import { getObligationsForTrademark } from './utils';
 import type { Trademark } from '../types/trademark';
 
 /**

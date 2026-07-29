@@ -17,7 +17,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import { prisma } from '../lib/db';
-import { readExport } from './gb-transform';
+import { readExport } from '../lib/gb-transform';
 
 const argv = process.argv.slice(2);
 const file = argv.find((a) => !a.startsWith('--'));

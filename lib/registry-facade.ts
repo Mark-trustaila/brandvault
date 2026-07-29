@@ -37,7 +37,7 @@ export interface SearchByOwnerResult {
 }
 
 // The /marks body is the same { export, marks } doc shape as the export file,
-// so it drops straight into readExportDoc() in scripts/gb-transform.ts.
+// so it drops straight into readExportDoc() in lib/gb-transform.ts.
 export interface MarksDoc {
   registry: string;
   currencyDate: string;
@@ -124,7 +124,7 @@ export async function searchByOwner(query: string, registry = 'gb'): Promise<Sea
 
 /**
  * POST /registry/gb/marks — full mark documents for the chosen owner strings.
- * Returns the { export, marks } doc for scripts/gb-transform.ts#readExportDoc.
+ * Returns the { export, marks } doc for lib/gb-transform.ts#readExportDoc.
  * Throws CapExceededError (413) so callers can render "contact us".
  */
 export async function getMarks(ownerStrings: string[], registry = 'gb'): Promise<MarksDoc> {

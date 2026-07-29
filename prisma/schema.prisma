@@ -60,6 +60,7 @@ model Company {
   breeQueryLogs   BreeQueryLog[]
   approvals       Approval[]
   watchNotices    WatchNotice[]
+  portfolioImports PortfolioImport[]
 
   @@map("companies")
 }
@@ -163,6 +164,10 @@ model Trademark {
   // portfolio queries don't need a join. Both FKs indexed.
   @@index([companyId])
   @@index([familyId])
+  // Idempotency invariant for portfolio import: one registry mark per
+  // (company, registry, application number). Nullable application_number →
+  // MySQL permits multiple NULLs, so hand-entered marks are unconstrained.
+  @@unique([companyId, registryName, applicationNumber], map: "trademarks_company_registry_appno_key")
   @@map("trademarks")
 }
 
@@ -465,4 +470,42 @@ model WatchNotice {
   @@index([companyId, createdAt])
   @@index([trademarkId])
   @@map("watch_notices")
+}
+
+// One row per portfolio import (docs/portfolio-import-admin-proposal.md).
+// Durable home for the rollback snapshot, import history, and rollback material.
+model PortfolioImport {
+  id           String   @id @default(cuid())
+  companyId    String   @map("company_id")
+  registry     String   @db.VarChar(16)
+  registryName String   @map("registry_name")
+  ownerStrings Json     @map("owner_strings")
+  currencyDate String?  @map("currency_date") @db.VarChar(16)
+  status       String   @db.VarChar(24) // committed | failed | rolled_back
+  predicted    Json
+  actual       Json?
+  plan         Json
+  pruned       Boolean  @default(false)
+  // Rollback material: snapshot inline (JSON) under the 5 MB threshold; blob
+  // (snapshotRef) deferred to volume. Exactly one is populated.
+  snapshot     Json?
+  snapshotRef  String?  @map("snapshot_ref") @db.VarChar(512)
+  createdBy    String?  @map("created_by")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([createdAt])
+  @@map("portfolio_imports")
+}
+
+// Rate-limit state for the import action (throttles the shared BaseX lane
+// above the facade's per-request cap).
+model ImportRateLimit {
+  scope       String   @id @db.VarChar(191)
+  windowStart DateTime @map("window_start")
+  count       Int      @default(0)
+
+  @@map("import_rate_limits")
 }
