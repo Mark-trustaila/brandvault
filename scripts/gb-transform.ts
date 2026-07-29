@@ -102,7 +102,9 @@ export interface ExportMark {
   mark_feature: string;
   kind_mark: string;
   doc_name: string;
-  node_id: string;
+  // Present in the export FILE; omitted by the facade (node ids renumber on
+  // db:optimize — never a key). transform() never reads it.
+  node_id?: string;
   matched_via: string[];
   matched_owner_strings: string[];
   dates: Array<{ path: string; value: string }>;
@@ -229,9 +231,12 @@ export function transform(mk: ExportMark): MappedMark {
   };
 }
 
-/** Read an export file and return its header plus in-scope/excluded split. */
-export function readExport(path: string) {
-  const doc = JSON.parse(readFileSync(path.replace(/^~/, process.env.HOME ?? '~'), 'utf8'));
+/**
+ * Split + transform an in-memory export doc ({ export, marks }). This is the
+ * shared core: the same shape comes from the export FILE and from the registry
+ * facade's /marks response, so the loader pipeline is source-agnostic.
+ */
+export function readExportDoc(doc: { export?: Record<string, unknown>; marks?: ExportMark[] }) {
   const all: ExportMark[] = doc.marks ?? [];
   const scoped = all.filter(inScope);
   return {
@@ -242,4 +247,10 @@ export function readExport(path: string) {
     mapped: scoped.map(transform),
     unmappedStatuses: Array.from(new Set(scoped.map((m) => m.status))).filter((s) => !(s in STATUS_MAP)),
   };
+}
+
+/** Read an export file and return its header plus in-scope/excluded split. */
+export function readExport(path: string) {
+  const doc = JSON.parse(readFileSync(path.replace(/^~/, process.env.HOME ?? '~'), 'utf8'));
+  return readExportDoc(doc);
 }
