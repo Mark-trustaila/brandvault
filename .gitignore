@@ -38,3 +38,6 @@ yarn-error.log*
 # Only the committed synthetic fixtures (harness/fixtures/) are in the repo.
 harness/email-corpus/
 harness/labels.jsonl
+
+# per-import rollback snapshots (contain full portfolio data)
+import-snapshots/

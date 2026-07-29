@@ -174,8 +174,14 @@ const pair = (groups: FieldPair[][], suffix: string): string | null => {
 export const applicantNames = (mk: ExportMark): string[] =>
   mk.applicants.flatMap((g) => g.filter((f) => f.field.endsWith('Applicant/Name')).map((f) => f.value));
 
-export const inScope = (mk: ExportMark): boolean =>
-  applicantNames(mk).some((n) => APPLICANTS_IN_SCOPE.has(n));
+/**
+ * A mark is in scope when its APPLICANT (owner) is one of the requested
+ * proprietors — never on a representative-only match. Defaults to the ASOS
+ * demo set so the existing file loaders are unchanged; the parameterised
+ * import service passes the user's chosen owner strings.
+ */
+export const inScope = (mk: ExportMark, scope: Set<string> = APPLICANTS_IN_SCOPE): boolean =>
+  applicantNames(mk).some((n) => scope.has(n));
 
 /* ── transform ────────────────────────────────────────────────── */
 export function transform(mk: ExportMark): MappedMark {
@@ -236,9 +242,12 @@ export function transform(mk: ExportMark): MappedMark {
  * shared core: the same shape comes from the export FILE and from the registry
  * facade's /marks response, so the loader pipeline is source-agnostic.
  */
-export function readExportDoc(doc: { export?: Record<string, unknown>; marks?: ExportMark[] }) {
+export function readExportDoc(
+  doc: { export?: Record<string, unknown>; marks?: ExportMark[] },
+  scope: Set<string> = APPLICANTS_IN_SCOPE,
+) {
   const all: ExportMark[] = doc.marks ?? [];
-  const scoped = all.filter(inScope);
+  const scoped = all.filter((m) => inScope(m, scope));
   return {
     header: doc.export ?? {},
     all,
