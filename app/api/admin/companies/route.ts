@@ -43,8 +43,23 @@ export async function POST(req: Request) {
   const name = typeof body?.name === 'string' ? body.name.trim() : '';
   if (!name) return NextResponse.json({ error: 'name is required' }, { status: 400 });
 
+  // Optional caller-chosen slug (concierge create): slugify + guard uniqueness.
+  // With none given, keep the auto slug + suffix that guarantees uniqueness.
+  const rawSlug = typeof body?.slug === 'string' ? body.slug.trim() : '';
+  let slug: string;
+  if (rawSlug) {
+    slug = slugify(rawSlug);
+    if (!slug) return NextResponse.json({ error: 'slug is empty after normalisation' }, { status: 400 });
+    const taken = await prisma.company.findUnique({ where: { slug }, select: { id: true } });
+    if (taken) return NextResponse.json({ error: `slug '${slug}' is already taken` }, { status: 409 });
+  } else {
+    slug = `${slugify(name)}-${Date.now().toString(36).slice(-4)}`;
+  }
+
+  // clerkOrgId stays null — a company may be created and populated before any
+  // user org is linked; linking is a separate onboarding action.
   const company = await prisma.company.create({
-    data: { name, slug: `${slugify(name)}-${Date.now().toString(36).slice(-4)}`, clerkOrgId: null },
+    data: { name, slug, clerkOrgId: null },
   });
   await writeAudit({
     companyId: company.id,
@@ -58,7 +73,7 @@ export async function POST(req: Request) {
   });
 
   return NextResponse.json(
-    { id: company.id, name: company.name, slug: company.slug, trademarkCount: 0 },
+    { id: company.id, name: company.name, slug: company.slug, trademarkCount: 0, linked: false },
     { status: 201 }
   );
 }

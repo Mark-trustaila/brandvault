@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState } from 'react';
  * docs/portfolio-import-admin-proposal.md.
  */
 
-type Company = { id: string; name: string; slug: string; trademarkCount: number };
+type Company = { id: string; name: string; slug: string; trademarkCount: number; linked?: boolean };
 type Owner = { ownerString: string; matchedVia: Array<'owner' | 'representative'>; markCount: number };
 type SearchResult = { owners: Owner[]; totalDistinctMarks: number; cap: number; currencyDate: string; coverage: Coverage };
 type Coverage = { uk009: { partial: boolean; approxPct: number; note: string } };
@@ -29,6 +29,9 @@ async function jpost(url: string, body: unknown) {
   const json = await res.json().catch(() => ({}));
   return { ok: res.ok, status: res.status, json };
 }
+
+const slugify = (s: string) =>
+  s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
 
 function Banners({ currencyDate, coverage }: { currencyDate: string; coverage: Coverage }) {
   return (
@@ -56,6 +59,11 @@ export default function ImportPage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
   const [history, setHistory] = useState<ImportRow[]>([]);
+  // create-new-company state
+  const [showCreate, setShowCreate] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newSlug, setNewSlug] = useState('');
+  const [slugTouched, setSlugTouched] = useState(false);
 
   useEffect(() => {
     fetch('/api/me').then((r) => r.json()).then((d) => setIsAdmin(Boolean(d.isPlatformAdmin))).catch(() => setIsAdmin(false));
@@ -75,7 +83,24 @@ export default function ImportPage() {
     if (!soft) { setSelected(new Set()); setSearch(null); }
   }
 
+  // Create a company (unlinked — org link is a later onboarding step) and
+  // select it, so create → search → import is one uninterrupted flow.
+  async function doCreate() {
+    const name = newName.trim();
+    if (!name) { setError('company name is required'); return; }
+    setError(null); setBusy('create');
+    const { ok, status, json } = await jpost('/api/admin/companies', { name, slug: newSlug.trim() || undefined });
+    setBusy(null);
+    if (!ok) { setError(status === 409 ? 'That slug is already taken — pick another.' : (json.error ?? 'create failed')); return; }
+    const c: Company = { id: json.id, name: json.name, slug: json.slug, trademarkCount: json.trademarkCount ?? 0, linked: false };
+    setCompanies((prev) => [c, ...prev]);
+    setSlug(c.slug); // select the new company; the search step appears next
+    setShowCreate(false); setNewName(''); setNewSlug(''); setSlugTouched(false);
+    reset();
+  }
+
   async function doSearch() {
+    if (!slug) { setError('Select a company first.'); return; } // never search unscoped
     reset(); setBusy('search');
     const { ok, json } = await jpost('/api/admin/import/search-owner', { query });
     setBusy(null);
@@ -112,6 +137,7 @@ export default function ImportPage() {
   if (!isAdmin) return <main className="p-8"><h1 className="text-lg font-semibold">Portfolio import</h1><p className="mt-2 text-red-600">Platform admin only.</p></main>;
 
   const selectedList = Array.from(selected);
+  const selectedCompany = companies.find((c) => c.slug === slug);
 
   return (
     <main className="mx-auto max-w-3xl space-y-6 p-6">
@@ -120,25 +146,53 @@ export default function ImportPage() {
         <p className="text-sm text-slate-500">Search the UK register by proprietor and import a client's real portfolio.</p>
       </header>
 
-      {/* 1. company */}
+      {/* 1. company — select an existing one or create a new one, then populate */}
       <section className="space-y-2">
-        <label className="block text-sm font-medium">Company</label>
-        <select className="w-full rounded border border-slate-300 p-2 text-sm" value={slug} onChange={(e) => { setSlug(e.target.value); reset(); }}>
-          <option value="">— select a company —</option>
-          {companies.map((c) => <option key={c.id} value={c.slug}>{c.name} ({c.trademarkCount} marks)</option>)}
-        </select>
+        <div className="flex items-center justify-between">
+          <label className="block text-sm font-medium">Company</label>
+          <button className="text-xs text-slate-600 underline" onClick={() => { setShowCreate((v) => !v); setError(null); }}>
+            {showCreate ? 'cancel' : '+ New company'}
+          </button>
+        </div>
+
+        {showCreate ? (
+          <div className="space-y-2 rounded border border-slate-200 p-3">
+            <input className="w-full rounded border border-slate-300 p-2 text-sm" placeholder="Company name" value={newName}
+              onChange={(e) => { setNewName(e.target.value); if (!slugTouched) setNewSlug(slugify(e.target.value)); }} />
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500">slug</span>
+              <input className="flex-1 rounded border border-slate-300 p-1.5 font-mono text-sm" value={newSlug}
+                onChange={(e) => { setNewSlug(slugify(e.target.value)); setSlugTouched(true); }} />
+              <button className="rounded bg-slate-800 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+                disabled={!newName.trim() || busy === 'create'} onClick={doCreate}>
+                {busy === 'create' ? 'Creating…' : 'Create & select'}
+              </button>
+            </div>
+            <p className="text-xs text-slate-500">A company can be created and populated before any user org is linked.</p>
+          </div>
+        ) : (
+          <select className="w-full rounded border border-slate-300 p-2 text-sm" value={slug} onChange={(e) => { setSlug(e.target.value); reset(); }}>
+            <option value="">— select a company —</option>
+            {companies.map((c) => <option key={c.id} value={c.slug}>{c.name} ({c.trademarkCount} marks){c.linked === false ? ' · no org' : ''}</option>)}
+          </select>
+        )}
+
+        {selectedCompany && selectedCompany.linked === false && (
+          <p className="text-xs text-amber-700">No user access yet — link a Clerk organisation when onboarding users.</p>
+        )}
       </section>
 
-      {/* 2. owner search */}
+      {/* 2. owner search — gated on a company being selected */}
       <section className="space-y-2">
         <label className="block text-sm font-medium">Search proprietor</label>
         <div className="flex gap-2">
           <input className="flex-1 rounded border border-slate-300 p-2 text-sm" value={query} placeholder="e.g. ASOS"
-            onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && doSearch()} />
+            onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && slug && query.trim().length >= 2 && doSearch()} />
           <button className="rounded bg-slate-800 px-4 text-sm text-white disabled:opacity-50" disabled={!slug || query.trim().length < 2 || busy === 'search'} onClick={doSearch}>
             {busy === 'search' ? 'Searching…' : 'Search'}
           </button>
         </div>
+        {!slug && <p className="text-xs text-slate-500">Select or create a company first — search is scoped to the company you&apos;re populating.</p>}
       </section>
 
       {/* 3. owner checkboxes */}
