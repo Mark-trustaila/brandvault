@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BrandVault: your trademark portfolio on cruise control</title>
+<meta name="description" content="BrandVault manages trademark portfolios end to end. AI does the routine work, your lawyer signs off on the decisions, and contentious matters go to AiLA's expert lawyers.">
+<meta property="og:title" content="BrandVault: your trademark portfolio on cruise control">
+<meta property="og:description" content="AI does the routine work, your lawyer signs off on the decisions, and contentious matters go to AiLA's expert lawyers. An AiLA solution.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.getbrandvault.com/">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#ffffff; --ink:#101828; --muted:#5b6472; --line:#e7e9ee;
+    --blue:#4f46e5; --blue-deep:#4338ca; --panel:#f8f9fb;
+    --green:#0f7a4d; --green-soft:#e8f4ee;
+    --amber:#a16207; --amber-soft:#fdf3df;
+    --red:#b3402f; --red-soft:#fbeae7; --red-line:#efc4bb;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  header{display:flex;justify-content:space-between;align-items:center;padding:18px 6vw;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);z-index:10}
+  .brand{display:flex;align-items:baseline;gap:14px}
+  .wordmark{font-weight:800;font-size:17px;letter-spacing:-.02em}
+  .wordmark .v{color:var(--blue)}
+  .parent{font-size:11.5px;color:var(--muted);border-left:1px solid var(--line);padding-left:14px}
+  nav{font-size:14px;font-weight:500}
+  nav a{color:var(--muted);text-decoration:none;margin-left:22px}
+  nav a:hover,nav a:focus-visible{color:var(--ink)}
+  nav a.cta{color:#fff;background:var(--ink);padding:10px 18px;border-radius:8px}
+  nav a.cta:hover,nav a.cta:focus-visible{background:#243046}
+  a:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+
+  section{padding:9vh 6vw;border-top:1px solid var(--line)}
+  section .inner{max-width:1200px;margin:0 auto}
+  .alt{background:var(--panel)}
+  .kicker{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);font-weight:700}
+  h2{font-size:clamp(25px,2.9vw,38px);font-weight:800;letter-spacing:-.02em;margin-top:14px;max-width:24em}
+  .lede2{margin-top:16px;max-width:46em;color:var(--muted)}
+
+  /* HERO */
+  .hero{padding:9vh 6vw;border-top:none;max-width:1240px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:5vw;align-items:center}
+  h1{font-size:clamp(36px,4.6vw,58px);font-weight:800;letter-spacing:-.03em;line-height:1.06}
+  h1 .u{color:var(--blue)}
+  .hero .lede{margin-top:22px;max-width:34em;font-size:17.5px;color:var(--muted)}
+  .btn{display:inline-block;font-weight:600;font-size:16px;background:var(--blue);color:#fff;padding:15px 30px;border-radius:10px;text-decoration:none;transition:background .12s ease;margin-top:30px}
+  .btn:hover,.btn:focus-visible{background:var(--blue-deep)}
+  .subline{margin-top:16px;font-size:13.5px;color:var(--muted);max-width:36em;line-height:1.65}
+
+  /* Bree Slack card */
+  .slack{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 24px 60px rgba(16,24,40,.10)}
+  .slack-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--panel);font-size:13px;font-weight:600}
+  .slack-bar .chan{color:var(--ink)}
+  .slack-bar .chan::before{content:"#";color:var(--muted);margin-right:2px}
+  .slack-bar .ts{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);font-weight:400}
+  .msgs{padding:18px}
+  .msg{display:flex;gap:12px;margin-bottom:18px}
+  .msg:last-child{margin-bottom:0}
+  .avatar{width:36px;height:36px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff}
+  .avatar.you{background:#5b6472}
+  .avatar-img{width:36px;height:36px;border-radius:8px;flex-shrink:0}
+  .msg .who{font-weight:700;font-size:14px}
+  .msg .who .badge{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.05em;background:var(--line);color:var(--muted);border-radius:4px;padding:1px 5px;vertical-align:1px;margin:0 2px}
+  .msg .who .t{font-weight:400;font-size:11.5px;color:var(--muted);margin-left:8px}
+  .msg .txt{font-size:14px;margin-top:3px;color:var(--ink)}
+  .msg .txt p{margin-bottom:8px}
+  .msg .txt p:last-child{margin-bottom:0}
+  .txt ul{margin:6px 0 8px 18px}
+  .txt li{font-size:13.5px;margin-bottom:3px}
+  .report{display:flex;align-items:stretch;gap:14px;border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:10px;background:var(--panel)}
+  .report-page{width:150px;flex-shrink:0;background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:0 3px 10px rgba(16,24,40,.10);padding:11px 12px;overflow:hidden}
+  .rp-brand{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+  .rp-bv{font-size:8px;font-weight:800;letter-spacing:-.01em}
+  .rp-bv b{color:var(--blue)}
+  .rp-tag{font-size:6.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .rp-title{font-size:11px;font-weight:800;letter-spacing:-.01em}
+  .rp-sub{font-size:6.5px;color:var(--muted);margin:2px 0 8px}
+  .rp-row{display:flex;align-items:center;gap:5px;font-size:7px;padding:4px 0;border-top:1px solid var(--line)}
+  .rp-mark{font-weight:600;flex:1}
+  .rp-st{font-family:'IBM Plex Mono',monospace;font-size:6.5px;color:var(--muted)}
+  .rp-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+  .rp-dot.g{background:var(--green)} .rp-dot.a{background:var(--amber)}
+  .rp-bar{margin-top:8px;height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+  .rp-bar span{display:block;height:100%;background:var(--blue);border-radius:2px}
+  .report-meta{display:flex;flex-direction:column;justify-content:center;gap:4px;font-size:13px}
+  .report-meta .sz{font-weight:400;color:var(--muted);font-size:11.5px}
+  .livelink{display:inline-block;margin-top:10px;font-size:13px;font-weight:600;color:var(--blue);text-decoration:none}
+  .livelink:hover,.livelink:focus-visible{text-decoration:underline}
+  .slack-foot{padding:12px 18px;border-top:1px solid var(--line);background:var(--panel);font-size:12px;color:var(--muted)}
+
+  /* tiers */
+  .grid3{margin-top:40px;display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  .tile{background:#fff;border:1px solid var(--line);border-radius:14px;padding:26px}
+  section:not(.alt) .tile{background:var(--panel)}
+  .tile h3{font-size:17px;font-weight:700;margin-bottom:9px}
+  .tile p{font-size:14.5px;color:var(--muted)}
+
+  /* problem / prose */
+  .prose{margin-top:20px;max-width:46em}
+  .prose p{margin-bottom:1.1em;color:var(--ink)}
+  .prose p:last-child{margin-bottom:0}
+  .prose strong{font-weight:700}
+
+  /* angst tiles */
+  .qs{margin-top:34px;display:grid;grid-template-columns:repeat(2,1fr);gap:16px;max-width:900px}
+  .q{border:1px solid var(--line);border-radius:12px;padding:18px 20px;font-size:15px;font-weight:500;background:#fff}
+  .q .from{display:block;font-size:11.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+
+  /* what we do */
+  .wwd{margin-top:40px;display:grid;grid-template-columns:repeat(2,1fr);gap:22px;max-width:1000px}
+  .wwd .item h3{font-size:18px;font-weight:700;margin-bottom:8px}
+  .wwd .item p{font-size:14.5px;color:var(--muted)}
+
+  /* decision cards */
+  .cards{margin-top:44px;display:grid;grid-template-columns:1fr 1fr;gap:26px;max-width:1080px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 14px 40px rgba(16,24,40,.06);display:flex;flex-direction:column}
+  .card-head{padding:14px 20px;border-bottom:1px solid var(--line);background:var(--panel);display:flex;justify-content:space-between;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .card-body{padding:22px 20px;flex:1}
+  .markline{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .mark{font-weight:700;font-size:19px;letter-spacing:-.01em}
+  .reg{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted)}
+  .verdict{margin-top:16px;padding:13px 16px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .verdict.red{background:var(--red-soft);border:1px solid var(--red-line)}
+  .verdict.red .v{color:var(--red)}
+  .verdict .v{font-weight:700;font-size:15px}
+  .verdict .meta{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink)}
+  .signals{margin-top:18px}
+  .sig{display:flex;justify-content:space-between;align-items:center;gap:14px;font-size:13.5px;border-bottom:1px solid var(--line);padding:10px 0}
+  .sig:last-child{border-bottom:none}
+  .sig .lbl{color:var(--muted)}
+  .sig .val{font-family:'IBM Plex Mono',monospace;font-size:12px;text-align:right}
+  .light{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px}
+  .light.red{background:var(--red)} .light.amber{background:var(--amber)} .light.green{background:var(--green)}
+  .val.red{color:var(--red)} .val.dim{color:var(--muted)}
+  .card-actions{display:flex;gap:10px;padding:0 20px 20px}
+  .a{flex:1;text-align:center;padding:12px;border-radius:9px;font-size:14px;font-weight:600;text-decoration:none;border:1px solid var(--line);color:var(--ink)}
+  .a.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .a.primary:hover,.a.primary:focus-visible{background:#243046}
+  .a:hover,.a:focus-visible{border-color:#c6cad2}
+  .card-foot{padding:12px 20px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);background:var(--panel)}
+  .key{margin-top:24px;font-size:12.5px;color:var(--muted);display:flex;gap:26px;flex-wrap:wrap}
+  .key span{white-space:nowrap}
+
+  /* steps */
+  .steps{margin-top:34px;max-width:52em}
+  .stepline{display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--line)}
+  .stepline:last-child{border-bottom:none}
+  .n{width:30px;height:30px;border-radius:50%;background:var(--blue);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .stepline h3{font-size:16px;font-weight:700}
+  .stepline p{font-size:14.5px;color:var(--muted);margin-top:3px}
+
+  /* film */
+  .film-frame{margin-top:32px;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 24px 60px rgba(16,24,40,.10);background:#000;max-width:1000px}
+  .film-frame video{display:block;width:100%;height:auto}
+  .film-cap{margin-top:12px;font-size:13px;color:var(--muted)}
+
+  /* scope box */
+  .scope{margin-top:26px;border:1px solid var(--line);border-radius:14px;padding:22px 26px;background:#fff;max-width:52em;font-size:14.5px;color:var(--muted)}
+  .scope strong{color:var(--ink)}
+
+  /* hood */
+  .hood-grid{margin-top:36px;display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  .hood-close{margin-top:30px;font-size:16.5px;font-weight:600;max-width:40em}
+
+  /* security */
+  .sec-grid{margin-top:36px;display:grid;grid-template-columns:repeat(2,1fr);gap:18px;max-width:900px}
+  .sec{border:1px solid var(--line);border-radius:12px;padding:20px 22px;background:#fff}
+  .sec h3{font-size:15px;font-weight:700;margin-bottom:6px}
+  .sec p{font-size:13.5px;color:var(--muted)}
+
+  /* team */
+  .people{margin-top:36px;display:grid;grid-template-columns:1fr 1fr;gap:26px;max-width:980px}
+  .person{background:#fff;border:1px solid var(--line);border-radius:14px;padding:28px}
+  .p-name{font-size:18px;font-weight:800;letter-spacing:-.01em}
+  .p-role{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);font-weight:700;margin:4px 0 12px}
+  .person p{font-size:14.5px;color:var(--muted)}
+
+  /* faq */
+  .faq{margin-top:32px;max-width:56em}
+  details{border-bottom:1px solid var(--line);padding:17px 4px}
+  summary{font-weight:700;font-size:16px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:14px}
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:"+";color:var(--muted);font-weight:500}
+  details[open] summary::after{content:"\2013"}
+  details p{margin-top:12px;font-size:14.5px;color:var(--muted);max-width:48em}
+
+  .closing{text-align:center}
+  .closing h2,.closing .lede2{margin-left:auto;margin-right:auto}
+
+  footer{border-top:1px solid var(--line);padding:24px 6vw;font-size:12.5px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+
+  @media(max-width:960px){
+    .hero{grid-template-columns:1fr;gap:48px;padding-top:7vh}
+    .grid3,.cards,.wwd,.qs,.sec-grid,.people,.hood-grid{grid-template-columns:1fr}
+    nav a{margin-left:11px}
+    .parent{display:none}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="wordmark">Brand<span class="v">Vault</span></div>
+    <div class="parent">An AiLA solution</div>
+  </div>
+  <nav aria-label="Main">
+    <a href="#the-service">The service</a>
+    <a href="#renewal-decision">Renewals</a>
+    <a href="#escalation">Escalation</a>
+    <a href="#security">Security</a>
+    <a href="https://app.getbrandvault.com/admin/import" class="cta">Show me my portfolio</a>
+  </nav>
+</header>
+
+<section class="hero" id="top">
+  <div>
+    <h1>Your trademark portfolio on <span class="u">cruise control</span>.</h1>
+    <p class="lede">BrandVault looks after trademark portfolios for companies with more than twenty trademarks. AI does the routine work of tracking deadlines, monitoring registries and preparing renewals. Your lawyer signs off on the decisions that matter. And when something turns contentious, AiLA's own IP lawyers take it on.</p>
+    <a class="btn" href="https://app.getbrandvault.com/admin/import">Show me my portfolio</a>
+    <p class="subline">Enter your company name. BrandVault already holds the public record of your marks, so you'll see your portfolio under management within a day: deadlines calculated, renewals assessed, gaps flagged. Nothing to send, nothing to install.</p>
+  </div>
+
+  <div class="slack" role="img" aria-label="Example Slack exchange: a question to Bree answered with a report and a live link">
+    <div class="slack-bar">
+      <span class="chan">legal</span>
+      <span class="ts">Bree · BrandVault's AI trademark paralegal</span>
+    </div>
+    <div class="msgs">
+      <div class="msg">
+        <div class="avatar you">SM</div>
+        <div>
+          <div class="who">Sarah Mills <span class="t">09:12</span></div>
+          <div class="txt"><p>@Bree, board meeting at 2. What rights do we hold for MERIDIAN in China, and is anything pending?</p></div>
+        </div>
+      </div>
+      <div class="msg">
+        <img class="avatar-img" src="data:image/png;base64,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" alt="Bree app icon" width="36" height="36">
+        <div>
+          <div class="who">Bree <span class="badge">APP</span> <span class="t">BrandVault · 09:12</span></div>
+          <div class="txt">
+            <p>Two registrations and one pending application for MERIDIAN in China:</p>
+            <ul>
+              <li><strong>Registered</strong>, cl. 25 (clothing), renewal due Mar 2029</li>
+              <li><strong>Registered</strong>, cl. 35 (retail), renewal due Mar 2029</li>
+              <li><strong>Pending</strong>, cl. 18 (bags), under examination, response due 02 Aug 2026</li>
+            </ul>
+            <div class="report">
+              <div class="report-page" aria-hidden="true">
+                <div class="rp-brand"><span class="rp-bv">Brand<b>Vault</b></span><span class="rp-tag">Rights summary</span></div>
+                <div class="rp-title">MERIDIAN: China</div>
+                <div class="rp-sub">Prepared 13 Jul 2026 · marks, status &amp; deadlines</div>
+                <div class="rp-row"><span class="rp-dot g"></span><span class="rp-mark">MERIDIAN · cl. 25</span><span class="rp-st">Registered</span></div>
+                <div class="rp-row"><span class="rp-dot g"></span><span class="rp-mark">MERIDIAN · cl. 35</span><span class="rp-st">Registered</span></div>
+                <div class="rp-row"><span class="rp-dot a"></span><span class="rp-mark">MERIDIAN · cl. 18</span><span class="rp-st">Pending</span></div>
+                <div class="rp-bar"><span style="width:68%"></span></div>
+              </div>
+              <div class="report-meta">
+                <strong>MERIDIAN, China rights summary.pdf</strong>
+                <span class="sz">Board-ready · 2 pages · generated just now</span>
+              </div>
+            </div>
+            <a class="livelink" href="#">Open the live report in BrandVault: review and edit before circulating</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slack-foot">Bree is BrandVault's AI trademark paralegal, in your Slack from day one. Asked in plain English, answered with the evidence attached.</div>
+  </div>
+</section>
+
+<section class="alt" id="model">
+  <div class="inner">
+    <div class="kicker">The model</div>
+    <h2>Routine work done, your decisions prepared, contentious matters resolved</h2>
+    <div class="grid3">
+      <div class="tile">
+        <h3>AI does the repetitive and rote.</h3>
+        <p>Monitoring, deadlines, correspondence and renewal preparation run continuously in the background and arrive ready for review, without anyone having to ask.</p>
+      </div>
+      <div class="tile">
+        <h3>You sign off.</h3>
+        <p>Anything consequential comes to you with the evidence attached, ready to approve or decline in one click. Nothing is filed without you.</p>
+      </div>
+      <div class="tile">
+        <h3>AiLA's IP lawyers take the rest.</h3>
+        <p>An opposition, a contested office action, a dispute: hand it to AiLA's lawyers, who run contentious registry matters AI-assisted, faster and often more effectively than the conventional route, at much less than law-firm cost. You never need another firm for your marks.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="film">
+  <div class="inner">
+    <div class="kicker">The product</div>
+    <h2>See it working</h2>
+    <div class="film-frame">
+      <video autoplay controls muted loop playsinline preload="auto">
+        <source src="https://www.getbrandvault.com/bv-demo.webm" type="video/webm">
+        Your browser doesn't support embedded video; <a href="https://www.getbrandvault.com/bv-demo.webm">watch the demo</a>.
+      </video>
+    </div>
+    <p class="film-cap">The full picture, when you want it: every mark by family, registry, and status.</p>
+  </div>
+</section>
+
+<section class="alt" id="problem">
+  <div class="inner">
+    <div class="kicker">The problem</div>
+    <h2>Seventy trademarks across twelve countries, and only one of you.</h2>
+    <div class="prose">
+      <p>If you're the lawyer responsible for your company's trademarks, you know how this goes. The deadlines live in a spreadsheet, a clunky old portfolio tool, or, worst of all, with a law firm you have to pay to ask a question. Registry letters sit as PDFs in an inbox waiting to be noticed. Renewals get paid on autopilot because nobody has the evidence to justify saying no. And when a dispute lands, you're briefing an external firm at £400 an hour to learn a portfolio they've never seen.</p>
+      <p>Nothing on offer fixes this. The big firms won't take routine work at a price that makes sense, and the software tools, however they're dressed, only give you a better spreadsheet: the work is still yours. <strong>Through AI and our lawyers, BrandVault takes on the work itself, puts you in the driving seat for the decisions, and resolves the disputes when they come.</strong></p>
+    </div>
+  </div>
+</section>
+
+<section id="ask-bree">
+  <div class="inner">
+    <div class="kicker">Ask Bree</div>
+    <h2>Instant answers</h2>
+    <p class="lede2">A director asks, mid-meeting, whether the company actually holds rights in China. The CFO wants to know what the renewal line is buying. A counterparty needs a schedule of your EU marks by tomorrow morning. You're about to travel for three weeks and need to know what falls due while you're away.</p>
+    <p class="lede2">These questions take up your afternoons because the records were never designed to be asked. So ask Bree instead, in Slack or Teams. Bree answers in the thread, attaches the report as a PDF, and links to the live version in BrandVault, where you can adjust it before it goes to the board. Rights held, applications pending, deadlines coming: answered in the time it takes to ask.</p>
+    <div class="qs">
+      <div class="q"><span class="from">A director, in the meeting</span>"Do we actually hold rights to this in China?"</div>
+      <div class="q"><span class="from">The CFO, reviewing spend</span>"What is the renewal line actually buying us?"</div>
+      <div class="q"><span class="from">A counterparty, mid-deal</span>"We need a schedule of your EU marks by tomorrow."</div>
+      <div class="q"><span class="from">You, before three weeks of travel</span>"What's due while I'm away?"</div>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="the-service">
+  <div class="inner">
+    <div class="kicker">What we do</div>
+    <div class="wwd">
+      <div class="item">
+        <h3>We watch everything.</h3>
+        <p>Every mark, every registry, every deadline. Renewal windows, status changes and office correspondence are tracked continuously, so nothing depends on someone remembering to check.</p>
+      </div>
+      <div class="item">
+        <h3>We prepare the work.</h3>
+        <p>Renewal instructions arrive ready for sign-off. Correspondence is read, classified and matched to the right mark, with responses drafted for your review. You approve, and we handle the rest.</p>
+      </div>
+      <div class="item">
+        <h3>We question the renewals.</h3>
+        <p>Most companies renew every mark in every country out of habit, because nobody could prove it wasn't worth paying. Before each renewal, BrandVault checks whether the brand is actually in use in that territory (search interest, web presence, trading activity) and tells you whether the renewal is worth making. No other service does this.</p>
+      </div>
+      <div class="item">
+        <h3>We handle contentious matters.</h3>
+        <p>When a third party opposes your application, or a similar mark needs challenging, it escalates to AiLA's expert lawyers. Your portfolio is already in the system: no briefing, no discovery fee, no starting from zero.</p>
+      </div>
+    </div>
+
+    <div class="cards">
+      <div class="card" role="img" aria-label="Example renewal decision with commercial evidence">
+        <div class="card-head"><span>Renewal decision</span><span>due 14 Sep 2026</span></div>
+        <div class="card-body">
+          <div class="markline"><span class="mark">MERIDIAN KIDS</span><span class="reg">IP Australia · 2098441 · cl. 25</span></div>
+          <div class="verdict red"><span class="v">Consider lapse</span><span class="meta">saves AU$1,940</span></div>
+          <div class="signals">
+            <div class="sig"><span class="lbl">Search interest (AU, 24 mo)</span><span class="val red">▼ 91%</span></div>
+            <div class="sig"><span class="lbl">Trading presence</span><span class="val dim">none since 2023</span></div>
+            <div class="sig"><span class="lbl">Site &amp; social activity (AU)</span><span class="val dim">none</span></div>
+            <div class="sig"><span class="lbl">Defensive value</span><span class="val dim">low, no similar filings</span></div>
+          </div>
+        </div>
+        <div class="card-actions"><a class="a primary" href="#">Let it lapse</a><a class="a" href="#">Renew anyway</a></div>
+        <div class="card-foot">Evidence gathered by BrandVault. The decision stays yours.</div>
+      </div>
+
+      <div class="card" role="img" aria-label="Example watch alert with similarity assessment">
+        <div class="card-head"><span>Watch alert · new filing</span><span>detected 11 Jul 2026</span></div>
+        <div class="card-body">
+          <div class="markline"><span class="mark">MERIDIAM</span><span class="reg">UKIPO · UK00004102337 · cl. 25</span></div>
+          <div class="verdict red"><span class="v">Grounds to oppose</span><span class="meta">window closes 14 Oct 2026</span></div>
+          <div class="signals">
+            <div class="sig"><span class="lbl">Conflicts with your mark</span><span class="val">MERIDIAN · UKIPO</span></div>
+            <div class="sig"><span class="lbl"><span class="light red"></span>Aural similarity</span><span class="val red">high, 92/100</span></div>
+            <div class="sig"><span class="lbl"><span class="light red"></span>Visual similarity</span><span class="val red">high, 88/100</span></div>
+            <div class="sig"><span class="lbl"><span class="light red"></span>Goods &amp; services</span><span class="val red">identical: clothing, cl. 25</span></div>
+          </div>
+        </div>
+        <div class="card-actions"><a class="a primary" href="#">Prepare opposition</a><a class="a" href="#">Dismiss</a></div>
+        <div class="card-foot">Draft notice of opposition prepared for review. Escalate to AiLA's lawyers to run it.</div>
+      </div>
+    </div>
+    <div class="key" aria-label="Traffic light key">
+      <span><span class="light red"></span>Red: intervention recommended</span>
+      <span><span class="light amber"></span>Amber: investigate</span>
+      <span><span class="light green"></span>Green: no action needed</span>
+    </div>
+  </div>
+</section>
+
+<section id="designs">
+  <div class="inner">
+    <div class="kicker">Designs too</div>
+    <h2>One portfolio for your brand: trademarks and designs</h2>
+    <p class="lede2">Trademarks protect what your products are called; registered designs protect how they look. Both are brand equity, and both live in the same BrandVault portfolio, with the same deadline engine, the same evidence-led renewal decisions, and the same sign-off from you.</p>
+  </div>
+</section>
+
+<section class="alt" id="how-it-works">
+  <div class="inner">
+    <div class="kicker">How it works</div>
+    <h2>Onboarded in days, not months</h2>
+    <div class="steps">
+      <div class="stepline"><div class="n">1</div><div><h3>Tell us who you are.</h3><p>Enter your company or owner name. BrandVault matches it against the official registry records we hold and builds your trial portfolio from marks registered to that name.</p></div></div>
+      <div class="stepline"><div class="n">2</div><div><h3>BrandVault comes to you.</h3><p>From day one, alerts and weekly digests arrive in Slack or by email, and you can ask Bree, BrandVault's AI trademark paralegal, what's due this quarter or the status of any mark, without opening an app. The service works where you already work.</p></div></div>
+      <div class="stepline"><div class="n">3</div><div><h3>Log in when you want the full picture.</h3><p>Every matched mark, organised by family, registry and status, with deadlines calculated for every jurisdiction. Where a record is missing a date, it's flagged as needing data rather than hidden or guessed at. The dashboard is there for depth, not a place you're required to live.</p></div></div>
+      <div class="stepline"><div class="n">4</div><div><h3>You decide. We do.</h3><p>Renewal recommendations arrive with the evidence: commercial signals, defensive value, cost. You approve or decline in one click. Every action is logged.</p></div></div>
+      <div class="stepline"><div class="n">5</div><div><h3>Ready to move forward? We complete the picture.</h3><p>Trial portfolios match only the name you entered. When you become a customer, we curate the full portfolio, including marks held by subsidiaries, holding companies, earlier names and individuals, so nothing your business owns is left outside the record.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="renewal-decision">
+  <div class="inner">
+    <div class="kicker">The renewal decision</div>
+    <h2>Is this mark worth renewing? BrandVault gathers the evidence; you make the decision.</h2>
+    <div class="prose">
+      <p>A trademark renewal costs money in every country you hold it, and most portfolios carry marks no longer used in territories the business left years ago. They get renewed each cycle anyway, because the deadline arrived and there was no evidence on hand to justify saying no.</p>
+      <p>BrandVault changes what's on hand. For each mark in each territory, it gathers the commercial signals (is the brand searched for, sold under, present online in that market?) and scores them into a recommendation with reasons: renew, let lapse, or investigate. Your budget goes to the marks that protect real business, and the rest stops costing you money.</p>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="escalation">
+  <div class="inner">
+    <div class="kicker">Escalation</div>
+    <h2>When it turns contentious, you're already covered</h2>
+    <p class="lede2">A dispute is the point where software hands the problem back to you. BrandVault escalates it instead. Oppositions, contested office actions, cancellation actions and challenges to conflicting marks go to AiLA's expert lawyers with one click, starting with the full history in front of them, at a fraction of what an external firm charges to learn it from scratch.</p>
+    <div class="scope"><strong>What escalation covers:</strong> contentious matters before the trademark registries: oppositions (bringing and defending), cancellations, substantive office actions, and disputes over conflicting marks. Where a matter heads to court, we prepare the file and work alongside your chosen litigators.</div>
+  </div>
+</section>
+
+<section id="who">
+  <div class="inner">
+    <div class="kicker">Who it's for</div>
+    <h2>Built for in-house legal teams</h2>
+    <div class="prose">
+      <p>BrandVault is for companies with anywhere from 20 to 10,000 trademarks across multiple countries, and a legal team of one, two, or more: big enough that the portfolio needs proper management, whatever the size of the team looking after it.</p>
+      <p>Until now you've had two options: do it yourself on spreadsheets, or pay law-firm rates for administrative work. BrandVault is the new, third option.</p>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="pricing">
+  <div class="inner">
+    <div class="kicker">What it costs</div>
+    <h2>A retainer, not a licence</h2>
+    <div class="prose">
+      <p>BrandVault is a managed service, priced on portfolio size: like an accountant, not like software. One monthly fee covers the monitoring, the deadline management, the renewal recommendations, and Bree. Escalated matters are quoted individually before work begins, with fixed fees where the work is predictable, and always a fraction of conventional firm rates, because the AI has done the groundwork.</p>
+      <p><strong>No per-seat charges, no usage limits, no surprise invoices. Painkillers, at a price the CFO will like.</strong></p>
+      <p><a class="btn" href="https://app.getbrandvault.com/admin/import" style="margin-top:6px">Show me my portfolio</a><br><span style="font-size:13.5px;color:var(--muted)">and we'll quote against your actual portfolio.</span></p>
+    </div>
+  </div>
+</section>
+
+<section id="hood">
+  <div class="inner">
+    <div class="kicker">Under the hood</div>
+    <h2>Not a chat window on a spreadsheet</h2>
+    <p class="lede2">Legacy tools are bolting chatbots onto twenty-year-old databases. BrandVault is built the other way round: AI baked in, not sprinkled on top, every workflow from docketing to drafting running through the same agentic core. The app, Slack and email are just ways in.</p>
+    <div class="hood-grid">
+      <div class="tile" style="background:#fff">
+        <h3>The data</h3>
+        <p>BrandVault holds 10 million trademark records from the registries that matter most (UKIPO, EUIPO, USPTO and WIPO), drawn from their official bulk data. When Bree answers, the answer is grounded in the official record and traceable to it.</p>
+      </div>
+      <div class="tile" style="background:#fff">
+        <h3>The harness</h3>
+        <p>Bree runs a leading AI model inside BrandVault's own UK IP harness. The model reads, drafts and explains, but never guesses at law or arithmetic: deadlines come from a deterministic rules engine built per jurisdiction. The model can't miscalculate a renewal date, because it doesn't calculate them.</p>
+      </div>
+      <div class="tile" style="background:#fff">
+        <h3>The rules</h3>
+        <p>Independent legal rights are never merged: post-Brexit UK and EU parallel registrations are tracked as the separate rights they are. Where a jurisdiction's rules haven't been verified, the deadline is flagged for confirmation, not guessed. Anything consequential requires your approval, and is logged.</p>
+      </div>
+    </div>
+    <p class="hood-close">The value is in the detailed trademark knowledge embedded in the agentic layer, and in the constantly refreshed official records beneath it.</p>
+  </div>
+</section>
+
+<section class="alt" id="security">
+  <div class="inner">
+    <div class="kicker">Security</div>
+    <h2>Your data stays yours</h2>
+    <p class="lede2">Legal work runs on confidential information, so the guarantees here are short and unconditional.</p>
+    <div class="sec-grid">
+      <div class="sec"><h3>GDPR compliant</h3><p>All data is processed and stored in compliance with UK and EU GDPR and applicable data protection law.</p></div>
+      <div class="sec"><h3>Encrypted throughout</h3><p>All traffic and documents encrypted in transit and at rest.</p></div>
+      <div class="sec"><h3>Audited actions</h3><p>Every change, including every action taken by BrandVault on your behalf, is logged with a reason and available for review.</p></div>
+      <div class="sec"><h3>No AI training on your data</h3><p>Your portfolio is never used to train models.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="inner">
+    <div class="kicker">FAQ</div>
+    <h2>Questions you may have</h2>
+    <div class="faq">
+      <details><summary>Where does my trial portfolio come from?</summary><p>From official registry records. BrandVault holds bulk trademark data from the registries we cover, and matches marks registered to the exact name you enter. Your first experience of BrandVault is a working portfolio, not an empty screen and an import wizard.</p></details>
+      <details><summary>What if some of my marks are missing from the trial?</summary><p>Trial portfolios match only the name you entered, so marks held by subsidiaries, group companies, previous names or individuals won't appear until we curate the full portfolio as part of onboarding. Gaps in the trial are expected, and telling us about them is the fastest way to the complete picture.</p></details>
+      <details><summary>What does BrandVault actually do without me?</summary><p>Monitoring, deadline calculation, alerts, digests and the preparation of renewal recommendations all happen automatically. Anything consequential (a filing, a renewal payment, a response to a registry) is prepared for your approval and never submitted without it.</p></details>
+      <details><summary>Who are the lawyers behind escalation?</summary><p>AiLA's own legal team: specialists in trademark prosecution and contentious registry work, working with the AI rather than instead of it. Your portfolio is already in the system, so an escalated matter starts with full context on day one, with no briefing calls and no catch-up fees.</p></details>
+      <details><summary>How is this different from docketing software?</summary><p>Docketing software tracks dates, leaves the work to you, and leaves you entirely alone when a dispute arrives. BrandVault does the routine work, brings you the decisions with the evidence attached, and handles the contentious matters when they come.</p></details>
+      <details><summary>What's Bree?</summary><p>BrandVault's AI trademark paralegal, living in Slack. Bree sends deadline alerts and weekly digests, and answers questions (what's due this quarter, the status of a mark, what needs attention) without you opening the app.</p></details>
+      <details><summary>Can you tell me whether to renew a mark?</summary><p>We tell you what the evidence says and make a recommendation. The decision stays yours: it's your legal right and your budget. What we remove is the guesswork.</p></details>
+      <details><summary>Do you cover registered designs?</summary><p>Yes. Designs and trademarks are both brand equity, and portfolios usually contain both, so BrandVault tracks registered designs with the same deadline engine and the same evidence-based renewal decisions, in the same portfolio view.</p></details>
+      <details><summary>Which countries do you cover?</summary><p>Deadline rules are currently built for seven registries including UKIPO, EUIPO, WIPO, and USPTO, with more added as customers need them. Where we haven't verified a jurisdiction's rules, we say so and flag the deadline for manual confirmation rather than guessing.</p></details>
+      <details><summary>What happens to UK and EU marks after Brexit?</summary><p>They're treated as separate legal rights, because they are. Comparable UK marks created from EU registrations are tracked distinctly, with their own deadlines and scope. Tools that merge them get this wrong.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="team">
+  <div class="inner">
+    <div class="kicker">Who's behind it</div>
+    <h2>Built by people who've done this work</h2>
+    <div class="people">
+      <div class="person">
+        <div class="p-name">Mark Kingsley-Williams</div>
+        <div class="p-role">Founder</div>
+        <p>Mark is an IP lawyer with a background in economics and tech startups. He built the first high-volume online trademark service in 2008, and within two years it was filing more UK and EU trademarks than any other firm, while he represented clients in disputes before the UKIPO and appeals before the Appointed Person. He went on to found LawPanel, an IP management software firm used by trademark practitioners in the UK and US that passed technical evaluations with several top-five global law firms. BrandVault is the third act: full portfolio management and advisory for sophisticated clients, delivered by AI models harnessed to IP work, and lawyers.</p>
+      </div>
+      <div class="person">
+        <div class="p-name">Sebastian Guerrero</div>
+        <div class="p-role">Lead Developer</div>
+        <p>Sebastian is a solution architect and full-stack engineer with twenty-five years of shipping production software, most recently as a Solution Architect at Chevron, designing cloud, data and AI systems on Azure. Before that he spent nearly seven years as lead developer at LawPanel, where he built the cloud IP management platform used by trademark practitioners in the UK and US. At AiLA he leads engineering, harnessing AI models to the deterministic rules, official data and approval gates that legal work depends on.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="closing" id="cta">
+  <div class="inner">
+    <div class="kicker">Get started</div>
+    <h2>See your portfolio managed</h2>
+    <p class="lede2">We're onboarding a small number of in-house legal teams. Enter your company name and see your marks under management: deadlines calculated, gaps flagged, and your first renewal recommendations prepared.</p>
+    <a class="btn" href="https://app.getbrandvault.com/admin/import">Show me my portfolio</a>
+  </div>
+</section>
+
+<footer>
+  <span>An AiLA solution · AiLA: The AI legal department. Routine work done, your decisions prepared, contentious matters resolved.</span>
+  <span>Other AiLA solutions: DutyDesk, data protection &amp; FOI · InnoVault, patents · <a href="/privacy.html" style="color:inherit">Privacy</a> · © 2026 AiLA AI Ltd</span>
+</footer>
+
+</body>
+</html>
