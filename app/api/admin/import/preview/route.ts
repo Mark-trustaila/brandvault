@@ -6,8 +6,9 @@ import { prepareImport, ImportAbortError } from '../../../../../lib/import-portf
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// POST /api/admin/import/preview — platform-admin only. Reads current state and
-// the facade and returns predicted counts + plan + a sample. NO write.
+// POST /api/admin/import/preview — platform-admin only. Returns the FULL in-scope
+// mark list for the ticked owners so the preview becomes the mark-level curation
+// surface (grouped client-side by owner string). Reads only; NO write.
 export async function POST(req: Request) {
   const user = await requirePlatformAdmin();
   if (!user) {
@@ -16,28 +17,32 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const companySlug = typeof body?.companySlug === 'string' ? body.companySlug : '';
   const ownerStrings = Array.isArray(body?.ownerStrings) ? body.ownerStrings.filter((s: unknown) => typeof s === 'string') : [];
-  const pruneAbsent = body?.pruneAbsent === true;
   if (!companySlug || ownerStrings.length < 1) {
     return NextResponse.json({ error: 'companySlug and at least one ownerString are required' }, { status: 400 });
   }
 
   try {
-    const p = await prepareImport({ companySlug, ownerStrings, pruneAbsent });
+    // No selection here — preview lists the full registry result; curation
+    // happens client-side and the chosen subset is sent to /execute.
+    const p = await prepareImport({ companySlug, ownerStrings });
+    const existing = new Set(p.existingAppNumbers);
     return NextResponse.json({
       companyId: p.companyId,
       registryName: p.registryName,
       currencyDate: p.currencyDate,
       coverage: p.snapshot.coverage,
-      predicted: p.predicted,
-      plan: { toInsert: p.plan.toInsert, toUpdate: p.plan.toUpdate, staleCount: p.plan.stale.length, stale: p.plan.stale.slice(0, 50) },
-      byStatus: tally(p.mapped.map((m) => m.registryStatusRaw)),
-      bySeries: tally(p.mapped.map((m) => m.seriesPrefix)),
-      sample: p.mapped.slice(0, 12).map((m) => ({
+      totalInScope: p.inScope.length,
+      staleCount: p.plan.stale.length, // absent-from-registry marks (informational)
+      marks: p.inScope.map((m) => ({
         applicationNumber: m.applicationNumber,
-        markText: m.markText,
-        status: m.status,
-        registryStatusRaw: m.registryStatusRaw,
+        ownerString: m.ownerName ?? '(no owner)', // group key — verbatim, unnormalised (exact strings are match keys)
+        markText: m.markText, // device convention already applied by the transform
+        status: m.registryStatusRaw, // verbatim registry status
+        classes: Array.from(new Set(m.goodsServices.map((g) => g.classNumber))).sort((a, b) => a - b),
         seriesPrefix: m.seriesPrefix,
+        goodsServices: m.goodsServices.length,
+        deadlines: m.deadlines.length,
+        existing: existing.has(m.applicationNumber), // would update in place vs insert
       })),
     });
   } catch (e) {
@@ -48,8 +53,4 @@ export async function POST(req: Request) {
     if (e instanceof FacadeError) return NextResponse.json({ error: e.message, code: e.code }, { status: 502 });
     throw e;
   }
-}
-
-function tally(xs: string[]): Record<string, number> {
-  return xs.reduce<Record<string, number>>((a, x) => ((a[x] = (a[x] ?? 0) + 1), a), {});
 }

@@ -41,6 +41,10 @@ export interface ImportOptions {
   registryName?: string; // DB registry_name (default 'UKIPO')
   pruneAbsent?: boolean; // default false — see DECISION above
   marksDoc?: MarksDoc; // pre-fetched (tests); otherwise fetched from the facade
+  // Mark-level curation: import exactly these application numbers (a subset of
+  // the in-scope owner set). Omitted/empty → import all in-scope marks. Unticked
+  // marks are out of scope, NOT stale (see the stale rule in prepareImport).
+  selectedApplicationNumbers?: string[];
 }
 
 export interface Counts { marks: number; goodsServices: number; deadlines: number }
@@ -84,7 +88,9 @@ export interface PreparedImport {
   registryName: string;
   currencyDate: string;
   pruneAbsent: boolean;
-  mapped: MappedMark[];
+  mapped: MappedMark[]; // the SELECTED marks that will be written
+  inScope: MappedMark[]; // the full registry result (for the preview curation surface)
+  existingAppNumbers: string[]; // DB app numbers now held (insert-vs-update per mark)
   predicted: Counts;
   plan: ImportPlan;
   snapshot: ImportSnapshot;
@@ -158,14 +164,22 @@ export async function prepareImport(opts: ImportOptions): Promise<PreparedImport
   // Scope to the requested proprietors (owner match, never representative-only),
   // and run the loader's transform + unmapped-status gate.
   const scope = new Set(opts.ownerStrings);
-  const { mapped, unmappedStatuses } = readExportDoc(
+  const { mapped: inScope, unmappedStatuses } = readExportDoc(
     { export: doc.export, marks: doc.marks as ExportMark[] },
     scope,
   );
   if (unmappedStatuses.length) throw new ImportAbortError(`unmapped registry status values: ${unmappedStatuses.join(', ')}`);
-  if (!mapped.length) throw new ImportAbortError('no in-scope marks for the given owner strings');
+  if (!inScope.length) throw new ImportAbortError('no in-scope marks for the given owner strings');
 
-  const predicted = predict(mapped);
+  // Mark-level curation: write exactly the chosen application numbers (a subset
+  // of the in-scope set). None given → write all in-scope.
+  const sel = opts.selectedApplicationNumbers && opts.selectedApplicationNumbers.length
+    ? new Set(opts.selectedApplicationNumbers)
+    : null;
+  const mapped = sel ? inScope.filter((m) => sel.has(m.applicationNumber)) : inScope;
+  if (!mapped.length) throw new ImportAbortError('no marks selected for import');
+
+  const predicted = predict(mapped); // over the SELECTED set
 
   // Existing state → plan (insert vs update vs stale) + pre-image for rollback.
   const existing = await prisma.trademark.findMany({
@@ -174,13 +188,22 @@ export async function prepareImport(opts: ImportOptions): Promise<PreparedImport
       _count: { select: { goodsServices: true, deadlines: true } } },
   });
   const byApp = new Map(existing.filter((e) => e.applicationNumber).map((e) => [e.applicationNumber as string, e]));
-  const incoming = new Set(mapped.map((m) => m.applicationNumber));
+  const existingAppNumbers = existing.map((e) => e.applicationNumber).filter((a): a is string => !!a);
+
+  // Insert vs update over the SELECTED set.
+  const selectedApps = new Set(mapped.map((m) => m.applicationNumber));
   const toUpdate = mapped.filter((m) => byApp.has(m.applicationNumber)).length;
   const toInsert = mapped.length - toUpdate;
-  const stale = existing.filter((e) => e.applicationNumber && !incoming.has(e.applicationNumber)).map((e) => e.applicationNumber as string);
 
-  // Pre-image = existing marks that this import will change or prune.
-  const affected = existing.filter((e) => (e.applicationNumber && incoming.has(e.applicationNumber)) || (pruneAbsent && e.applicationNumber && !incoming.has(e.applicationNumber)));
+  // Absent-mark (stale) is measured against the FULL registry result, NEVER the
+  // selection. A mark simply left unticked is out of scope, not stale. Stale =
+  // held in the DB but no longer present anywhere in the registry result.
+  const registrySet = new Set(inScope.map((m) => m.applicationNumber));
+  const stale = existing.filter((e) => e.applicationNumber && !registrySet.has(e.applicationNumber)).map((e) => e.applicationNumber as string);
+  const staleSet = new Set(stale);
+
+  // Pre-image = existing marks this import will change (selected & matched) or prune (stale, if pruning).
+  const affected = existing.filter((e) => (e.applicationNumber && selectedApps.has(e.applicationNumber)) || (pruneAbsent && e.applicationNumber && staleSet.has(e.applicationNumber)));
   const preImage: PreImageMark[] = affected.map((e) => ({
     id: e.id,
     applicationNumber: e.applicationNumber,
@@ -204,11 +227,12 @@ export async function prepareImport(opts: ImportOptions): Promise<PreparedImport
     predicted,
     plan,
     facadeExport: doc.export,
-    marks: doc.marks as ExportMark[],
+    // Snapshot reflects the SELECTION: only the raw marks actually imported.
+    marks: (doc.marks as ExportMark[]).filter((m) => selectedApps.has(m.application_number)),
     preImage,
   };
 
-  return { companyId: company.id, companySlug: opts.companySlug, registry, registryName, currencyDate: doc.currencyDate, pruneAbsent, mapped, predicted, plan, snapshot };
+  return { companyId: company.id, companySlug: opts.companySlug, registry, registryName, currencyDate: doc.currencyDate, pruneAbsent, mapped, inScope, existingAppNumbers, predicted, plan, snapshot };
 }
 
 /**
@@ -224,7 +248,6 @@ export async function commitImport(prepared: PreparedImport): Promise<ImportResu
       // Re-read existing inside the transaction for a consistent match.
       const existing = await tx.trademark.findMany({ where: { companyId, registryName }, select: { id: true, applicationNumber: true } });
       const byApp = new Map(existing.filter((e) => e.applicationNumber).map((e) => [e.applicationNumber as string, e.id]));
-      const incoming = new Set(mapped.map((m) => m.applicationNumber));
 
       const updates = mapped.filter((m) => byApp.has(m.applicationNumber));
       const inserts = mapped.filter((m) => !byApp.has(m.applicationNumber));
@@ -256,9 +279,11 @@ export async function commitImport(prepared: PreparedImport): Promise<ImportResu
         data: mapped.flatMap((m) => m.deadlines.map((d) => ({ trademarkId: idOf.get(m.applicationNumber) as string, type: d.type, description: d.description, dueDate: d.dueDate, windowStart: d.windowStart }))),
       });
 
-      // Prune absent marks only when explicitly requested.
-      if (pruneAbsent) {
-        const staleIds = existing.filter((e) => e.applicationNumber && !incoming.has(e.applicationNumber)).map((e) => e.id);
+      // Prune only marks absent from the REGISTRY RESULT (prepared.plan.stale),
+      // never marks the user merely left unticked. Requested-only.
+      if (pruneAbsent && prepared.plan.stale.length) {
+        const staleSet = new Set(prepared.plan.stale);
+        const staleIds = existing.filter((e) => e.applicationNumber && staleSet.has(e.applicationNumber)).map((e) => e.id);
         if (staleIds.length) await tx.trademark.deleteMany({ where: { id: { in: staleIds } } });
       }
 

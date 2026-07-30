@@ -21,6 +21,10 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const companySlug = typeof body?.companySlug === 'string' ? body.companySlug : '';
   const ownerStrings = Array.isArray(body?.ownerStrings) ? body.ownerStrings.filter((s: unknown) => typeof s === 'string') : [];
+  // Mark-level curation: the exact application numbers the operator ticked.
+  const selectedApplicationNumbers = Array.isArray(body?.selectedApplicationNumbers)
+    ? body.selectedApplicationNumbers.filter((s: unknown) => typeof s === 'string')
+    : undefined;
   const pruneAbsent = body?.pruneAbsent === true;
   const reason = typeof body?.reason === 'string' ? body.reason.trim() : '';
   if (!companySlug || ownerStrings.length < 1) {
@@ -35,7 +39,7 @@ export async function POST(req: Request) {
 
   let prepared;
   try {
-    prepared = await prepareImport({ companySlug, ownerStrings, pruneAbsent });
+    prepared = await prepareImport({ companySlug, ownerStrings, pruneAbsent, selectedApplicationNumbers });
   } catch (e) {
     if (e instanceof ImportAbortError) return NextResponse.json({ error: e.reason, code: 'IMPORT_ABORT' }, { status: 400 });
     if (e instanceof CapExceededError) {
