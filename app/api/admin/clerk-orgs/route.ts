@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { clerkClient } from '@clerk/nextjs/server';
 import { prisma } from '../../../../lib/db';
-import { getCurrentUser } from '../../../../lib/tenant';
-import { isPlatformAdmin } from '../../../../lib/authz';
+import { requirePlatformAdmin } from '../../../../lib/authz';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -10,8 +9,8 @@ export const runtime = 'nodejs';
 // GET /api/admin/clerk-orgs — platform-admin only. Clerk organizations to link a
 // (concierge-created) company to, with whether each is already linked.
 export async function GET() {
-  const user = await getCurrentUser();
-  if (!user || !(await isPlatformAdmin(user.id))) {
+  const user = await requirePlatformAdmin();
+  if (!user) {
     return NextResponse.json({ error: 'Platform admin only' }, { status: 403 });
   }
 

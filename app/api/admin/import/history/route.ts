@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/db';
-import { getCurrentUser } from '../../../../../lib/tenant';
-import { isPlatformAdmin } from '../../../../../lib/authz';
+import { requirePlatformAdmin } from '../../../../../lib/authz';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -10,8 +9,8 @@ export const runtime = 'nodejs';
 // history for a company (no snapshot payload — that's fetched on demand for
 // rollback).
 export async function GET(req: Request) {
-  const user = await getCurrentUser();
-  if (!user || !(await isPlatformAdmin(user.id))) {
+  const user = await requirePlatformAdmin();
+  if (!user) {
     return NextResponse.json({ error: 'Platform admin only' }, { status: 403 });
   }
   const slug = new URL(req.url).searchParams.get('company') ?? '';

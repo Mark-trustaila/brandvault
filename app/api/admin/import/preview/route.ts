@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getCurrentUser } from '../../../../../lib/tenant';
-import { isPlatformAdmin } from '../../../../../lib/authz';
+import { requirePlatformAdmin } from '../../../../../lib/authz';
 import { FacadeError, CapExceededError } from '../../../../../lib/registry-facade';
 import { prepareImport, ImportAbortError } from '../../../../../lib/import-portfolio';
 
@@ -10,8 +9,8 @@ export const runtime = 'nodejs';
 // POST /api/admin/import/preview — platform-admin only. Reads current state and
 // the facade and returns predicted counts + plan + a sample. NO write.
 export async function POST(req: Request) {
-  const user = await getCurrentUser();
-  if (!user || !(await isPlatformAdmin(user.id))) {
+  const user = await requirePlatformAdmin();
+  if (!user) {
     return NextResponse.json({ error: 'Platform admin only' }, { status: 403 });
   }
   const body = await req.json().catch(() => null);

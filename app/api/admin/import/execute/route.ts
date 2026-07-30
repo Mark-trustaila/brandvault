@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
-import { getCurrentUser } from '../../../../../lib/tenant';
-import { isPlatformAdmin } from '../../../../../lib/authz';
+import { requirePlatformAdmin } from '../../../../../lib/authz';
 import { writeAudit } from '../../../../../lib/audit';
 import { FacadeError, CapExceededError } from '../../../../../lib/registry-facade';
 import { prepareImport, commitImport, ImportAbortError, ImportVerificationError } from '../../../../../lib/import-portfolio';
@@ -15,8 +14,8 @@ export const runtime = 'nodejs';
 // the write and records the outcome to portfolio_imports. Rate limited per org
 // (spec: 3/day).
 export async function POST(req: Request) {
-  const user = await getCurrentUser();
-  if (!user || !(await isPlatformAdmin(user.id))) {
+  const user = await requirePlatformAdmin();
+  if (!user) {
     return NextResponse.json({ error: 'Platform admin only' }, { status: 403 });
   }
   const body = await req.json().catch(() => null);

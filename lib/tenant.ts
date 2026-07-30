@@ -127,3 +127,28 @@ export async function getCurrentUser(): Promise<User | null> {
   if (!company) return null;
   return resolveUser(userId, company.id, orgRole);
 }
+
+/**
+ * The signed-in BrandVault user, resolved INDEPENDENTLY of org context — for
+ * RECOGNITION only (e.g. platform-admin gating). Unlike getCurrentUser it does
+ * not require an active org, does not require that org to be linked to a
+ * company, and returns NO acting company. It is read-only: it never creates or
+ * adopts a row.
+ *
+ * Resolves by clerkUserId, falling back to a VERIFIED primary email. The email
+ * fallback survives a Clerk instance migration (the id changes, the email is
+ * stable) — the same seam getCurrentUser hit, which left a platform admin whose
+ * active org didn't resolve unable to reach admin routes at all. The verified
+ * gate mirrors resolveUser: an unverified address must never let one account be
+ * recognised as another.
+ */
+export async function getSessionUser(): Promise<User | null> {
+  const { userId } = await auth();
+  if (!userId) return null;
+  const byClerk = await prisma.user.findUnique({ where: { clerkUserId: userId } });
+  if (byClerk) return byClerk;
+  const cu = await (await clerkClient()).users.getUser(userId);
+  const primary = cu.emailAddresses.find((e) => e.id === cu.primaryEmailAddressId) ?? cu.emailAddresses[0];
+  if (primary?.verification?.status !== 'verified' || !primary.emailAddress) return null;
+  return prisma.user.findUnique({ where: { email: primary.emailAddress } });
+}

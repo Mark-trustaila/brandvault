@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import type { Company, User } from '@prisma/client';
 import { prisma } from './db';
-import { resolveCompany, resolveUser } from './tenant';
+import { resolveCompany, resolveUser, getSessionUser } from './tenant';
 
 export type RequestContext = {
   user: User;
@@ -70,6 +70,20 @@ const COMPANY_HEADER = 'x-bv-company-id';
 
 export async function isPlatformAdmin(userId: string): Promise<boolean> {
   return Boolean(await prisma.platformAdmin.findUnique({ where: { userId } }));
+}
+
+/**
+ * The signed-in user IF they are a platform admin, else null — for gating admin
+ * ROUTES. RECOGNITION ONLY: it uses getSessionUser (org-independent), so a
+ * platform admin is recognised whether or not an org is active or linked. It
+ * establishes NO acting company and grants no tenant access — every write gate,
+ * viewer refusal, and cross-tenant guard stays in getRequestContext, unchanged.
+ * A route that needs a company still resolves one explicitly (by slug/id/header).
+ */
+export async function requirePlatformAdmin(): Promise<User | null> {
+  const user = await getSessionUser();
+  if (!user || !(await isPlatformAdmin(user.id))) return null;
+  return user;
 }
 
 /**

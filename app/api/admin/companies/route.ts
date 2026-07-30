@@ -1,17 +1,14 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/db';
-import { getCurrentUser } from '../../../../lib/tenant';
-import { isPlatformAdmin } from '../../../../lib/authz';
+import { requirePlatformAdmin } from '../../../../lib/authz';
 import { writeAudit } from '../../../../lib/audit';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-async function requireAdmin() {
-  const user = await getCurrentUser();
-  if (!user || !(await isPlatformAdmin(user.id))) return null;
-  return user;
-}
+// Recognition is org-independent (see lib/authz.requirePlatformAdmin): a
+// platform admin reaches these routes even when their active org isn't linked.
+const requireAdmin = requirePlatformAdmin;
 
 const slugify = (name: string) =>
   name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'company';

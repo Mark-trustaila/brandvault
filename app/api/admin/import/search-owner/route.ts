@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getCurrentUser } from '../../../../../lib/tenant';
-import { isPlatformAdmin } from '../../../../../lib/authz';
+import { requirePlatformAdmin } from '../../../../../lib/authz';
 import { searchByOwner, FacadeError } from '../../../../../lib/registry-facade';
 import { rateLimit, SEARCH_LIMIT } from '../../../../../lib/import-events';
 
@@ -10,8 +9,8 @@ export const runtime = 'nodejs';
 // POST /api/admin/import/search-owner — platform-admin only. Proprietor search
 // (the checkbox step). Rate limited per org (spec: 10/hour).
 export async function POST(req: Request) {
-  const user = await getCurrentUser();
-  if (!user || !(await isPlatformAdmin(user.id))) {
+  const user = await requirePlatformAdmin();
+  if (!user) {
     return NextResponse.json({ error: 'Platform admin only' }, { status: 403 });
   }
   const body = await req.json().catch(() => null);

@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../../../../lib/db';
-import { getCurrentUser } from '../../../../../lib/tenant';
-import { isPlatformAdmin } from '../../../../../lib/authz';
+import { requirePlatformAdmin } from '../../../../../lib/authz';
 import { writeAudit } from '../../../../../lib/audit';
 
 export const dynamic = 'force-dynamic';
@@ -14,8 +13,8 @@ type Params = { params: { id: string } };
 // to a Clerk organization. Once linked, that org's members' logins resolve to
 // this company automatically (see lib/tenant.resolveCompany). Audited.
 export async function PATCH(req: Request, { params }: Params) {
-  const user = await getCurrentUser();
-  if (!user || !(await isPlatformAdmin(user.id))) {
+  const user = await requirePlatformAdmin();
+  if (!user) {
     return NextResponse.json({ error: 'Platform admin only' }, { status: 403 });
   }
 
