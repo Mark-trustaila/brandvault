@@ -109,6 +109,21 @@ export default function ImportPage() {
     reset();
   }
 
+  // Delete a husk company (e.g. a test company) via the admin path. The server
+  // refuses unless it holds nothing but its own audit rows.
+  async function doDeleteCompany() {
+    const c = companies.find((x) => x.slug === slug);
+    if (!c) return;
+    if (!confirm(`Delete ${c.name} — no marks, no users, no org. This cannot be undone.`)) return;
+    setError(null); setBusy('delete');
+    const res = await fetch(`/api/admin/companies/${c.id}`, { method: 'DELETE' });
+    const json = await res.json().catch(() => ({}));
+    setBusy(null);
+    if (!res.ok) { setError(json.error ?? 'delete failed'); return; }
+    setCompanies((prev) => prev.filter((x) => x.id !== c.id));
+    setSlug(''); reset();
+  }
+
   async function doSearch() {
     if (!slug) { setError('Select a company first.'); return; } // never search unscoped
     reset(); setBusy('search');
@@ -202,6 +217,11 @@ export default function ImportPage() {
 
         {selectedCompany && selectedCompany.linked === false && (
           <p className="text-xs text-amber-700">No user access yet — link a Clerk organisation when onboarding users.</p>
+        )}
+        {selectedCompany && selectedCompany.trademarkCount === 0 && !showCreate && (
+          <button className="text-xs text-red-600 underline disabled:opacity-50" disabled={busy === 'delete'} onClick={doDeleteCompany}>
+            {busy === 'delete' ? 'Deleting…' : `Delete ${selectedCompany.name}`}
+          </button>
         )}
       </section>
 
