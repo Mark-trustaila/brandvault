@@ -32,7 +32,7 @@
 import { randomUUID } from 'node:crypto';
 import { prisma } from './db';
 import { getMarks, type MarksDoc } from './registry-facade';
-import { readExportDoc, type ExportMark, type MappedMark } from './gb-transform';
+import { readExportDoc, deviceMarkLabel, type ExportMark, type MappedMark } from './gb-transform';
 
 export interface ImportOptions {
   companySlug: string;
@@ -48,6 +48,16 @@ export interface ImportOptions {
 }
 
 export interface Counts { marks: number; goodsServices: number; deadlines: number }
+
+// A mark the facade returned for the searched owner strings but that is NOT
+// owned by them — matched as representative (agent), so it's out of the owned
+// portfolio. Powers the curation-step reconciliation.
+export interface ExcludedMark {
+  applicationNumber: string;
+  markText: string;
+  reason: 'representative' | 'other';
+  viaOwnerString: string | null; // the selected string it matched on (as representative)
+}
 
 export interface ImportPlan {
   toInsert: number;
@@ -89,7 +99,9 @@ export interface PreparedImport {
   currencyDate: string;
   pruneAbsent: boolean;
   mapped: MappedMark[]; // the SELECTED marks that will be written
-  inScope: MappedMark[]; // the full registry result (for the preview curation surface)
+  inScope: MappedMark[]; // the full registry result — marks OWNED by the owner set
+  matchedCount: number; // all marks the facade returned for the owners (owned + representative)
+  excluded: ExcludedMark[]; // matched but not owned (representative matches) — for reconciliation
   existingAppNumbers: string[]; // DB app numbers now held (insert-vs-update per mark)
   predicted: Counts;
   plan: ImportPlan;
@@ -171,6 +183,27 @@ export async function prepareImport(opts: ImportOptions): Promise<PreparedImport
   if (unmappedStatuses.length) throw new ImportAbortError(`unmapped registry status values: ${unmappedStatuses.join(', ')}`);
   if (!inScope.length) throw new ImportAbortError('no in-scope marks for the given owner strings');
 
+  // Reconciliation: the facade returns every mark where an owner string is the
+  // applicant OR the representative; inScope kept only the OWNED ones. The rest
+  // matched as representative (agency work, not owned) — surface them so the
+  // curation count can be reconciled against the owner step instead of silently
+  // disagreeing with it.
+  const ownedApps = new Set(inScope.map((m) => m.applicationNumber));
+  const matchedCount = (doc.marks as ExportMark[]).length;
+  const excluded: ExcludedMark[] = (doc.marks as ExportMark[])
+    .filter((m) => !ownedApps.has(m.application_number))
+    .map((m) => {
+      const verbal = m.mark_text.map((s) => (typeof s === 'string' ? s.trim() : '')).filter(Boolean);
+      const repNames = m.representatives.flatMap((g) => g.filter((f) => f.field.endsWith('Representative/Name')).map((f) => f.value));
+      const via = repNames.find((n) => scope.has(n)) ?? null;
+      return {
+        applicationNumber: m.application_number,
+        markText: verbal[0] ?? deviceMarkLabel(m.application_number),
+        reason: via ? ('representative' as const) : ('other' as const),
+        viaOwnerString: via,
+      };
+    });
+
   // Mark-level curation: write exactly the chosen application numbers (a subset
   // of the in-scope set). None given → write all in-scope.
   const sel = opts.selectedApplicationNumbers && opts.selectedApplicationNumbers.length
@@ -232,7 +265,7 @@ export async function prepareImport(opts: ImportOptions): Promise<PreparedImport
     preImage,
   };
 
-  return { companyId: company.id, companySlug: opts.companySlug, registry, registryName, currencyDate: doc.currencyDate, pruneAbsent, mapped, inScope, existingAppNumbers, predicted, plan, snapshot };
+  return { companyId: company.id, companySlug: opts.companySlug, registry, registryName, currencyDate: doc.currencyDate, pruneAbsent, mapped, inScope, matchedCount, excluded, existingAppNumbers, predicted, plan, snapshot };
 }
 
 /**

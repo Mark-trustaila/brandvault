@@ -17,9 +17,11 @@ type PreviewMark = {
   status: string; classes: number[]; seriesPrefix: string;
   goodsServices: number; deadlines: number; existing: boolean;
 };
+type ExcludedMark = { applicationNumber: string; markText: string; reason: string; viaOwnerString: string | null };
 type Preview = {
   currencyDate: string; coverage: Coverage;
-  totalInScope: number; staleCount: number; marks: PreviewMark[];
+  totalInScope: number; matched: number; excludedCount: number; excludedReason: string | null; excluded: ExcludedMark[];
+  staleCount: number; marks: PreviewMark[];
 };
 type ImportRow = {
   id: string; registryName: string; ownerStrings: string[]; currencyDate: string | null;
@@ -247,16 +249,19 @@ export default function ImportPage() {
           <Banners currencyDate={search.currencyDate} coverage={search.coverage} />
           <ul className="divide-y rounded border border-slate-200">
             {search.owners.map((o) => {
-              const isRepOnly = !o.matchedVia.includes('owner');
+              const hasOwner = o.matchedVia.includes('owner');
+              const hasRep = o.matchedVia.includes('representative');
+              const both = hasOwner && hasRep;
+              const isRepOnly = !hasOwner;
               const over = o.markCount > cap;
+              const badge = both ? 'owner + representative' : isRepOnly ? 'representative' : 'owner';
+              const badgeClass = isRepOnly ? 'bg-slate-100 text-slate-600' : both ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800';
               return (
                 <li key={o.ownerString} className="flex items-center gap-3 p-2 text-sm">
                   <input type="checkbox" disabled={over} checked={selected.has(o.ownerString)} onChange={() => toggle(o.ownerString)} />
                   <span className={isRepOnly ? 'text-slate-500' : 'font-medium'}>{o.ownerString}</span>
-                  <span className={`rounded px-1.5 py-0.5 text-xs ${isRepOnly ? 'bg-slate-100 text-slate-600' : 'bg-emerald-100 text-emerald-800'}`}>
-                    {isRepOnly ? 'representative' : 'owner'}
-                  </span>
-                  <span className="ml-auto text-xs text-slate-500">{o.markCount} marks{over ? ' — too large, contact us' : ''}</span>
+                  <span className={`rounded px-1.5 py-0.5 text-xs ${badgeClass}`}>{badge}</span>
+                  <span className="ml-auto text-xs text-slate-500">{o.markCount} marks{both ? ' (some as agent — reconciled at preview)' : ''}{over ? ' — too large, contact us' : ''}</span>
                 </li>
               );
             })}
@@ -282,6 +287,26 @@ export default function ImportPage() {
             <p className="text-xs text-slate-500">Every mark is ticked; untick the strangers and anything not wanted. Read-only until you confirm.</p>
           </div>
           <Banners currencyDate={preview.currencyDate} coverage={preview.coverage} />
+
+          {/* reconciliation vs the owner step — so the counts never disagree with themselves */}
+          {preview.excludedCount > 0 && (
+            <div className="rounded bg-amber-50 p-2 text-xs text-amber-800">
+              <p>
+                <strong>{preview.matched}</strong> matched · <strong>{preview.totalInScope}</strong> owned (in scope) ·{' '}
+                <strong>{preview.excludedCount}</strong> excluded — {preview.excludedReason}
+              </p>
+              <details className="mt-1">
+                <summary className="cursor-pointer text-amber-700">show the {preview.excludedCount} excluded</summary>
+                <ul className="mt-1 space-y-0.5">
+                  {preview.excluded.map((e) => (
+                    <li key={e.applicationNumber} className="text-amber-700">
+                      {e.applicationNumber} · {e.markText} — {e.reason}{e.viaOwnerString ? ` for ${e.viaOwnerString}` : ''}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </div>
+          )}
 
           {/* global controls + running count */}
           <div className="flex items-center gap-3 border-b pb-2 text-xs">

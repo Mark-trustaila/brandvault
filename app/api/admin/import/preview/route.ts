@@ -26,12 +26,18 @@ export async function POST(req: Request) {
     // happens client-side and the chosen subset is sent to /execute.
     const p = await prepareImport({ companySlug, ownerStrings });
     const existing = new Set(p.existingAppNumbers);
+    const allRep = p.excluded.length > 0 && p.excluded.every((e) => e.reason === 'representative');
     return NextResponse.json({
       companyId: p.companyId,
       registryName: p.registryName,
       currencyDate: p.currencyDate,
       coverage: p.snapshot.coverage,
-      totalInScope: p.inScope.length,
+      totalInScope: p.inScope.length, // owned marks (the curation list)
+      // Reconciliation against the owner step: matched = owned + excluded.
+      matched: p.matchedCount,
+      excludedCount: p.excluded.length,
+      excludedReason: p.excluded.length === 0 ? null : allRep ? 'representative-only (filed for clients, not owned)' : 'not owned by the selected proprietor(s)',
+      excluded: p.excluded, // per-mark detail (application number, mark text, reason)
       staleCount: p.plan.stale.length, // absent-from-registry marks (informational)
       marks: p.inScope.map((m) => ({
         applicationNumber: m.applicationNumber,

@@ -40,6 +40,14 @@ const marksDoc = (marks: unknown[]) => ({
   cap: 2000, requestedOwnerStrings: ['ASOS plc'], unmatchedOwnerStrings: [], export: {}, marks,
 });
 
+// A mark where `searchedOwner` is the REPRESENTATIVE and someone else is the
+// applicant — the dual-role-string case (MKW owns some marks, represents others
+// under the identical name string).
+const repMark = (app: string, searchedOwner: string, applicant: string) => ({
+  ...mark(app, applicant),
+  representatives: [[{ field: 'Representative/Name', value: searchedOwner }]],
+});
+
 const existingRow = (app: string) => ({
   id: `t_${app}`, applicationNumber: app, status: 'Registered', registryStatusRaw: 'Registered', markText: 'x',
   _count: { goodsServices: 1, deadlines: 1 },
@@ -107,5 +115,32 @@ describe('fresh and existing companies both curate', () => {
     db.trademark.findMany.mockResolvedValue([existingRow('UK00000000001')]);
     const p = await prepareImport({ companySlug: 'asos', ownerStrings: ['ASOS plc'], selectedApplicationNumbers: ['UK00000000001'] });
     expect(p.plan).toMatchObject({ toInsert: 0, toUpdate: 1 });
+  });
+});
+
+describe('dual-role owner string (applicant on some, representative on others)', () => {
+  it('reconciles: matched = owned + excluded; the excluded are representative-only', async () => {
+    facade.getMarks.mockResolvedValue(marksDoc([
+      mark('UK00000000001', 'Mark Kingsley-Williams'), // applicant → owned, in scope
+      mark('UK00000000002', 'Mark Kingsley-Williams'), // applicant → owned, in scope
+      repMark('UK00000000003', 'Mark Kingsley-Williams', 'Client A'), // represented → excluded
+      repMark('UK00000000004', 'Mark Kingsley-Williams', 'Client B'), // represented → excluded
+      repMark('UK00000000005', 'Mark Kingsley-Williams', 'Client C'), // represented → excluded
+    ]));
+    const p = await prepareImport({ companySlug: 'c', ownerStrings: ['Mark Kingsley-Williams'] });
+    expect(p.matchedCount).toBe(5);
+    expect(p.inScope.map((m) => m.applicationNumber).sort()).toEqual(['UK00000000001', 'UK00000000002']);
+    expect(p.excluded).toHaveLength(3);
+    expect(p.excluded.every((e) => e.reason === 'representative')).toBe(true);
+    expect(p.excluded.every((e) => e.viaOwnerString === 'Mark Kingsley-Williams')).toBe(true);
+    expect(p.matchedCount).toBe(p.inScope.length + p.excluded.length); // internally consistent
+  });
+
+  it('a pure-owner selection excludes nothing (matched == owned)', async () => {
+    facade.getMarks.mockResolvedValue(marksDoc([mark('UK00000000001', 'ASOS plc'), mark('UK00000000002', 'ASOS plc')]));
+    const p = await prepareImport({ companySlug: 'c', ownerStrings: ['ASOS plc'] });
+    expect(p.matchedCount).toBe(2);
+    expect(p.inScope).toHaveLength(2);
+    expect(p.excluded).toHaveLength(0);
   });
 });
