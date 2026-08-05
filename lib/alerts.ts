@@ -8,6 +8,8 @@ import { postToSlack } from './slack';
 import { orderByGoverningDeadline } from './bree-ordering';
 import * as bree from './bree-messages';
 import { createNotification } from './notifications';
+import { waitUntil } from '@vercel/functions';
+import { emitDeadlineApproaching } from './ailaCore';
 
 export const DEFAULT_THRESHOLDS = [180, 90, 30];
 
@@ -145,6 +147,25 @@ export async function runDailyAlerts(now = new Date()): Promise<Summary> {
         for (let i = 0; i <= bucket && i < FLAG_FIELDS.length; i++) data[FLAG_FIELDS[i]] = true;
         await prisma.deadline.update({ where: { id: d.id }, data });
         out.alertsSent++;
+        // AiLA Core: this job has just decided the deadline is near enough to
+        // notify. Importance is the threshold bucket, not a new notion of
+        // urgency — the tightest crossed threshold is the most urgent notice a
+        // company gets, whatever thresholds it has configured.
+        //
+        // Dispatched via waitUntil so a Core outage can never spend this cron's
+        // budget: the retry chain (up to ~10.5s) runs after the response rather
+        // than inside the sweep. Outside a Vercel request context — a local
+        // script or a test — waitUntil is a no-op and the emit simply runs
+        // unawaited. emit() never throws either way.
+        waitUntil(emitDeadlineApproaching({
+          companyId: p.companyId,
+          rightRef: d.trademark.applicationNumber ?? d.trademark.id,
+          deadlineType: d.type,
+          dueDate,
+          daysRemaining: days,
+          deepLink: notif.link,
+          importance: Math.max(1, 5 - (thresholds.length - 1 - bucket)),
+        }));
       } else {
         await prisma.notification.delete({ where: { id: notif.id } }).catch(() => {});
       }
