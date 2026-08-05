@@ -5,6 +5,8 @@ import { writeAudit } from '../../../../../lib/audit';
 import { FacadeError, CapExceededError } from '../../../../../lib/registry-facade';
 import { prepareImport, commitImport, ImportAbortError, ImportVerificationError } from '../../../../../lib/import-portfolio';
 import { rateLimit, IMPORT_LIMIT, startImportEvent, finishImportEvent } from '../../../../../lib/import-events';
+import { waitUntil } from '@vercel/functions';
+import { emitImportCompleted } from '../../../../../lib/ailaCore';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -65,6 +67,15 @@ export async function POST(req: Request) {
       reason,
       detail: { importId, ownerStrings, predicted: prepared.predicted, actual: result.actual, plan: prepared.plan } as unknown as Prisma.InputJsonValue,
     });
+    // AiLA Core: emitted only on a verified commit, with the counts the import
+    // already reports. snapshotRef is the portfolio_imports row — the durable
+    // handle for this import's snapshot. waitUntil keeps the retry chain out of
+    // the operator's response time (see lib/alerts.ts).
+    waitUntil(emitImportCompleted({
+      companyId: prepared.companyId,
+      counts: result.actual as unknown as Record<string, number>,
+      snapshotRef: importId,
+    }));
     return NextResponse.json({ importId, ...result });
   } catch (e) {
     const rolledBack = e instanceof ImportVerificationError;

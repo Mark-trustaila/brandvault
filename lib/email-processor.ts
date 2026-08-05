@@ -16,6 +16,8 @@ import { proposeApproval, doRegister } from './approvals';
 import * as bree from './bree-messages';
 import { anchorWatchNotice, daysToOpposition } from './watch-notices';
 import { watchNoticeLink } from './notifications';
+import { waitUntil } from '@vercel/functions';
+import { emitWatchNotice } from './ailaCore';
 
 const ALERT_ONLY: CommunicationType[] = [
   'examination_report',
@@ -249,6 +251,23 @@ export async function processInboundEmail(id: string, now = new Date()): Promise
           appLink: watchNoticeLink(wn.id),
         })
       );
+
+      // AiLA Core: the notice as recorded. States what was filed and which
+      // right it cites — no similarity, no urgency, no recommended action, so
+      // no importance is sent. Dispatched via waitUntil (see lib/alerts.ts):
+      // this path also runs inside the daily cron, so a Core outage must not
+      // spend its budget.
+      waitUntil(emitWatchNotice({
+        companyId,
+        markRef: ours.applicationNumber ?? ours.id,
+        noticeRef: wn.id,
+        noticeSummary: `Third-party filing ${a.thirdPartyMarkText} (${a.thirdPartyApplicationNumber})${
+          a.thirdPartyClasses.length
+            ? ` in class${a.thirdPartyClasses.length === 1 ? '' : 'es'} ${a.thirdPartyClasses.join(', ')}`
+            : ''
+        } cites ${a.citedReference}`,
+        deepLink: watchNoticeLink(wn.id),
+      }));
     }
 
     if (anchor.anchored.length > 0) {

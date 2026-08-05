@@ -38,6 +38,7 @@ read when the function executes. `.env.example` documents all of them.
 | `INBOUND_FALLBACK_COMPANY_SLUG` | testing: hash addr → company | runtime | `asos-plc` | opt | opt | routes the Postmark hash address to a company. |
 | `CRON_SECRET` | cron + `/api/email/process` guard | runtime | ✅ | opt | – | Guards those endpoints (Bearer). |
 | `SEED_CLERK_ORG_ID` | link seed data to a Clerk org | seed | – | – | opt | local seed only. |
+| `AILA_CORE_URL` / `AILA_CORE_APP_KEY` | AiLA Core event emitter (`lib/ailaCore.ts`) | runtime | opt | opt | opt | Sensitive. Outbound only — BrandVault POSTs events to Core and reads nothing back. **Either one unset = every emit is a silent no-op**, so the module merges ahead of Core being deployed. Key generated with `openssl rand -hex 32`. |
 | `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` | email alert channel | runtime | – | – | – | **Not wired** — email deferred; the alert job counts + skips email gracefully. |
 
 ## Hosting region
