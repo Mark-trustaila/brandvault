@@ -7,6 +7,7 @@ import { prepareImport, commitImport, ImportAbortError, ImportVerificationError 
 import { rateLimit, IMPORT_LIMIT, startImportEvent, finishImportEvent } from '../../../../../lib/import-events';
 import { waitUntil } from '@vercel/functions';
 import { emitImportCompleted } from '../../../../../lib/ailaCore';
+import { backfillCompany } from '../../../../../lib/aila-backfill';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -71,11 +72,27 @@ export async function POST(req: Request) {
     // already reports. snapshotRef is the portfolio_imports row — the durable
     // handle for this import's snapshot. waitUntil keeps the retry chain out of
     // the operator's response time (see lib/alerts.ts).
-    waitUntil(emitImportCompleted({
-      companyId: prepared.companyId,
-      counts: result.actual as unknown as Record<string, number>,
-      snapshotRef: importId,
-    }));
+    //
+    // The import is what populates a concierge-onboarded tenant, so it is also
+    // where AiLA gets seeded: the backfill follows, replaying the deadlines this
+    // import just created so the customer's AiLA dashboard is populated now
+    // rather than whenever a threshold first trips. Chained rather than
+    // dispatched separately so import.completed lands first — the arrival order
+    // reads as "portfolio imported, then here is what is due". Emission only; it
+    // touches no alert flag and sends no Slack (see lib/aila-backfill.ts).
+    waitUntil(
+      emitImportCompleted({
+        companyId: prepared.companyId,
+        counts: result.actual as unknown as Record<string, number>,
+        snapshotRef: importId,
+      })
+        .then(() => backfillCompany({ companyId: prepared.companyId }))
+        // The import is committed and reported by the time this runs. A backfill
+        // that fails (Core down, a DB blip on the read) must stay a logged
+        // nuisance the operator can re-run from the admin route, never something
+        // that surfaces as a failed import.
+        .catch((e) => console.error(`[aila-backfill] company ${prepared.companyId} after import ${importId}:`, e)),
+    );
     return NextResponse.json({ importId, ...result });
   } catch (e) {
     const rolledBack = e instanceof ImportVerificationError;
