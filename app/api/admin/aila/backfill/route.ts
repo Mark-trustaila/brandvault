@@ -76,16 +76,30 @@ export async function POST(req: Request) {
       entityType: 'Company',
       entityId: company.id,
       reason: typeof body?.reason === 'string' ? body.reason : 'AiLA dashboard backfill',
-      detail: { limit: result.limit, emitted: result.emitted },
+      detail: { limit: result.limit, emitted: result.emitted, failed: result.failed },
     });
   }
 
-  return NextResponse.json({
-    company: { id: company.id, name: company.name, slug: company.slug },
-    limit: result.limit,
-    planned: result.planned,
-    emitted: result.emitted,
-    dryRun: result.dryRun,
-    notices: result.notices,
-  });
+  // A run where Core accepted nothing is not a success, and must not answer 200
+  // — the caller was previously told `emitted: 25` while Core rejected all 25.
+  // 502: BrandVault did its part and the upstream refused. A partial success
+  // stays 200 and is visible in `failed`/`failures`.
+  const nothingLanded = !dryRun && result.planned > 0 && result.emitted === 0;
+
+  return NextResponse.json(
+    {
+      company: { id: company.id, name: company.name, slug: company.slug },
+      limit: result.limit,
+      planned: result.planned,
+      emitted: result.emitted,
+      failed: result.failed,
+      failures: result.failures,
+      dryRun: result.dryRun,
+      notices: result.notices,
+      ...(nothingLanded
+        ? { error: `AiLA Core accepted none of ${result.planned} notices — see failures` }
+        : {}),
+    },
+    { status: nothingLanded ? 502 : 200 },
+  );
 }

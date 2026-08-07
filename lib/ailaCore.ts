@@ -4,7 +4,8 @@
 //
 // Design: fire-and-forget with bounded retry. Core is idempotent on
 // (app, event_id), so retries are safe. A Core outage must never break a
-// BrandVault operation — emit() swallows terminal failures after logging.
+// BrandVault operation — emit() never throws; it logs a failure and reports it
+// in its return value (EmitResult) for callers that want to count outcomes.
 
 import { randomUUID } from "node:crypto";
 
@@ -21,15 +22,42 @@ interface Envelope {
   payload: Record<string, unknown>;
 }
 
+/**
+ * What became of one emit. Returned rather than only logged, so a caller that
+ * emits in bulk can report what actually landed.
+ *
+ * The absence of this is what let a backfill report `emitted: 25` while Core
+ * rejected all 25 with `401 bad key` (2026-08-07): emit() returned void, so the
+ * only record of the failure was a log line nobody was reading. Callers that do
+ * not care still ignore the value and are unaffected.
+ *
+ *   delivered    — Core accepted it (202/200)
+ *   rejected     — Core answered and refused: bad key (401) or bad payload/
+ *                  unknown mapping (422). Terminal; no retry would help.
+ *   dropped      — 5xx or network failure, retries exhausted. Worth re-running.
+ *   unconfigured — no AILA_CORE_URL/APP_KEY. Not an error, but not delivered
+ *                  either, and must never be counted as a send.
+ */
+export type EmitOutcome = 'delivered' | 'rejected' | 'dropped' | 'unconfigured';
+
+export type EmitResult = {
+  ok: boolean; // true only for 'delivered'
+  outcome: EmitOutcome;
+  eventId: string | null; // null when unconfigured — no envelope was minted
+  status?: number; // the HTTP status, when Core answered
+  error?: string; // Core's response body, truncated, when it refused
+};
+
 async function emit(
   appTenantRef: string,
   type: string,
   payload: Record<string, unknown>,
   occurredAt: Date = new Date()
-): Promise<void> {
+): Promise<EmitResult> {
   const url = process.env.AILA_CORE_URL;
   const key = process.env.AILA_CORE_APP_KEY;
-  if (!url || !key) return; // emitter not configured; a no-op, not an error
+  // Emitter not configured; a no-op, not an error — but not a send either.
+  if (!url || !key) return { ok: false, outcome: 'unconfigured', eventId: null };
 
   const body: Envelope = {
     event_id: randomUUID(),
@@ -50,14 +78,21 @@ async function emit(
         },
         body: JSON.stringify(body),
       });
-      if (res.status === 202 || res.status === 200) return;
+      if (res.status === 202 || res.status === 200) {
+        return { ok: true, outcome: 'delivered', eventId: body.event_id, status: res.status };
+      }
       if (res.status === 401 || res.status === 422) {
         // Terminal: bad key or unknown mapping/payload. Log for manual
         // replay if a mapping is created late; do not retry.
-        console.error(
-          `[ailaCore] event ${body.event_id} rejected ${res.status}: ${await res.text()}`
-        );
-        return;
+        const text = (await res.text()).slice(0, 200);
+        console.error(`[ailaCore] event ${body.event_id} rejected ${res.status}: ${text}`);
+        return {
+          ok: false,
+          outcome: 'rejected',
+          eventId: body.event_id,
+          status: res.status,
+          error: text,
+        };
       }
       // 5xx: fall through to retry
     } catch {
@@ -68,6 +103,7 @@ async function emit(
     }
   }
   console.error(`[ailaCore] event ${body.event_id} (${type}) dropped after retries`);
+  return { ok: false, outcome: 'dropped', eventId: body.event_id };
 }
 
 // -- typed helpers for the three v1 BrandVault events ------------------------
@@ -80,7 +116,7 @@ export function emitDeadlineApproaching(args: {
   daysRemaining: number;
   deepLink: string;
   importance?: number; // 1-5, mapped from BrandVault's own priority
-}): Promise<void> {
+}): Promise<EmitResult> {
   return emit(args.companyId, "deadline.approaching", {
     right_ref: args.rightRef,
     deadline_type: args.deadlineType,
@@ -98,7 +134,7 @@ export function emitWatchNotice(args: {
   noticeSummary: string;
   deepLink: string;
   importance?: number;
-}): Promise<void> {
+}): Promise<EmitResult> {
   return emit(args.companyId, "watch.notice", {
     mark_ref: args.markRef,
     ...(args.noticeRef ? { notice_ref: args.noticeRef } : {}),
@@ -112,7 +148,7 @@ export function emitImportCompleted(args: {
   companyId: string;
   counts: Record<string, number>; // e.g. { marks: 120, classes: 340 }
   snapshotRef?: string;
-}): Promise<void> {
+}): Promise<EmitResult> {
   return emit(args.companyId, "import.completed", {
     counts: args.counts,
     ...(args.snapshotRef ? { snapshot_ref: args.snapshotRef } : {}),
