@@ -182,7 +182,12 @@ export default function ImportPage() {
   return (
     <main className="mx-auto max-w-3xl space-y-6 p-6">
       <header>
-        <h1 className="text-xl font-semibold">Portfolio import (concierge)</h1>
+        {/* Same escape hatch /admin/bulk has. Finishing an import is exactly
+            when you want to go and look at the portfolio you just populated. */}
+        <a href="/" className="text-xs text-ink-muted hover:text-ink">
+          ← Back to dashboard
+        </a>
+        <h1 className="mt-2 text-xl font-semibold">Portfolio import (concierge)</h1>
         <p className="text-sm text-slate-500">Search the UK register by proprietor and import a client's real portfolio.</p>
       </header>
 
@@ -363,6 +368,17 @@ export default function ImportPage() {
         <section className="rounded border border-emerald-200 bg-emerald-50 p-4 text-sm">
           <p className="font-medium text-emerald-800">✓ Imported and verified.</p>
           <p className="text-emerald-700">{result.actual.marks} marks · {result.actual.goodsServices} goods/services · {result.actual.deadlines} deadlines. Import {result.importId}.</p>
+          {/* A populated company the customer still cannot log in to is the one
+              way this screen can report success and leave onboarding unfinished.
+              The admin bar already warns about it, but only back on the
+              dashboard — which is not where you are when you finish an import. */}
+          {selectedCompany?.linked === false && (
+            <p className="mt-2 text-emerald-700">
+              Next: “{selectedCompany.name}” is not linked to a Clerk org yet, so its people
+              will not see this portfolio when they log in. Link it from the Platform admin bar
+              on the <a href="/" className="underline underline-offset-2">dashboard</a>.
+            </p>
+          )}
         </section>
       )}
 
