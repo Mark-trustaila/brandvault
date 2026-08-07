@@ -6,6 +6,7 @@ import Topbar from '../components/layout/Topbar';
 import RightPanel from '../components/layout/RightPanel';
 import StatsBar from '../components/dashboard/StatsBar';
 import { StatsBarSkeleton, ListSkeleton } from '../components/dashboard/Skeleton';
+import EmptyPortfolio from '../components/dashboard/EmptyPortfolio';
 import SearchBar from '../components/dashboard/SearchBar';
 import TabBar from '../components/dashboard/TabBar';
 import ActionsTab from '../components/tabs/ActionsTab';
@@ -58,6 +59,10 @@ function Dashboard() {
             ) : (
               <>
                 <StatsBar />
+                {/* Before the concierge import lands there is nothing to search,
+                    filter or tab through, and a row of zeroes does not say so.
+                    Renders nothing once the portfolio has a mark. */}
+                <EmptyPortfolio companyName={data.company?.name ?? null} count={data.count} />
                 <SearchBar />
                 <TabBar />
                 <div>

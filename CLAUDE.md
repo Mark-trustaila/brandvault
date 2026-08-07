@@ -39,6 +39,7 @@ read when the function executes. `.env.example` documents all of them.
 | `CRON_SECRET` | cron + `/api/email/process` guard | runtime | ✅ | opt | – | Guards those endpoints (Bearer). |
 | `SEED_CLERK_ORG_ID` | link seed data to a Clerk org | seed | – | – | opt | local seed only. |
 | `AILA_CORE_URL` / `AILA_CORE_APP_KEY` | AiLA Core event emitter (`lib/ailaCore.ts`) | runtime | opt | opt | opt | Sensitive. Outbound only — BrandVault POSTs events to Core and reads nothing back. **Either one unset = every emit is a silent no-op**, so the module merges ahead of Core being deployed. Key generated with `openssl rand -hex 32`. |
+| `AILA_BACKFILL_LIMIT` | deadlines replayed per company by the AiLA backfill (`lib/aila-backfill.ts`) | runtime | opt | opt | opt | Default 25, capped at 200. An unusable value falls back to the default rather than failing a provisioning import. |
 | `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` | email alert channel | runtime | – | – | – | **Not wired** — email deferred; the alert job counts + skips email gracefully. |
 
 ## Hosting region

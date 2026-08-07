@@ -35,9 +35,26 @@ export function alertBucket(days: number, thresholdsDesc: number[]): number {
   return bucket;
 }
 
-function normalizeThresholds(raw: unknown): number[] {
+export function normalizeThresholds(raw: unknown): number[] {
   const arr = Array.isArray(raw) ? raw.filter((n) => typeof n === 'number' && n > 0) : [];
   return (arr.length ? (arr as number[]) : DEFAULT_THRESHOLDS).slice().sort((a, b) => b - a);
+}
+
+/**
+ * The importance an emitted notice carries, from the threshold bucket alone.
+ *
+ * Importance is the threshold bucket restated on AiLA Core's 1-5 scale, not a
+ * second notion of urgency: the tightest crossed threshold is the most urgent
+ * notice a company gets, whatever thresholds it has configured. A deadline
+ * further out than every threshold has crossed nothing, so it carries no
+ * importance rather than a low one — absent and "least urgent" are different
+ * claims, and only the first is true of a deadline nobody has been alerted to.
+ *
+ * Shared by the daily sweep and the backfill so the two cannot drift. Pure.
+ */
+export function alertImportance(bucket: number, thresholdCount: number): number | undefined {
+  if (bucket < 0) return undefined;
+  return Math.max(1, 5 - (thresholdCount - 1 - bucket));
 }
 
 // Email is not wired yet; treat SMTP as unconfigured so the job skips it cleanly.
@@ -148,9 +165,8 @@ export async function runDailyAlerts(now = new Date()): Promise<Summary> {
         await prisma.deadline.update({ where: { id: d.id }, data });
         out.alertsSent++;
         // AiLA Core: this job has just decided the deadline is near enough to
-        // notify. Importance is the threshold bucket, not a new notion of
-        // urgency — the tightest crossed threshold is the most urgent notice a
-        // company gets, whatever thresholds it has configured.
+        // notify. Importance comes from the threshold bucket via the shared
+        // alertImportance above — see it for why the bucket IS the importance.
         //
         // Dispatched via waitUntil so a Core outage can never spend this cron's
         // budget: the retry chain (up to ~10.5s) runs after the response rather
@@ -164,7 +180,7 @@ export async function runDailyAlerts(now = new Date()): Promise<Summary> {
           dueDate,
           daysRemaining: days,
           deepLink: notif.link,
-          importance: Math.max(1, 5 - (thresholds.length - 1 - bucket)),
+          importance: alertImportance(bucket, thresholds.length),
         }));
       } else {
         await prisma.notification.delete({ where: { id: notif.id } }).catch(() => {});

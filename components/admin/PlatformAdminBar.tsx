@@ -155,6 +155,15 @@ export function PlatformAdminBar() {
             >
               + Company
             </button>
+            {/* Import is how a concierge-onboarded customer actually gets a
+                portfolio; bulk entry is the manual fallback. The bar linked only
+                to the fallback, so the main path was a URL you had to remember. */}
+            <a
+              href="/admin/import"
+              className="rounded-full px-2.5 py-1 text-xs text-slate-200 transition-colors hover:bg-white/[0.08]"
+            >
+              Import portfolio
+            </a>
             <a
               href="/admin/bulk"
               className="rounded-full px-2.5 py-1 text-xs text-slate-200 transition-colors hover:bg-white/[0.08]"
