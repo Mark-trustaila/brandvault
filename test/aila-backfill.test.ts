@@ -43,7 +43,7 @@ const deadline = (opts: { days: number; type?: string; appNo?: string | null; ma
 beforeEach(() => {
   vi.clearAllMocks();
   db.alertPreference.findUnique.mockResolvedValue(null);
-  core.emitDeadlineApproaching.mockResolvedValue(undefined);
+  core.emitDeadlineApproaching.mockResolvedValue({ ok: true, outcome: 'delivered', eventId: 'evt-1', status: 202 });
   delete process.env.AILA_BACKFILL_LIMIT;
 });
 
@@ -177,6 +177,51 @@ describe('backfillCompany emission', () => {
     });
   });
 
+  // The 2026-08-07 regression: Core rejected all 25 with `401 bad key` and the
+  // run reported `emitted: 25`. emitted must count what Core ACCEPTED.
+  it('counts nothing as emitted when Core rejects every notice', async () => {
+    db.deadline.findMany.mockResolvedValue([deadline({ days: 10 }), deadline({ days: 20 })]);
+    core.emitDeadlineApproaching.mockResolvedValue({
+      ok: false, outcome: 'rejected', eventId: 'evt-x', status: 401, error: '{"error":"bad key"}',
+    });
+
+    const result = await backfillCompany({ companyId: 'co-1', now: NOW });
+
+    expect(result.planned).toBe(2);
+    expect(result.emitted).toBe(0);
+    expect(result.failed).toBe(2);
+    expect(result.failures[0]).toMatchObject({
+      rightRef: 'UK000010', outcome: 'rejected', status: 401, error: '{"error":"bad key"}',
+    });
+  });
+
+  it('reports a partial delivery honestly', async () => {
+    db.deadline.findMany.mockResolvedValue([deadline({ days: 10 }), deadline({ days: 20 })]);
+    core.emitDeadlineApproaching
+      .mockResolvedValueOnce({ ok: true, outcome: 'delivered', eventId: 'e1', status: 202 })
+      .mockResolvedValueOnce({ ok: false, outcome: 'dropped', eventId: 'e2' });
+
+    const result = await backfillCompany({ companyId: 'co-1', now: NOW });
+
+    expect(result.emitted).toBe(1);
+    expect(result.failed).toBe(1);
+    expect(result.failures[0]).toMatchObject({ rightRef: 'UK000020', outcome: 'dropped' });
+  });
+
+  // An unconfigured emitter is a silent no-op by design; it is still not a send.
+  it('does not count an unconfigured emitter as emitted', async () => {
+    db.deadline.findMany.mockResolvedValue([deadline({ days: 10 })]);
+    core.emitDeadlineApproaching.mockResolvedValue({
+      ok: false, outcome: 'unconfigured', eventId: null,
+    });
+
+    const result = await backfillCompany({ companyId: 'co-1', now: NOW });
+
+    expect(result.emitted).toBe(0);
+    expect(result.failed).toBe(1);
+    expect(result.failures[0].outcome).toBe('unconfigured');
+  });
+
   it('plans without emitting on a dry run', async () => {
     db.deadline.findMany.mockResolvedValue([deadline({ days: 10 })]);
     const result = await backfillCompany({ companyId: 'co-1', dryRun: true, now: NOW });
@@ -184,6 +229,7 @@ describe('backfillCompany emission', () => {
     expect(core.emitDeadlineApproaching).not.toHaveBeenCalled();
     expect(result.planned).toBe(1);
     expect(result.emitted).toBe(0);
+    expect(result.failed).toBe(0);
     expect(result.dryRun).toBe(true);
     expect(result.notices).toHaveLength(1);
   });
@@ -219,6 +265,7 @@ describe('backfillCompany emission', () => {
       peak = Math.max(peak, ++inFlight);
       await Promise.resolve();
       inFlight--;
+      return { ok: true, outcome: 'delivered', eventId: 'evt', status: 202 };
     });
 
     await backfillCompany({ companyId: 'co-1', now: NOW });

@@ -37,7 +37,7 @@
  * Target a company deliberately; the intended use is a tenant on day one.
  */
 import { prisma } from './db';
-import { emitDeadlineApproaching } from './ailaCore';
+import { emitDeadlineApproaching, type EmitOutcome } from './ailaCore';
 import { alertBucket, alertImportance, daysUntil, normalizeThresholds } from './alerts';
 import { dashboardSearchLink } from './deep-links';
 
@@ -116,11 +116,23 @@ export async function planBackfill(
   });
 }
 
+/** One notice Core did not accept, with why — enough to act on without logs. */
+export type BackfillFailure = {
+  rightRef: string;
+  outcome: EmitOutcome;
+  eventId: string | null;
+  status?: number;
+  error?: string;
+};
+
 export type BackfillResult = {
   companyId: string;
   limit: number;
   planned: number;
+  /** Notices Core ACCEPTED (202/200). Never a count of attempts — see below. */
   emitted: number;
+  failed: number;
+  failures: BackfillFailure[];
   dryRun: boolean;
   notices: BackfillNotice[];
 };
@@ -147,9 +159,27 @@ export async function backfillCompany(args: {
   const notices = await planBackfill(args.companyId, limit, args.now ?? new Date());
   const dryRun = args.dryRun === true;
 
+  // Count what Core ACCEPTED, not what we attempted. Reporting attempts is how
+  // a run that Core rejected 25 times for a bad app key came back as
+  // `emitted: 25` and read as a success (2026-08-07). A caller must be able to
+  // tell a delivered backfill from a rejected one without reading the logs.
+  let emitted = 0;
+  const failures: BackfillFailure[] = [];
+
   if (!dryRun) {
     for (const notice of notices) {
-      await emitDeadlineApproaching(notice);
+      const result = await emitDeadlineApproaching(notice);
+      if (result.ok) {
+        emitted++;
+      } else {
+        failures.push({
+          rightRef: notice.rightRef,
+          outcome: result.outcome,
+          eventId: result.eventId,
+          ...(result.status !== undefined ? { status: result.status } : {}),
+          ...(result.error !== undefined ? { error: result.error } : {}),
+        });
+      }
     }
   }
 
@@ -157,7 +187,9 @@ export async function backfillCompany(args: {
     companyId: args.companyId,
     limit,
     planned: notices.length,
-    emitted: dryRun ? 0 : notices.length,
+    emitted,
+    failed: failures.length,
+    failures,
     dryRun,
     notices,
   };
