@@ -11,6 +11,11 @@ import { backfillCompany } from '../../../../../lib/aila-backfill';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+// The import itself is a multi-registry fetch plus one large transaction, and
+// the waitUntil tail below now carries a backfill whose emitter retries with
+// backoff. Both outlive a default function budget; the cron sweep already asks
+// for the same ceiling for the same reason.
+export const maxDuration = 300;
 
 // POST /api/admin/import/execute — platform-admin only. Runs the import in one
 // idempotent transaction with all loader gates. Persists the snapshot BEFORE
