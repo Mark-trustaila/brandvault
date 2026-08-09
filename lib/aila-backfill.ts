@@ -28,6 +28,15 @@
  * mark-specific Bree reply uses — so the notice opens the search-filtered
  * dashboard on that mark.
  *
+ * PAGING. `MAX_BACKFILL_LIMIT` bounds one request, because emission is
+ * sequential and each event carries a bounded retry chain — a single unbounded
+ * request against a degraded Core would run past the route's own time budget.
+ * So a portfolio larger than the cap is covered by paging, not by a bigger
+ * request: every result carries `total` and `hasMore`, and the caller advances
+ * `offset` by `limit` until `hasMore` is false. Without `total` a saturated page
+ * is indistinguishable from a complete one, which is how a 200-notice response
+ * was read as the whole of a 399-notice portfolio (2026-08-09).
+ *
  * RERUNS. Core upserts `deadline.approaching` onto a matter keyed by the
  * composed ref `<right_ref>:deadline:<deadline_type>`, so replaying a deadline
  * refreshes one envelope rather than stacking duplicates — running this twice on
@@ -63,6 +72,21 @@ export function resolveBackfillLimit(requested?: unknown): number {
   return DEFAULT_BACKFILL_LIMIT;
 }
 
+/**
+ * The rows a backfill considers, as one clause both the page and the count use.
+ * Shared deliberately: a total computed from a different predicate than the page
+ * it describes is worse than no total, because it reads as proof of completeness
+ * while quietly disagreeing with what was emitted.
+ */
+function backfillWhere(companyId: string, now: Date) {
+  return { trademark: { companyId }, dueDate: { gte: now }, completedAt: null };
+}
+
+/** How many notices this company has in total, ignoring any page bound. */
+export async function countBackfillable(companyId: string, now: Date = new Date()): Promise<number> {
+  return prisma.deadline.count({ where: backfillWhere(companyId, now) });
+}
+
 /** One notice the backfill would emit — the emitter's arguments, nothing more. */
 export type BackfillNotice = {
   companyId: string;
@@ -86,7 +110,8 @@ export type BackfillNotice = {
 export async function planBackfill(
   companyId: string,
   limit: number = DEFAULT_BACKFILL_LIMIT,
-  now: Date = new Date()
+  now: Date = new Date(),
+  offset: number = 0
 ): Promise<BackfillNotice[]> {
   const pref = await prisma.alertPreference.findUnique({ where: { companyId } });
   // A company with no preference row yet — the normal state on day one, before
@@ -94,10 +119,11 @@ export async function planBackfill(
   const thresholds = normalizeThresholds(pref?.thresholdDays);
 
   const deadlines = await prisma.deadline.findMany({
-    where: { trademark: { companyId }, dueDate: { gte: now }, completedAt: null },
+    where: backfillWhere(companyId, now),
     include: { trademark: true },
     orderBy: { dueDate: 'asc' },
     take: limit,
+    skip: offset,
   });
 
   return deadlines.map((d) => {
@@ -128,6 +154,11 @@ export type BackfillFailure = {
 export type BackfillResult = {
   companyId: string;
   limit: number;
+  offset: number;
+  /** Notices matching the whole predicate, ignoring limit/offset. */
+  total: number;
+  /** True when notices remain beyond this page — page again at offset+limit. */
+  hasMore: boolean;
   planned: number;
   /** Notices Core ACCEPTED (202/200). Never a count of attempts — see below. */
   emitted: number;
@@ -152,11 +183,17 @@ export type BackfillResult = {
 export async function backfillCompany(args: {
   companyId: string;
   limit?: number;
+  offset?: number;
   dryRun?: boolean;
   now?: Date;
 }): Promise<BackfillResult> {
   const limit = resolveBackfillLimit(args.limit);
-  const notices = await planBackfill(args.companyId, limit, args.now ?? new Date());
+  const offset = Number.isInteger(args.offset) && (args.offset as number) > 0 ? (args.offset as number) : 0;
+  const now = args.now ?? new Date();
+  // Counted against the same clause the page uses, at the same `now`, so the
+  // two cannot describe different sets.
+  const total = await countBackfillable(args.companyId, now);
+  const notices = await planBackfill(args.companyId, limit, now, offset);
   const dryRun = args.dryRun === true;
 
   // Count what Core ACCEPTED, not what we attempted. Reporting attempts is how
@@ -186,6 +223,9 @@ export async function backfillCompany(args: {
   return {
     companyId: args.companyId,
     limit,
+    offset,
+    total,
+    hasMore: offset + notices.length < total,
     planned: notices.length,
     emitted,
     failed: failures.length,

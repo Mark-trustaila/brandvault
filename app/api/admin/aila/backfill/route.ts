@@ -25,7 +25,8 @@ export const maxDuration = 300;
  *
  * Body:
  *   companySlug | companyId  one is required — the company to backfill
- *   limit                    optional; default AILA_BACKFILL_LIMIT, else 25
+ *   limit                    optional; default AILA_BACKFILL_LIMIT, else 25, cap 200
+ *   offset                   optional; skip this many, for paging past the cap
  *   dryRun                   optional; true returns the plan without emitting
  *   reason                   optional; recorded on the audit entry
  *
@@ -55,6 +56,13 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
+  // Zero is meaningful here (the first page), so the bound differs from limit's.
+  if (body?.offset !== undefined && !(Number.isInteger(body.offset) && body.offset >= 0)) {
+    return NextResponse.json(
+      { error: 'offset must be a whole number, zero or greater' },
+      { status: 400 },
+    );
+  }
 
   const company = await prisma.company.findFirst({
     where: companyId ? { id: companyId } : { slug: companySlug },
@@ -63,7 +71,12 @@ export async function POST(req: Request) {
   if (!company) return NextResponse.json({ error: 'Company not found' }, { status: 404 });
 
   const dryRun = body?.dryRun === true;
-  const result = await backfillCompany({ companyId: company.id, limit: body?.limit, dryRun });
+  const result = await backfillCompany({
+    companyId: company.id,
+    limit: body?.limit,
+    offset: body?.offset,
+    dryRun,
+  });
 
   // A dry run reads and emits nothing, so there is nothing to record. Auditing
   // it would put an entry in the customer's activity feed for a question.
@@ -76,7 +89,13 @@ export async function POST(req: Request) {
       entityType: 'Company',
       entityId: company.id,
       reason: typeof body?.reason === 'string' ? body.reason : 'AiLA dashboard backfill',
-      detail: { limit: result.limit, emitted: result.emitted, failed: result.failed },
+      detail: {
+        limit: result.limit,
+        offset: result.offset,
+        total: result.total,
+        emitted: result.emitted,
+        failed: result.failed,
+      },
     });
   }
 
@@ -90,6 +109,9 @@ export async function POST(req: Request) {
     {
       company: { id: company.id, name: company.name, slug: company.slug },
       limit: result.limit,
+      offset: result.offset,
+      total: result.total,
+      hasMore: result.hasMore,
       planned: result.planned,
       emitted: result.emitted,
       failed: result.failed,
