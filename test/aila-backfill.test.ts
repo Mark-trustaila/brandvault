@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // so a future edit that reaches for one fails here rather than in production.
 const db = vi.hoisted(() => ({
   alertPreference: { findUnique: vi.fn() },
-  deadline: { findMany: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+  deadline: { findMany: vi.fn(), count: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
   notification: { create: vi.fn() },
 }));
 const core = vi.hoisted(() => ({ emitDeadlineApproaching: vi.fn() }));
@@ -43,6 +43,7 @@ const deadline = (opts: { days: number; type?: string; appNo?: string | null; ma
 beforeEach(() => {
   vi.clearAllMocks();
   db.alertPreference.findUnique.mockResolvedValue(null);
+  db.deadline.count.mockResolvedValue(0);
   core.emitDeadlineApproaching.mockResolvedValue({ ok: true, outcome: 'delivered', eventId: 'evt-1', status: 202 });
   delete process.env.AILA_BACKFILL_LIMIT;
 });
@@ -159,6 +160,64 @@ describe('planBackfill importance', () => {
     db.deadline.findMany.mockResolvedValue([deadline({ days: 20 })]);
     const [notice] = await planBackfill('co-1', 25, NOW);
     expect(notice.importance).toBe(5);
+  });
+});
+
+describe('backfillCompany paging', () => {
+  // A saturated page and a complete one look identical without `total`. That is
+  // how a 200-notice response was read as the whole of a 399-notice portfolio.
+  it('reports total and hasMore when the portfolio exceeds one page', async () => {
+    db.deadline.count.mockResolvedValue(399);
+    db.deadline.findMany.mockResolvedValue([deadline({ days: 10 }), deadline({ days: 20 })]);
+
+    const result = await backfillCompany({ companyId: 'co-1', limit: 2, now: NOW });
+
+    expect(result.total).toBe(399);
+    expect(result.planned).toBe(2);
+    expect(result.offset).toBe(0);
+    expect(result.hasMore).toBe(true);
+  });
+
+  it('reports hasMore false once the last page is reached', async () => {
+    db.deadline.count.mockResolvedValue(3);
+    db.deadline.findMany.mockResolvedValue([deadline({ days: 30 })]);
+
+    const result = await backfillCompany({ companyId: 'co-1', limit: 2, offset: 2, now: NOW });
+
+    expect(result.offset).toBe(2);
+    expect(result.hasMore).toBe(false);
+  });
+
+  it('passes offset to the query as skip', async () => {
+    db.deadline.count.mockResolvedValue(399);
+    db.deadline.findMany.mockResolvedValue([]);
+    await backfillCompany({ companyId: 'co-1', limit: 25, offset: 200, now: NOW });
+    expect(db.deadline.findMany.mock.calls[0][0].skip).toBe(200);
+  });
+
+  it('treats a missing or nonsense offset as the first page', async () => {
+    db.deadline.count.mockResolvedValue(10);
+    db.deadline.findMany.mockResolvedValue([]);
+    await backfillCompany({ companyId: 'co-1', now: NOW });
+    expect(db.deadline.findMany.mock.calls[0][0].skip).toBe(0);
+    await backfillCompany({ companyId: 'co-1', offset: -5, now: NOW });
+    expect(db.deadline.findMany.mock.calls[1][0].skip).toBe(0);
+  });
+
+  // The total must describe the set the page came from, or it is worse than none.
+  it('counts with the same predicate the page queries', async () => {
+    db.deadline.count.mockResolvedValue(5);
+    db.deadline.findMany.mockResolvedValue([]);
+    await backfillCompany({ companyId: 'co-1', now: NOW });
+
+    const countWhere = db.deadline.count.mock.calls[0][0].where;
+    const pageWhere = db.deadline.findMany.mock.calls[0][0].where;
+    expect(countWhere).toEqual(pageWhere);
+    expect(countWhere).toEqual({
+      trademark: { companyId: 'co-1' },
+      dueDate: { gte: NOW },
+      completedAt: null,
+    });
   });
 });
 
