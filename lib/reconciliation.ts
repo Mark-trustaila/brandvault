@@ -16,6 +16,7 @@
  * Pure. No DB, no clock of its own: `now` is always passed in.
  */
 import { getObligationsForTrademark } from './utils';
+import type { Obligation } from '../types/trademark';
 
 /** The frontend trademark shape this module needs. */
 type TrademarkShape = { expiry_date?: string; status: string; registry_name: string };
@@ -138,4 +139,74 @@ export function discrepancyTooltip(r: RenewalReconciliation, fmt: (d: Date) => s
   const registry = r.registryExpiry ? fmt(r.registryExpiry) : 'not stated';
   const calculated = r.calculatedDue ? fmt(r.calculatedDue) : 'not available';
   return `Registry expiry ${registry}. Calculated renewal ${calculated}. Dates differ: the earlier future date governs alerts.`;
+}
+
+/**
+ * Reconcile the calculated renewal series against the registry's expiry date.
+ *
+ * The engine itself is untouched (preserved code): this shapes what the engine
+ * returned, it does not change how the engine derives anything.
+ *
+ * Two adjustments, both driven only by source agreement:
+ *
+ *  1. Liveness guard. A calculated renewal already in the past, on a live mark
+ *     the registry says expires in the future, is drift rather than a missed
+ *     obligation. It is dropped instead of being persisted as an overdue row.
+ *  2. Registry row. When the registry expiry is in the future and no calculated
+ *     renewal lands on that day, a renewal row is added on the registry date.
+ *     Existing calculated rows are kept, so the later renewals in the series
+ *     survive and the EARLIEST future row is the governing one. That is what
+ *     makes "the earlier future date governs" hold for the alert engine without
+ *     the alert engine needing to know reconciliation exists.
+ *
+ * Sources agreeing produces exactly the rows it produced before this change.
+ */
+export function reconcileObligations(
+  obligations: Obligation[],
+  expiryDate: Date | null,
+  status: string,
+  now: Date
+): Obligation[] {
+  const concrete = obligations.filter((o) => !o.uncertain && o.dueDate);
+  if (!expiryDate) return concrete;
+
+  const live = isLiveStatus(status);
+  const registryFuture = expiryDate > now;
+
+  // 1. Liveness guard.
+  const kept = concrete.filter((o) => {
+    if (o.type !== 'Renewal') return true;
+    const past = (o.dueDate as Date) <= now;
+    return !(past && live && registryFuture);
+  });
+
+  // 2. Registry row, when nothing calculated already lands on that day.
+  if (registryFuture) {
+    const alreadyThere = kept.some(
+      (o) => o.type === 'Renewal' && sameDay(o.dueDate as Date, expiryDate)
+    );
+    if (!alreadyThere) {
+      // Window start mirrors the engine's own early-window span for this mark,
+      // taken from its nearest renewal so the registry row is not given a
+      // window the registry's rules would not give it.
+      const template = kept.find((o) => o.type === 'Renewal' && o.windowStart);
+      const spanMs = template
+        ? (template.dueDate as Date).getTime() - (template.windowStart as Date).getTime()
+        : 0;
+      kept.push({
+        type: 'Renewal',
+        desc: 'Renewal',
+        dueDate: expiryDate,
+        windowStart: new Date(expiryDate.getTime() - spanMs),
+        daysUntil: Math.floor((expiryDate.getTime() - now.getTime()) / 86_400_000),
+        critical: true,
+        actionable: false,
+        overdue: false,
+        inWindow: false,
+        uncertain: false,
+      } as Obligation);
+    }
+  }
+
+  return kept;
 }

@@ -14,6 +14,7 @@
 import { readFileSync } from 'node:fs';
 import { MarkStatus } from '@prisma/client';
 import { getObligationsForTrademark } from './utils';
+import { reconcileObligations } from './reconciliation';
 import type { Trademark } from '../types/trademark';
 
 /**
@@ -184,7 +185,7 @@ export const inScope = (mk: ExportMark, scope: Set<string> = APPLICANTS_IN_SCOPE
   applicantNames(mk).some((n) => scope.has(n));
 
 /* ── transform ────────────────────────────────────────────────── */
-export function transform(mk: ExportMark): MappedMark {
+export function transform(mk: ExportMark, now: Date = new Date()): MappedMark {
   const filingDate = dateAt(mk, 'TradeMark/ApplicationDateTime');
   const registrationDate = dateAt(mk, 'TradeMark/RegistrationDate');
   const verbal = mk.mark_text.map(clean).filter((s): s is string => !!s);
@@ -196,8 +197,18 @@ export function transform(mk: ExportMark): MappedMark {
     registration_date: registrationDate ? registrationDate.toISOString() : undefined,
   } as Trademark);
 
+  const expiryDate = dateAt(mk, 'TradeMark/ExpiryDate');
+
+  // Reconcile before persisting, not after. The engine derives renewals from the
+  // filing date on a fixed term grid; the registry also states an expiry, and
+  // where the two disagree the grid is not evidence the registry is wrong. An
+  // import that persists the raw grid writes dates the dashboard contradicts
+  // from the moment the customer first logs in — which is how two of the most
+  // urgent ASOS marks came to hold one past row and one a decade out, invisible
+  // to the alert engine and to AiLA (see lib/reconciliation.ts for the
+  // invariant). Suppressed statuses still persist nothing at all.
   const suppress = NO_DEADLINE_STATUSES.has(status);
-  const concrete = suppress ? [] : obligations.filter((o) => !o.uncertain && o.dueDate);
+  const concrete = suppress ? [] : reconcileObligations(obligations, expiryDate, status, now);
 
   return {
     // A device mark has no verbal element by nature, not by omission — this
@@ -211,7 +222,7 @@ export function transform(mk: ExportMark): MappedMark {
     registrationNumber: ukRegistrationNumber(mk.application_number, status),
     filingDate,
     registrationDate,
-    expiryDate: dateAt(mk, 'TradeMark/ExpiryDate'),
+    expiryDate,
     publicationDate: dateAt(mk, 'PublicationDetails/Publication/PublicationDate'),
     ownerName: pair(mk.applicants, 'Applicant/Name'),
     ownerCountry: pair(mk.applicants, 'Applicant/AddressBook/CountryCode'),
@@ -245,6 +256,7 @@ export function transform(mk: ExportMark): MappedMark {
 export function readExportDoc(
   doc: { export?: Record<string, unknown>; marks?: ExportMark[] },
   scope: Set<string> = APPLICANTS_IN_SCOPE,
+  now: Date = new Date(),
 ) {
   const all: ExportMark[] = doc.marks ?? [];
   const scoped = all.filter((m) => inScope(m, scope));
@@ -253,7 +265,9 @@ export function readExportDoc(
     all,
     inScope: scoped,
     excluded: all.filter((m) => !inScope(m)),
-    mapped: scoped.map(transform),
+    // Not `.map(transform)`: map passes the index as the second argument,
+    // which transform now reads as `now`.
+    mapped: scoped.map((m) => transform(m, now)),
     unmappedStatuses: Array.from(new Set(scoped.map((m) => m.status))).filter((s) => !(s in STATUS_MAP)),
   };
 }
