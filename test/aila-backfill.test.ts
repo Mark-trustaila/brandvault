@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // so a future edit that reaches for one fails here rather than in production.
 const db = vi.hoisted(() => ({
   alertPreference: { findUnique: vi.fn() },
-  deadline: { findMany: vi.fn(), count: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+  deadline: { findMany: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
   notification: { create: vi.fn() },
 }));
 const core = vi.hoisted(() => ({ emitDeadlineApproaching: vi.fn() }));
@@ -43,7 +43,6 @@ const deadline = (opts: { days: number; type?: string; appNo?: string | null; ma
 beforeEach(() => {
   vi.clearAllMocks();
   db.alertPreference.findUnique.mockResolvedValue(null);
-  db.deadline.count.mockResolvedValue(0);
   core.emitDeadlineApproaching.mockResolvedValue({ ok: true, outcome: 'delivered', eventId: 'evt-1', status: 202 });
   delete process.env.AILA_BACKFILL_LIMIT;
 });
@@ -90,13 +89,20 @@ describe('planBackfill selection', () => {
       completedAt: null,
     });
     expect(arg.orderBy).toEqual({ dueDate: 'asc' });
-    expect(arg.take).toBe(25);
+    // Unpaged at the database: the governing row can only be chosen by seeing a
+    // mark's whole series, so limit/offset are applied after deduplication.
+    expect(arg.take).toBeUndefined();
+    expect(arg.skip).toBeUndefined();
   });
 
-  it('passes the resolved limit through as the query take', async () => {
-    db.deadline.findMany.mockResolvedValue([]);
-    await backfillCompany({ companyId: 'co-1', limit: 3, now: NOW });
-    expect(db.deadline.findMany.mock.calls[0][0].take).toBe(3);
+  it('applies the limit to the deduplicated notices, not to the query', async () => {
+    db.deadline.findMany.mockResolvedValue([
+      deadline({ days: 10, appNo: 'UK1' }),
+      deadline({ days: 20, appNo: 'UK2' }),
+      deadline({ days: 30, appNo: 'UK3' }),
+    ]);
+    const notices = await planBackfill('co-1', 2, NOW);
+    expect(notices.map((n) => n.rightRef)).toEqual(['UK1', 'UK2']);
   });
 
   it('emits the composed ref the sweep uses, falling back to the mark id', async () => {
@@ -164,60 +170,114 @@ describe('planBackfill importance', () => {
 });
 
 describe('backfillCompany paging', () => {
-  // A saturated page and a complete one look identical without `total`. That is
-  // how a 200-notice response was read as the whole of a 399-notice portfolio.
+  const series = (n: number) =>
+    Array.from({ length: n }, (_, i) => deadline({ days: i + 1, appNo: `UK${i + 1}` }));
+
+  // A saturated page and a complete one look identical without `total`.
   it('reports total and hasMore when the portfolio exceeds one page', async () => {
-    db.deadline.count.mockResolvedValue(399);
-    db.deadline.findMany.mockResolvedValue([deadline({ days: 10 }), deadline({ days: 20 })]);
+    db.deadline.findMany.mockResolvedValue(series(5));
 
     const result = await backfillCompany({ companyId: 'co-1', limit: 2, now: NOW });
 
-    expect(result.total).toBe(399);
+    expect(result.total).toBe(5);
     expect(result.planned).toBe(2);
     expect(result.offset).toBe(0);
     expect(result.hasMore).toBe(true);
   });
 
   it('reports hasMore false once the last page is reached', async () => {
-    db.deadline.count.mockResolvedValue(3);
-    db.deadline.findMany.mockResolvedValue([deadline({ days: 30 })]);
+    db.deadline.findMany.mockResolvedValue(series(3));
 
     const result = await backfillCompany({ companyId: 'co-1', limit: 2, offset: 2, now: NOW });
 
     expect(result.offset).toBe(2);
+    expect(result.planned).toBe(1);
     expect(result.hasMore).toBe(false);
   });
 
-  it('passes offset to the query as skip', async () => {
-    db.deadline.count.mockResolvedValue(399);
-    db.deadline.findMany.mockResolvedValue([]);
-    await backfillCompany({ companyId: 'co-1', limit: 25, offset: 200, now: NOW });
-    expect(db.deadline.findMany.mock.calls[0][0].skip).toBe(200);
+  it('offset selects a later slice of the same ordered set', async () => {
+    db.deadline.findMany.mockResolvedValue(series(5));
+    const result = await backfillCompany({ companyId: 'co-1', limit: 2, offset: 2, now: NOW });
+    expect(result.notices.map((n) => n.rightRef)).toEqual(['UK3', 'UK4']);
   });
 
   it('treats a missing or nonsense offset as the first page', async () => {
-    db.deadline.count.mockResolvedValue(10);
-    db.deadline.findMany.mockResolvedValue([]);
-    await backfillCompany({ companyId: 'co-1', now: NOW });
-    expect(db.deadline.findMany.mock.calls[0][0].skip).toBe(0);
-    await backfillCompany({ companyId: 'co-1', offset: -5, now: NOW });
-    expect(db.deadline.findMany.mock.calls[1][0].skip).toBe(0);
+    db.deadline.findMany.mockResolvedValue(series(3));
+    const a = await backfillCompany({ companyId: 'co-1', now: NOW });
+    expect(a.offset).toBe(0);
+    const b = await backfillCompany({ companyId: 'co-1', offset: -5, now: NOW });
+    expect(b.offset).toBe(0);
   });
 
-  // The total must describe the set the page came from, or it is worse than none.
-  it('counts with the same predicate the page queries', async () => {
-    db.deadline.count.mockResolvedValue(5);
-    db.deadline.findMany.mockResolvedValue([]);
-    await backfillCompany({ companyId: 'co-1', now: NOW });
+  // total and the page are one list sliced, so they cannot disagree.
+  it('counts the same notices it pages over', async () => {
+    db.deadline.findMany.mockResolvedValue(series(4));
+    const result = await backfillCompany({ companyId: 'co-1', limit: 10, now: NOW });
+    expect(result.total).toBe(result.planned);
+    expect(result.hasMore).toBe(false);
+    // One read for both, not a count plus a page.
+    expect(db.deadline.findMany).toHaveBeenCalledTimes(1);
+  });
+});
 
-    const countWhere = db.deadline.count.mock.calls[0][0].where;
-    const pageWhere = db.deadline.findMany.mock.calls[0][0].where;
-    expect(countWhere).toEqual(pageWhere);
-    expect(countWhere).toEqual({
-      trademark: { companyId: 'co-1' },
-      dueDate: { gte: NOW },
-      completedAt: null,
-    });
+describe('governing notice per matter', () => {
+  // Core keys a matter on `<right_ref>:deadline:<type>` with no due date in the
+  // key. Emitting a whole renewal series walks one matter forward and leaves it
+  // showing the LAST date written — the furthest, since we emit soonest-first.
+  // TOPMAN BRANDED was due in 6 days and its matter read 2035-08-16.
+  it('emits only the earliest future row of a renewal series', async () => {
+    db.deadline.findMany.mockResolvedValue([
+      deadline({ days: 6, appNo: 'UK00001248483', markText: 'TOPMAN BRANDED' }),
+      deadline({ days: 3293, appNo: 'UK00001248483', markText: 'TOPMAN BRANDED' }),
+    ]);
+
+    const notices = await planBackfill('co-1', 25, NOW);
+
+    expect(notices).toHaveLength(1);
+    expect(notices[0].daysRemaining).toBe(6);
+  });
+
+  it('keeps different deadline types on the same mark apart', async () => {
+    db.deadline.findMany.mockResolvedValue([
+      deadline({ days: 10, appNo: 'UK1', type: 'Renewal' }),
+      deadline({ days: 20, appNo: 'UK1', type: 'Section 8' }),
+    ]);
+
+    const notices = await planBackfill('co-1', 25, NOW);
+
+    expect(notices).toHaveLength(2);
+    expect(notices.map((n) => n.deadlineType).sort()).toEqual(['Renewal', 'Section 8']);
+  });
+
+  it('keeps the same deadline type on different marks apart', async () => {
+    db.deadline.findMany.mockResolvedValue([
+      deadline({ days: 10, appNo: 'UK1' }),
+      deadline({ days: 20, appNo: 'UK2' }),
+    ]);
+    const notices = await planBackfill('co-1', 25, NOW);
+    expect(notices.map((n) => n.rightRef)).toEqual(['UK1', 'UK2']);
+  });
+
+  // A mark with no application number falls back to its id; two such marks must
+  // not collapse into one matter.
+  it('separates marks that fall back to the mark id', async () => {
+    db.deadline.findMany.mockResolvedValue([
+      { ...deadline({ days: 10, appNo: null }), trademark: { id: 'tm-a', applicationNumber: null, markText: 'A', registryName: 'GB' } },
+      { ...deadline({ days: 20, appNo: null }), trademark: { id: 'tm-b', applicationNumber: null, markText: 'B', registryName: 'GB' } },
+    ]);
+    const notices = await planBackfill('co-1', 25, NOW);
+    expect(notices.map((n) => n.rightRef)).toEqual(['tm-a', 'tm-b']);
+  });
+
+  it('counts a collapsed series once in total', async () => {
+    db.deadline.findMany.mockResolvedValue([
+      deadline({ days: 6, appNo: 'UK1' }),
+      deadline({ days: 3293, appNo: 'UK1' }),
+      deadline({ days: 40, appNo: 'UK2' }),
+    ]);
+    const result = await backfillCompany({ companyId: 'co-1', now: NOW });
+    expect(result.total).toBe(2);
+    expect(result.emitted).toBe(2);
   });
 });
 
