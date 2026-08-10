@@ -82,9 +82,20 @@ function backfillWhere(companyId: string, now: Date) {
   return { trademark: { companyId }, dueDate: { gte: now }, completedAt: null };
 }
 
+/**
+ * The matter key Core will file this notice under:
+ * `<right_ref>:deadline:<deadline_type>` (aila-core src/events/handlers.ts).
+ *
+ * The DUE DATE IS NOT IN THE KEY. Every renewal of one mark therefore addresses
+ * a single matter, and the last emission for a key is the one that survives.
+ */
+function matterKey(rightRef: string, deadlineType: string): string {
+  return `${rightRef}:deadline:${deadlineType}`;
+}
+
 /** How many notices this company has in total, ignoring any page bound. */
 export async function countBackfillable(companyId: string, now: Date = new Date()): Promise<number> {
-  return prisma.deadline.count({ where: backfillWhere(companyId, now) });
+  return (await governingNotices(companyId, now)).length;
 }
 
 /** One notice the backfill would emit — the emitter's arguments, nothing more. */
@@ -99,47 +110,86 @@ export type BackfillNotice = {
 };
 
 /**
- * The notices a backfill of this company would emit, soonest first. Reads only.
+ * Every notice this company would emit — one per matter, soonest first. Reads
+ * only, unpaged; `planBackfill` slices it.
  *
- * Selection mirrors the sweep's — future-dated deadlines for this company's
- * marks, soonest first — with one deliberate difference: completed deadlines are
- * excluded. `completedAt` is set when a renewal is confirmed satisfied, and
- * seeding a new dashboard with obligations already discharged would be wrong on
- * its face. (The daily sweep does not filter on it; see the PR notes.)
+ * ONE NOTICE PER MATTER, AT THE GOVERNING DATE. A mark's renewal series holds
+ * every future renewal — 2026, 2035, 2038 — and all of them share one matter
+ * key, because the due date is not part of it. Emitting the whole series walks
+ * that single matter forward through every date and leaves it showing the LAST
+ * one written. Ordered soonest-first, that is the furthest date: TOPMAN BRANDED
+ * is due in 6 days and its matter read 2035-08-16 (2026-08-10). 164 of ASOS's
+ * 215 matters were wrong the same way.
+ *
+ * So only the governing row is emitted — the earliest future obligation, which
+ * is what the alert engine and the dashboard already treat as governing (see
+ * lib/reconciliation.ts and the renewal-date invariant in CLAUDE.md). The later
+ * rows in a series are not lost information: they are the same obligation
+ * recurring, and they become governing in turn once the earlier one passes.
+ *
+ * Selection otherwise mirrors the sweep's, with one deliberate difference:
+ * completed deadlines are excluded. `completedAt` is set when a renewal is
+ * confirmed satisfied, and seeding a new dashboard with obligations already
+ * discharged would be wrong on its face.
  */
-export async function planBackfill(
+export async function governingNotices(
   companyId: string,
-  limit: number = DEFAULT_BACKFILL_LIMIT,
-  now: Date = new Date(),
-  offset: number = 0
+  now: Date = new Date()
 ): Promise<BackfillNotice[]> {
   const pref = await prisma.alertPreference.findUnique({ where: { companyId } });
   // A company with no preference row yet — the normal state on day one, before
   // Slack is connected — is read at the default thresholds.
   const thresholds = normalizeThresholds(pref?.thresholdDays);
 
+  // Unpaged on purpose: the governing row can only be picked by looking at a
+  // mark's whole series, and a page boundary drawn through a series would hand
+  // the next page a row whose earlier sibling it cannot see. Paging is applied
+  // to the deduplicated result instead, which is also what makes `total` and the
+  // page arithmetically consistent rather than merely agreeing on a predicate.
   const deadlines = await prisma.deadline.findMany({
     where: backfillWhere(companyId, now),
     include: { trademark: true },
     orderBy: { dueDate: 'asc' },
-    take: limit,
-    skip: offset,
   });
 
-  return deadlines.map((d) => {
+  const seen = new Set<string>();
+  const notices: BackfillNotice[] = [];
+
+  for (const d of deadlines) {
+    // The same composed ref the sweep emits, so a replayed notice and a live one
+    // address the same right in Core rather than two.
+    const rightRef = d.trademark.applicationNumber ?? d.trademark.id;
+    const key = matterKey(rightRef, d.type);
+    // Rows arrive soonest-first, so the first one seen for a key IS the
+    // governing obligation. Every later row in that series is the same matter
+    // recurring, and emitting it would overwrite the governing date.
+    if (seen.has(key)) continue;
+    seen.add(key);
+
     const days = daysUntil(d.dueDate, now);
-    return {
+    notices.push({
       companyId,
-      // The same composed ref the sweep emits, so a replayed notice and a live
-      // one address the same right in Core rather than two.
-      rightRef: d.trademark.applicationNumber ?? d.trademark.id,
+      rightRef,
       deadlineType: d.type,
       dueDate: d.dueDate.toISOString().slice(0, 10),
       daysRemaining: days,
       deepLink: dashboardSearchLink(d.trademark.markText),
       importance: alertImportance(alertBucket(days, thresholds), thresholds.length),
-    };
-  });
+    });
+  }
+
+  return notices;
+}
+
+/** One page of the governing notices, soonest first. */
+export async function planBackfill(
+  companyId: string,
+  limit: number = DEFAULT_BACKFILL_LIMIT,
+  now: Date = new Date(),
+  offset: number = 0
+): Promise<BackfillNotice[]> {
+  const all = await governingNotices(companyId, now);
+  return all.slice(offset, offset + limit);
 }
 
 /** One notice Core did not accept, with why — enough to act on without logs. */
@@ -190,10 +240,12 @@ export async function backfillCompany(args: {
   const limit = resolveBackfillLimit(args.limit);
   const offset = Number.isInteger(args.offset) && (args.offset as number) > 0 ? (args.offset as number) : 0;
   const now = args.now ?? new Date();
-  // Counted against the same clause the page uses, at the same `now`, so the
-  // two cannot describe different sets.
-  const total = await countBackfillable(args.companyId, now);
-  const notices = await planBackfill(args.companyId, limit, now, offset);
+  // One read, sliced. The total and the page are the same list, so they cannot
+  // describe different sets even in principle — a stronger guarantee than
+  // counting and paging with a shared predicate, and one query rather than two.
+  const all = await governingNotices(args.companyId, now);
+  const total = all.length;
+  const notices = all.slice(offset, offset + limit);
   const dryRun = args.dryRun === true;
 
   // Count what Core ACCEPTED, not what we attempted. Reporting attempts is how
