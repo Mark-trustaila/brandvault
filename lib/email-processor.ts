@@ -17,7 +17,7 @@ import * as bree from './bree-messages';
 import { anchorWatchNotice, daysToOpposition } from './watch-notices';
 import { watchNoticeLink } from './notifications';
 import { waitUntil } from '@vercel/functions';
-import { emitWatchNotice } from './ailaCore';
+import { emitWatchNotice, matterTitle } from './ailaCore';
 
 const ALERT_ONLY: CommunicationType[] = [
   'examination_report',
@@ -267,6 +267,7 @@ export async function processInboundEmail(id: string, now = new Date()): Promise
             : ''
         } cites ${a.citedReference}`,
         deepLink: watchNoticeLink(wn.id),
+        title: matterTitle('Watch notice', ours.markText, ours.applicationNumber ?? ours.id),
       }));
     }
 

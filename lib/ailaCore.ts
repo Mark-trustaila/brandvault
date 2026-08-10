@@ -106,6 +106,28 @@ async function emit(
   return { ok: false, outcome: 'dropped', eventId: body.event_id };
 }
 
+/**
+ * The title a matter carries in AiLA.
+ *
+ * Core falls back to `<deadline_type>: <right_ref>` when an app sends no title
+ * (aila-core src/events/handlers.ts), which reads as "Renewal: UK00001248483" —
+ * a registry number and nothing a person recognises. The mark string is the only
+ * part of a notice a reader can act on at a glance, so it belongs in the title.
+ *
+ * One composer for every path that titles a matter, so the daily sweep, the
+ * backfill and a watch notice cannot describe the same portfolio in three
+ * different formats. The reference is kept alongside the name rather than
+ * replaced by it: mark text is not unique — a portfolio holds TOPSHOP many times
+ * over across registries — so the number is what disambiguates two matters that
+ * would otherwise read identically.
+ */
+export function matterTitle(kind: string, markText: string, ref: string): string {
+  const name = markText.trim();
+  // A device mark can have no verbal element; falling back to the ref alone
+  // beats "Renewal:  (UK...)" with a hole where the name should be.
+  return name ? `${kind}: ${name} (${ref})` : `${kind}: ${ref}`;
+}
+
 // -- typed helpers for the three v1 BrandVault events ------------------------
 
 export function emitDeadlineApproaching(args: {
@@ -115,6 +137,7 @@ export function emitDeadlineApproaching(args: {
   dueDate: string; // YYYY-MM-DD
   daysRemaining: number;
   deepLink: string;
+  title?: string; // compose with matterTitle(); Core falls back to type + ref
   importance?: number; // 1-5, mapped from BrandVault's own priority
 }): Promise<EmitResult> {
   return emit(args.companyId, "deadline.approaching", {
@@ -123,6 +146,7 @@ export function emitDeadlineApproaching(args: {
     due_date: args.dueDate,
     days_remaining: args.daysRemaining,
     deep_link: args.deepLink,
+    ...(args.title ? { title: args.title } : {}),
     ...(args.importance ? { importance: args.importance } : {}),
   });
 }
@@ -133,6 +157,7 @@ export function emitWatchNotice(args: {
   noticeRef?: string; // distinguishes concurrent notices against one mark
   noticeSummary: string;
   deepLink: string;
+  title?: string; // compose with matterTitle(); Core falls back to the summary
   importance?: number;
 }): Promise<EmitResult> {
   return emit(args.companyId, "watch.notice", {
@@ -140,6 +165,7 @@ export function emitWatchNotice(args: {
     ...(args.noticeRef ? { notice_ref: args.noticeRef } : {}),
     notice_summary: args.noticeSummary,
     deep_link: args.deepLink,
+    ...(args.title ? { title: args.title } : {}),
     ...(args.importance ? { importance: args.importance } : {}),
   });
 }

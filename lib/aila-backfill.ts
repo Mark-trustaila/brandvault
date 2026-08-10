@@ -46,7 +46,7 @@
  * Target a company deliberately; the intended use is a tenant on day one.
  */
 import { prisma } from './db';
-import { emitDeadlineApproaching, type EmitOutcome } from './ailaCore';
+import { emitDeadlineApproaching, matterTitle, type EmitOutcome } from './ailaCore';
 import { alertBucket, alertImportance, daysUntil, normalizeThresholds } from './alerts';
 import { dashboardSearchLink } from './deep-links';
 
@@ -106,6 +106,7 @@ export type BackfillNotice = {
   dueDate: string;
   daysRemaining: number;
   deepLink: string;
+  title: string;
   importance?: number;
 };
 
@@ -174,6 +175,7 @@ export async function governingNotices(
       dueDate: d.dueDate.toISOString().slice(0, 10),
       daysRemaining: days,
       deepLink: dashboardSearchLink(d.trademark.markText),
+      title: matterTitle(d.type, d.trademark.markText, rightRef),
       importance: alertImportance(alertBucket(days, thresholds), thresholds.length),
     });
   }
