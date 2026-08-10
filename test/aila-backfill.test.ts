@@ -13,7 +13,12 @@ const core = vi.hoisted(() => ({ emitDeadlineApproaching: vi.fn() }));
 const slack = vi.hoisted(() => ({ postToSlack: vi.fn(), APP_BASE_URL: 'https://bv.test' }));
 
 vi.mock('../lib/db', () => ({ prisma: db }));
-vi.mock('../lib/ailaCore', () => ({ emitDeadlineApproaching: core.emitDeadlineApproaching }));
+// Only the network call is mocked. matterTitle is the real one, so the titles
+// asserted below are the titles the emitter would actually send.
+vi.mock('../lib/ailaCore', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../lib/ailaCore')>()),
+  emitDeadlineApproaching: core.emitDeadlineApproaching,
+}));
 vi.mock('../lib/slack', () => slack);
 
 import {
@@ -389,5 +394,53 @@ describe('backfillCompany emission', () => {
 
     await backfillCompany({ companyId: 'co-1', now: NOW });
     expect(peak).toBe(1);
+  });
+});
+
+describe('matter titles', () => {
+  // Core's fallback is `<deadline_type>: <right_ref>` — "Renewal: UK00001248483",
+  // a registry number and nothing a reader recognises.
+  it('names the mark alongside its reference', async () => {
+    db.deadline.findMany.mockResolvedValue([
+      deadline({ days: 6, appNo: 'UK00001248483', markText: 'TOPMAN BRANDED' }),
+    ]);
+    const [notice] = await planBackfill('co-1', 25, NOW);
+    expect(notice.title).toBe('Renewal: TOPMAN BRANDED (UK00001248483)');
+  });
+
+  it('carries the title through to the emitter', async () => {
+    db.deadline.findMany.mockResolvedValue([
+      deadline({ days: 6, appNo: 'UK00001248483', markText: 'TOPMAN BRANDED' }),
+    ]);
+    await backfillCompany({ companyId: 'co-1', now: NOW });
+    expect(core.emitDeadlineApproaching.mock.calls[0][0].title).toBe(
+      'Renewal: TOPMAN BRANDED (UK00001248483)'
+    );
+  });
+
+  it('uses the deadline type as the kind, not a fixed word', async () => {
+    db.deadline.findMany.mockResolvedValue([
+      deadline({ days: 10, appNo: 'UK1', markText: 'ASOS', type: 'Section 8' }),
+    ]);
+    const [notice] = await planBackfill('co-1', 25, NOW);
+    expect(notice.title).toBe('Section 8: ASOS (UK1)');
+  });
+
+  // A device mark may have no verbal element; a hole where the name should be
+  // reads worse than the reference alone.
+  it('falls back to the reference when a mark has no text', async () => {
+    db.deadline.findMany.mockResolvedValue([
+      deadline({ days: 10, appNo: 'UK1', markText: '   ' }),
+    ]);
+    const [notice] = await planBackfill('co-1', 25, NOW);
+    expect(notice.title).toBe('Renewal: UK1');
+  });
+
+  it('falls back to the mark id when there is no application number', async () => {
+    db.deadline.findMany.mockResolvedValue([
+      { ...deadline({ days: 10, appNo: null }), trademark: { id: 'tm-a', applicationNumber: null, markText: 'ASOS', registryName: 'GB' } },
+    ]);
+    const [notice] = await planBackfill('co-1', 25, NOW);
+    expect(notice.title).toBe('Renewal: ASOS (tm-a)');
   });
 });

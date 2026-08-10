@@ -9,7 +9,7 @@ import { orderByGoverningDeadline } from './bree-ordering';
 import * as bree from './bree-messages';
 import { createNotification } from './notifications';
 import { waitUntil } from '@vercel/functions';
-import { emitDeadlineApproaching } from './ailaCore';
+import { emitDeadlineApproaching, matterTitle } from './ailaCore';
 
 export const DEFAULT_THRESHOLDS = [180, 90, 30];
 
@@ -180,6 +180,7 @@ export async function runDailyAlerts(now = new Date()): Promise<Summary> {
           dueDate,
           daysRemaining: days,
           deepLink: notif.link,
+          title: matterTitle(d.type, d.trademark.markText, d.trademark.applicationNumber ?? d.trademark.id),
           importance: alertImportance(bucket, thresholds.length),
         }));
       } else {
