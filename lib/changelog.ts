@@ -20,6 +20,14 @@ export type ChangelogEntry = {
 
 const ENTRIES: ChangelogEntry[] = [
   {
+    date: '2026-08-10',
+    title: 'Renewal dates reconciled across every mark',
+    body:
+      'Every mark’s renewal dates now reconcile against the registry, so where a calculated date and the register once differed, the date you see is the one the register states. ' +
+      'Deadlines reach your AiLA dashboard under the mark’s name as well as its number, and each is tracked at the next renewal due rather than a later one in the same series. ' +
+      'The transfer reports what it covered and what remains, so a portfolio can be checked as complete rather than taken on trust.',
+  },
+  {
     date: '2026-07-28',
     title: 'Read-only access enforced',
     body:
