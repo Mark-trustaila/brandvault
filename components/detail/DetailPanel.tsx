@@ -1,5 +1,6 @@
 'use client';
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 // Sanitise pasted HTML — keep only safe inline formatting
 function sanitiseHtml(html: string): string {
@@ -20,6 +21,7 @@ import WatchNoticeLink from './WatchNoticeLink';
 import MarkTile from '../ui/MarkTile';
 import type { Trademark } from '../../types/trademark';
 import { bvFetch } from '../../lib/client/acting-company';
+import { clearanceHref } from '../../lib/clearance-link';
 
 const NICE_CLASS_NAMES: Record<number, string> = {
   9: 'Technology', 16: 'Paper goods', 35: 'Business services', 36: 'Financial',
@@ -319,6 +321,7 @@ function Timeline({ trademark }: { trademark: Trademark }) {
 
 export default function DetailPanel() {
   const { selectedTrademark, setSelectedTrademark, setEditTarget, breeOpen } = useDashboard();
+  const router = useRouter();
 
   if (!selectedTrademark) return null;
 
@@ -382,6 +385,17 @@ export default function DetailPanel() {
 
         <div className={styles.footer}>
           <button className={styles.footerBtn} onClick={() => setEditTarget(selectedTrademark)}>✏️ Edit</button>
+          {/* Prefilled from this mark: its text, its classes, its number as the
+              provenance ref. A device mark with no verbal element has nothing to
+              text-match on, so the action is not offered. */}
+          {selectedTrademark.mark_text?.trim() && (
+            <button
+              className={styles.footerBtn}
+              onClick={() => router.push(clearanceHref(selectedTrademark))}
+            >
+              🔍 Clearance search
+            </button>
+          )}
           <button className={styles.footerBtn}>📋 Copy details</button>
           <button className={styles.footerBtn}>🔗 LawPanel</button>
         </div>
