@@ -25,6 +25,7 @@
  */
 import type { Coverage, SmartSearchResult } from '../../lib/smart-search';
 import { hitMarkText, hitClassesLabel, truncationNotice, type SmartSearchHit } from '../../lib/smart-search-hit';
+import { registryLabel, registryInProse } from '../../lib/smart-search-registries';
 
 export type PanelState = {
   result: SmartSearchResult | null;
@@ -128,7 +129,9 @@ function TruncationNotice({ result }: { result: SmartSearchResult }) {
   if (!notice) return null;
   return (
     <section className="rounded border border-amber-300 bg-amber-50 p-3">
-      <h2 className="text-sm font-semibold text-amber-900">This is not the whole register</h2>
+      <h2 className="text-sm font-semibold text-amber-900">
+        This is not the whole of {registryInProse(result.registry)}
+      </h2>
       {notice.kind === 'known' ? (
         <p className="mt-1 text-sm text-amber-800">
           Showing {count(notice.shown)} of {count(notice.total)} matching marks
@@ -138,13 +141,13 @@ function TruncationNotice({ result }: { result: SmartSearchResult }) {
       ) : (
         <>
           <p className="mt-1 text-sm text-amber-800">
-            Showing {count(notice.shown)} — the register holds more matches than the search can
-            return; this list is incomplete.
+            Showing {count(notice.shown)} — {registryInProse(result.registry)} holds more matches than the search
+            can return; this list is incomplete.
           </p>
           <p className="mt-1 text-sm text-amber-800">
             {notice.upstreamCap !== null
               ? `The register's own search returns at most ${count(notice.upstreamCap)} results and does not say how many it found`
-              : 'The register does not say how many matches it found'}
+              : `${registryInProse(result.registry).replace(/^the/, 'The')} does not say how many matches it found`}
             {notice.atLeast !== null && `, so the true number is unknown — at least ${count(notice.atLeast)} exist`}.
           </p>
         </>
@@ -173,8 +176,8 @@ function Summary({ result }: { result: SmartSearchResult }) {
       : `Showing ${count(notice.shown)} hits — the register holds more`;
   return (
     <p className="text-sm text-slate-700">
-      {lead} for <strong>{result.term}</strong>
-      {result.classes.length ? ` in class ${result.classes.join(', ')}` : ' across all classes'}
+      {lead} for <strong>{result.term}</strong> in {registryLabel(result.registry)}
+      {result.classes.length ? `, class ${result.classes.join(', ')}` : ', all classes'}
       {hits.length > 0 && ` · ${veryHigh} rated very high · ${overlap} with class overlap`}
     </p>
   );
@@ -201,7 +204,7 @@ export default function ResultsPanel({ result, polling, error }: PanelState) {
   if (result.status === 'running') {
     return (
       <section className="rounded border border-slate-200 p-4">
-        <h2 className="text-sm font-semibold">Searching the register</h2>
+        <h2 className="text-sm font-semibold">Searching {registryInProse(result.registry)}</h2>
         <p className="mt-1 text-sm text-slate-600">
           {result.term}{result.classes.length ? ` · class ${result.classes.join(', ')}` : ''} — this takes a few seconds.
         </p>
@@ -213,13 +216,15 @@ export default function ResultsPanel({ result, polling, error }: PanelState) {
   if (result.status === 'failed') {
     return (
       <section className="rounded border border-amber-300 bg-amber-50 p-4">
-        <h2 className="text-sm font-semibold text-amber-900">The search did not run</h2>
+        <h2 className="text-sm font-semibold text-amber-900">
+          The search of {registryInProse(result.registry)} did not run
+        </h2>
         <p className="mt-1 text-sm text-amber-800">
           {result.failure_reason ?? 'The register did not return a result, and no reason was given.'}
         </p>
         <p className="mt-2 text-xs text-amber-800">
-          The register was not searched, so nothing here says whether {result.term} is clear. Run it again before
-          relying on the outcome.
+          {registryInProse(result.registry).replace(/^the/, 'The')} was not searched, so nothing here says whether{' '}
+          {result.term} is clear in it. Run it again before relying on the outcome.
         </p>
         <div className="mt-3 border-t border-amber-200 pt-2">
           <Banners currencyDate={result.currencyDate} coverage={result.coverage} />
@@ -241,10 +246,11 @@ export default function ResultsPanel({ result, polling, error }: PanelState) {
 
       {hits.length === 0 ? (
         <div className="rounded border border-slate-200 bg-slate-50 p-4">
-          <h2 className="text-sm font-semibold">Nothing similar found</h2>
+          <h2 className="text-sm font-semibold">Nothing similar found in {registryInProse(result.registry)}</h2>
           <p className="mt-1 text-sm text-slate-600">
-            The register was searched and returned no similar marks. Read that against the currency date above — a
-            mark filed since then would not appear.
+            {registryInProse(result.registry).replace(/^the/, 'The')} was searched and returned no similar marks. Read
+            that against the currency date above — a mark filed since then would not appear. Other registers have not
+            been searched.
           </p>
         </div>
       ) : (
