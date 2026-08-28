@@ -24,7 +24,7 @@ env set. The live swap is one environment variable, waiting on Unit A.
 | `components/clearance/ResultsPanel.tsx` | The results, and the three other outcomes. |
 | `mock/smart-search-facade.ts` | The disposable mock. Delete it when live works. |
 | `test/fixtures/smart-search-gb-asos.json` | A verbatim subset of a real search, captured 2026-08-28. The tests' witness. |
-| `test/fixtures/smart-search-gb-truncated.json` | The same real hits under a synthetic capped envelope. Replace when a real one is seen. |
+| `test/fixtures/smart-search-gb-truncated.json` | A real capped response: LONDON in class 35, captured from the deployed facade. |
 
 Two existing files changed: `components/detail/DetailPanel.tsx` gains the
 per-mark action, `components/layout/Sidebar.tsx` points its dimmed "Search" slot
@@ -189,9 +189,9 @@ in the meantime, each in one place and cheap to change.
    `result_count`, `total_available` (null when upstream capped), `total_at_least`,
    `upstream_cap`, `cap` and `truncated`; the panel warns above the list when
    `truncated` is exactly true, in whichever of the two variants applies.
-   BrandVault has still not observed a capped response of its own — the
-   truncated fixture's envelope follows the deployed probe line rather than a
-   capture, and should be replaced by a real one when it appears.
+   Captured live on 2026-08-28 against the deployed facade (tip 42e1bc9):
+   LONDON in class 35 settled in 23 seconds and returned the capped shape
+   exactly — `completed 250 None 250 250 True`. The fixture is that response.
 5. **Watch semantics.** One-shot only. `noticeRef` is the search id, so two runs
    against one mark stay distinct in the feed rather than collapsing.
 

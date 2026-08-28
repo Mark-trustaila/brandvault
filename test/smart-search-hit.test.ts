@@ -128,6 +128,18 @@ describe('result ordering', () => {
     expect(wrong.slice(0, asosAt).every((h) => h.score > 19)).toBe(true);
   });
 
+  // A second search, independently captured, says the same thing more starkly:
+  // the exact matches for LONDON score 0 and lead the facade's order, while
+  // LANCIA — a different word — scores 65. Zero is as close as it gets.
+  it('the LONDON capture confirms score is a distance, not a similarity', () => {
+    const lonHits: SmartSearchHit[] = truncatedFixture.results;
+    expect(hitMarkText(lonHits[0]).toUpperCase()).toBe('LONDON');
+    expect(lonHits[0].score).toBe(0);
+    expect(lonHits[0].similarity).toBe('Very high');
+    const lancia = lonHits.find((h) => hitMarkText(h) === 'LANCIA');
+    expect(lancia?.score).toBeGreaterThan(lonHits[0].score);
+  });
+
   // Source-level, in the spirit of test/viewer-write-gate.test.ts: the fix is
   // the absence of a sort, and an absence is easy to reintroduce by accident.
   it('the panel does not re-rank the facade\'s order', () => {
@@ -221,10 +233,26 @@ describe('truncationNotice', () => {
     });
   });
 
-  it('the synthetic envelope is labelled as such, and its hits are the real ones', () => {
-    expect(truncatedFixture._source).toMatch(/SYNTHETIC ENVELOPE, REAL HITS/);
-    expect(truncatedFixture._source).toMatch(/probe-verified/);
-    expect(truncatedFixture.results).toEqual(fixture.results);
+  // The envelope is no longer invented. It is a real capped response, and the
+  // provenance note has to keep saying which search produced it — a fixture
+  // that stops naming its own capture is one edit away from being fiction.
+  it('is a genuine capture, and says which search produced it', () => {
+    expect(truncatedFixture._source).toMatch(/GENUINE CAPTURE/);
+    expect(truncatedFixture._source).not.toMatch(/SYNTHETIC/);
+    expect(truncatedFixture._source).toMatch(/2026-08-28/);          // captured
+    expect(truncatedFixture._source).toMatch(/42e1bc9/);             // deployed tip
+    expect(truncatedFixture._source).toMatch(/"LONDON"/);            // the search
+    expect(truncatedFixture.term).toBe('LONDON');
+    expect(truncatedFixture.classes).toEqual(['35']);
+    expect(truncatedFixture.total_hits_in_live_response).toBe(250);
+  });
+
+  // Fields the client discards but a verbatim capture keeps, so the fixture can
+  // outlive the current normaliseResult.
+  it('kept the whole wire envelope, not the client\'s view of it', () => {
+    expect(truncatedFixture.upstream_status).toBe('Completed');
+    expect(truncatedFixture).toHaveProperty('submitted_at');
+    expect(truncatedFixture).toHaveProperty('apiVersion');
   });
 });
 
