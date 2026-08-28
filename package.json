@@ -17,6 +17,7 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
+    "mock:smart-search": "tsx mock/smart-search-facade.ts",
     "harness": "tsx harness/run.ts",
     "harness:fixtures": "tsx harness/run.ts --corpus harness/fixtures --labels harness/fixtures/labels.jsonl",
     "harness:bootstrap": "tsx harness/bootstrap-labels.ts",

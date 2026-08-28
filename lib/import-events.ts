@@ -15,6 +15,17 @@ import type { PreparedImport, Counts } from './import-portfolio';
 
 export const SEARCH_LIMIT = { max: 10, windowMs: 60 * 60 * 1000 }; // 10 / hour
 export const IMPORT_LIMIT = { max: 3, windowMs: 24 * 60 * 60 * 1000 }; // 3 / day
+/**
+ * Smart Search submissions per company per hour. Here rather than in the route
+ * because a Next route file may only export its handlers, and beside the other
+ * two because rateLimit() is the one limiter they all share.
+ *
+ * Higher than SEARCH_LIMIT: clearance is iterative — a lawyer narrows a term
+ * and re-runs several times in a sitting, where an import is a single
+ * considered act. Low enough that a runaway client cannot bill the upstream
+ * engine unattended.
+ */
+export const SMART_SEARCH_LIMIT = { max: 30, windowMs: 60 * 60 * 1000 }; // 30 / hour
 const SNAPSHOT_MAX_BYTES = 5 * 1024 * 1024; // 5 MB inline threshold; blob deferred
 
 const asJson = (v: unknown) => v as unknown as Prisma.InputJsonValue;

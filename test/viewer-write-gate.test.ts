@@ -79,7 +79,7 @@ describe('viewer write gate', () => {
  * route needs allowViewer it should be a deliberate, reviewed addition here.
  */
 describe('viewer opt-out surface', () => {
-  it('is limited to the three non-write POSTs', async () => {
+  it('is limited to the four non-write POSTs', async () => {
     const { readFileSync, readdirSync } = await import('fs');
     const { join } = await import('path');
     // Plain walk rather than a glob dependency: this test exists to keep the
@@ -94,6 +94,10 @@ describe('viewer opt-out surface', () => {
       'app/api/bree/route.ts',
       'app/api/feedback/route.ts',
       'app/api/notifications/[id]/read/route.ts',
+      // Smart Search submit. A search writes nothing and is a POST only because
+      // a term and a class list need a body — the same reason /api/bree is here.
+      // Gating it would mean a viewer-seat lawyer cannot run a clearance search.
+      'app/api/smart-search/route.ts',
     ]);
   });
 });
