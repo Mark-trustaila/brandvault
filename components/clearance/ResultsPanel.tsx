@@ -23,7 +23,8 @@
  * currencyDate and coverage ride on every settled outcome, as the registry
  * views do — sourced from the response, never assumed here.
  */
-import type { Coverage, SmartSearchHit, SmartSearchResult } from '../../lib/smart-search';
+import type { Coverage, SmartSearchResult } from '../../lib/smart-search';
+import { hitMarkText, hitClassesLabel, type SmartSearchHit } from '../../lib/smart-search-hit';
 
 export type PanelState = {
   result: SmartSearchResult | null;
@@ -77,11 +78,11 @@ function HitRow({ hit }: { hit: SmartSearchHit }) {
       <td className="py-2 pr-3"><Verdict similarity={hit.similarity} /></td>
       <td className="py-2 pr-3 tabular-nums text-slate-600">{hit.score}</td>
       <td className="py-2 pr-3">
-        <div className="font-medium text-slate-900">{hit.mark_string || '—'}</div>
+        <div className="font-medium text-slate-900">{hitMarkText(hit) || '—'}</div>
         <div className="text-xs text-slate-500">{hit.owner ?? 'owner not recorded'}</div>
       </td>
       <td className="py-2 pr-3">
-        <div className="text-slate-700">{hit.classes || '—'}</div>
+        <div className="text-slate-700">{hitClassesLabel(hit) || '—'}</div>
         {hit.class_match ? (
           <span className="mt-0.5 inline-block rounded bg-emerald-100 px-1.5 py-0.5 text-xs text-emerald-800">class overlap</span>
         ) : (
@@ -97,10 +98,17 @@ function HitRow({ hit }: { hit: SmartSearchHit }) {
   );
 }
 
-/** Most similar first. The engine's score is the ordering; ties keep their order. */
-function ordered(hits: SmartSearchHit[]): SmartSearchHit[] {
-  return [...hits].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-}
+/**
+ * The facade's order is the order. Not re-sorted here, and specifically not by
+ * score descending, which is what this did until a live search proved score is
+ * a distance rather than a similarity: ASOS itself scores 19 against its own
+ * term while EZEEZ scores 50. Sorting descending led a clearance search for
+ * ASOS with EZEEZ, S8 and OSY and buried the exact match two hundred rows down.
+ *
+ * §2.3 calls score "the numeric basis" for the verdict and never states its
+ * direction, so re-ranking on it was a guess. The engine already returns hits in
+ * its own order; showing that order asserts nothing we cannot support.
+ */
 
 function Summary({ result }: { result: SmartSearchResult }) {
   const hits = result.results ?? [];
@@ -163,7 +171,7 @@ export default function ResultsPanel({ result, polling, error }: PanelState) {
     );
   }
 
-  const hits = ordered(result.results ?? []);
+  const hits = result.results ?? [];
 
   return (
     <section className="space-y-3">

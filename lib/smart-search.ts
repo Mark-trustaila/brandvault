@@ -31,34 +31,18 @@
 // so a server-side caller needs a single import.
 import { normaliseClasses } from './smart-search-classes';
 export { normaliseClasses };
+import type { SmartSearchHit } from './smart-search-hit';
 
 /** §3.2 status. `failed` is a settled outcome, not an exception — see §3.3. */
 export type SmartSearchStatus = 'running' | 'completed' | 'failed';
 
-/**
- * One hit, §3.2: the §2.3 upstream fields, normalised by the facade (registry
- * as a name, application_date as a date) with the raw fields preserved.
- *
- * `similarity` is the server's verdict ("Very high" / "Low" / …) and `score`
- * its numeric basis. Neither is recomputed here: the engine is LawPanel's and
- * BrandVault consumes its judgement rather than second-guessing it.
- */
-export interface SmartSearchHit {
-  id: string;
-  score: number;
-  similarity: string | null;
-  class_match: number;
-  application_number: string;
-  classes: string;
-  status: string;
-  mark_string: string;
-  registry: string;
-  registry_official_name?: string;
-  is_registered?: boolean;
-  application_date: string | null;
-  owner: string | null;
-  mark_id?: number;
-}
+// The hit shape and its two accessors live in their own env-free module, so the
+// browser can read a hit without pulling this one (and its keys) into a bundle.
+// Re-exported so a server-side caller needs a single import. The facade
+// normalises further than §3.2 spells out; lib/smart-search-hit.ts explains
+// what and why, and absorbs the difference.
+export type { SmartSearchHit, RawSmartSearchHit } from './smart-search-hit';
+export { hitMarkText, hitClasses, hitClassesLabel } from './smart-search-hit';
 
 /** Known-partiality caveats, machine-readable, as the registry facade sends. */
 export interface Coverage {

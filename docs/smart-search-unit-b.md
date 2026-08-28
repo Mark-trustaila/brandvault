@@ -12,7 +12,8 @@ env set. The live swap is one environment variable, waiting on Unit A.
 | File | What it is |
 | --- | --- |
 | `lib/smart-search.ts` | The §3 client. Server-side only — holds the keys. Submit, poll, health. |
-| `lib/smart-search-classes.ts` | Nice-class normalisation. Env-free so the browser shares it. |
+| `lib/smart-search-classes.ts` | Nice-class normalisation for a search being submitted. Env-free so the browser shares it. |
+| `lib/smart-search-hit.ts` | The hit shape, and the accessors that absorb the facade's normalisation. Env-free. |
 | `lib/smart-search-poll.ts` | When to poll again and when to give up. Pure. |
 | `lib/smart-search-notice.ts` | The AiLA Core hook: what a completed watch search emits, and what a clearance search does not. |
 | `lib/clearance-link.ts` | Both ends of the mark → clearance link. Pure. |
@@ -22,6 +23,7 @@ env set. The live swap is one environment variable, waiting on Unit A.
 | `app/clearance/page.tsx` | The page. Tailwind. |
 | `components/clearance/ResultsPanel.tsx` | The results, and the three other outcomes. |
 | `mock/smart-search-facade.ts` | The disposable mock. Delete it when live works. |
+| `test/fixtures/smart-search-gb-asos.json` | A verbatim subset of a real search, captured 2026-08-28. The tests' witness. |
 
 Two existing files changed: `components/detail/DetailPanel.tsx` gains the
 per-mark action, `components/layout/Sidebar.tsx` points its dimmed "Search" slot
@@ -118,13 +120,44 @@ If it lands on its own host or under its own key, set the three
 Then delete `mock/smart-search-facade.ts` and its `npm run mock:smart-search`
 script. Nothing in `lib/`, `app/` or `components/` refers to it.
 
+## What the first live search changed
+
+Smoked against the facade running locally on 2026-08-28. Submit, poll, backoff,
+the 90-second cap and the settle path all behaved: eight polls, 24 seconds, 206
+real UKIPO hits. `mark_ref` is echoed on the poll, so a watch notice can anchor
+from the facade's own response.
+
+Three things the mock could not have caught, because it was written to the
+contract's field names and therefore agreed with the client:
+
+The facade normalises further than §3.2 spells out. It renames `mark_string` to
+`mark`, turns the comma-string `classes` into an array, turns `class_match` into
+a boolean, drops the top-level `id`, and preserves the whole §2.3 hit under a
+`raw` key. §3.2 authorises exactly two normalisations — registry as a name,
+application_date as a date — and calls the rest preserved, so on a strict
+reading the facade deviates. It is also the better shape, and `raw` loses
+nothing. `lib/smart-search-hit.ts` reads either form, so the argument needs no
+resolution and no synchronisation point.
+
+Score is a distance, not a similarity. ASOS scores 19 against its own term while
+EZEEZ scores 50. The panel sorted descending and led a clearance search for ASOS
+with EZEEZ, S8 and OSY. §2.3 calls score "the numeric basis" and never states a
+direction, so the re-rank was a guess; the facade's own order now stands.
+
+Two things for Unit A, documentation not code. The v1.1 review §8 says its
+additions are "all additive, none replacing anything in the frozen shape", which
+the wire contradicts — it should describe the normalised-view-plus-`raw` design
+it actually built. And the score direction needs stating in words, since neither
+document carries it.
+
 ## Open questions this build takes a position on
 
 Answers belong to Unit A's first live smoke (§6); these are the readings taken
 in the meantime, each in one place and cheap to change.
 
-1. **Terminal status strings.** `normaliseResult` accepts `completed` and
-   `failed` case-insensitively and reads *anything else* as `running`. A client
+1. **Terminal status strings.** `completed` is now confirmed live.
+   `normaliseResult` accepts `completed` and `failed` case-insensitively and
+   reads *anything else* as `running`; the failure string is still uncaptured. A client
    that rendered an unknown string as "completed with no hits" would report an
    empty register where a search was still in flight. Running is the honest
    reading; the 90-second cap ends it.
@@ -133,9 +166,11 @@ in the meantime, each in one place and cheap to change.
 3. **`weighting`.** Never set. The §3.1 body has no such field, so BrandVault
    always takes the facade's default and the question stays upstream of the
    contract, where it belongs.
-4. **Result cap.** No cap applied client-side. If Smart Search adopts the
-   registry facade's refuse-with-count at 2000, the client will need the 413
-   branch `getMarks` already has.
+4. **Result cap.** No cap applied client-side, and 206 hits came back whole.
+   The facade truncates rather than refusing, reporting `result_count`,
+   `total_available`, `cap` and `truncated`; the panel does not yet surface
+   `truncated`, which it should before a customer reads a capped list as a
+   complete one.
 5. **Watch semantics.** One-shot only. `noticeRef` is the search id, so two runs
    against one mark stay distinct in the feed rather than collapsing.
 
