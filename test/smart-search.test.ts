@@ -100,10 +100,28 @@ describe('submitSearch', () => {
     expect(JSON.parse(calls[0].init.body as string)).not.toHaveProperty('mark_ref');
   });
 
+  // §3.1 puts the registry in the path, which is why the client never has to
+  // encode a registry list of its own — the facade's allowed set governs.
   it('takes the registry as a path parameter', async () => {
     stubFetch([{ status: 200, body: { search_id: 'abc', status: 'running' } }]);
     await submitSearch({ term: 'ASOS' }, 'wo');
     expect(calls[0].url).toBe(`${BASE}/smart-search/wo/search`);
+  });
+
+  it('submits a WO search with the same body shape as a GB one', async () => {
+    stubFetch([{ status: 200, body: { search_id: 'wo-1', status: 'running' } }]);
+    const out = await submitSearch({ term: 'LONDON', classes: '35', markRef: 'UK00002530115' }, 'wo');
+
+    expect(out).toEqual({ search_id: 'wo-1', status: 'running' });
+    expect(calls[0].url).toBe(`${BASE}/smart-search/wo/search`);
+    // The registry rides in the path, never in the body — a body registry would
+    // be a second source of truth for the same fact.
+    const body = JSON.parse(calls[0].init.body as string);
+    expect(body).toEqual({ term: 'LONDON', classes: ['35'], mark_ref: 'UK00002530115' });
+    expect(body).not.toHaveProperty('registry');
+    const headers = calls[0].init.headers as Record<string, string>;
+    expect(headers['x-brandvault-key']).toBe('bv-key');
+    expect(headers['x-functions-key']).toBe('fn-key');
   });
 
   it('rejects an empty term before spending a call', async () => {

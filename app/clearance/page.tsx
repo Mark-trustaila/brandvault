@@ -23,6 +23,7 @@ import { bvFetch } from '../../lib/client/acting-company';
 import { pollDelayMs, shouldKeepPolling, timedOutMessage } from '../../lib/smart-search-poll';
 import { normaliseClasses } from '../../lib/smart-search-classes';
 import { clearanceArrival } from '../../lib/clearance-link';
+import { REGISTRIES, DEFAULT_REGISTRY, registryLabel, normaliseRegistry, type RegistryCode } from '../../lib/smart-search-registries';
 import type { SmartSearchResult } from '../../lib/smart-search';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -32,6 +33,7 @@ function ClearanceSearch() {
   const [term, setTerm] = useState('');
   const [classes, setClasses] = useState('');
   const [markRef, setMarkRef] = useState<string | null>(null);
+  const [registry, setRegistry] = useState<RegistryCode>(DEFAULT_REGISTRY);
   const [result, setResult] = useState<SmartSearchResult | null>(null);
   const [polling, setPolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +55,11 @@ function ClearanceSearch() {
         setPolling(false);
         return;
       }
-      setResult(json as SmartSearchResult);
+      const settled = json as SmartSearchResult;
+      setResult(settled);
+      // Reopening by id: show the register the search actually ran against,
+      // not whatever the selector happens to be sitting on.
+      if (settled.registry) setRegistry(normaliseRegistry(settled.registry));
       if (!shouldKeepPolling(json?.status ?? 'running', Date.now() - startedAt)) {
         // Settled, or we have run out of patience. Only the second needs saying.
         if (json?.status === 'running') setError(timedOutMessage(searchId));
@@ -65,7 +71,7 @@ function ClearanceSearch() {
     }
   }, []);
 
-  const run = useCallback(async (t: string, c: string, ref: string | null) => {
+  const run = useCallback(async (t: string, c: string, ref: string | null, reg: RegistryCode) => {
     const trimmed = t.trim();
     if (trimmed.length < 2) { setError('Enter at least two characters to search.'); return; }
     const myRun = ++runId.current;
@@ -74,7 +80,7 @@ function ClearanceSearch() {
     const res = await bvFetch('/api/smart-search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ term: trimmed, classes: normaliseClasses(c), markRef: ref }),
+      body: JSON.stringify({ term: trimmed, classes: normaliseClasses(c), markRef: ref, registry: reg }),
     });
     if (runId.current !== myRun) return;
     const json = await res.json().catch(() => null);
@@ -95,10 +101,11 @@ function ClearanceSearch() {
       followSearch(arrival.searchId, myRun);
       return;
     }
+    setRegistry(arrival.registry);
     if (arrival.term) {
       const c = arrival.classes.join(', ');
       setTerm(arrival.term); setClasses(c); setMarkRef(arrival.markRef);
-      run(arrival.term, c, arrival.markRef);
+      run(arrival.term, c, arrival.markRef, arrival.registry);
     }
     // Runs once per arrival URL; re-running on every state change would
     // resubmit the search on each keystroke.
@@ -126,27 +133,41 @@ function ClearanceSearch() {
             value={term}
             placeholder="Mark or term, e.g. ASOS"
             onChange={(e) => { setTerm(e.target.value); setMarkRef(null); }}
-            onKeyDown={(e) => e.key === 'Enter' && !busy && run(term, classes, markRef)}
+            onKeyDown={(e) => e.key === 'Enter' && !busy && run(term, classes, markRef, registry)}
           />
           <input
             className="w-48 rounded border border-slate-300 p-2 text-sm"
             value={classes}
             placeholder="Classes, e.g. 25, 35"
             onChange={(e) => setClasses(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !busy && run(term, classes, markRef)}
+            onKeyDown={(e) => e.key === 'Enter' && !busy && run(term, classes, markRef, registry)}
           />
+          {/* Which register. Visible rather than implied: a clearance result is
+              only meaningful against a named register, and a search that ran
+              somewhere the user did not choose is a false clear waiting to
+              happen. */}
+          <select
+            className="w-52 rounded border border-slate-300 bg-white p-2 text-sm"
+            value={registry}
+            aria-label="Register to search"
+            onChange={(e) => setRegistry(normaliseRegistry(e.target.value))}
+          >
+            {REGISTRIES.map((r) => (
+              <option key={r.code} value={r.code}>{r.label}</option>
+            ))}
+          </select>
           <button
             className="rounded bg-slate-800 px-4 py-2 text-sm text-white disabled:opacity-50"
             disabled={busy || term.trim().length < 2}
-            onClick={() => run(term, classes, markRef)}
+            onClick={() => run(term, classes, markRef, registry)}
           >
             {busy ? 'Searching…' : 'Run search'}
           </button>
         </div>
         <p className="text-xs text-slate-500">
           {markRef
-            ? `Run from ${markRef} — the result is recorded against that mark.`
-            : 'Leave classes empty to search every class. A narrower class list gives a shorter, more useful list.'}
+            ? `Run from ${markRef} against ${registryLabel(registry)} — the result is recorded against that mark.`
+            : `Searching ${registryLabel(registry)}. Leave classes empty to search every class; a narrower class list gives a shorter, more useful list.`}
         </p>
       </section>
 

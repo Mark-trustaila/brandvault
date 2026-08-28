@@ -15,6 +15,7 @@ env set. The live swap is one environment variable, waiting on Unit A.
 | `lib/smart-search-classes.ts` | Nice-class normalisation for a search being submitted. Env-free so the browser shares it. |
 | `lib/smart-search-hit.ts` | The hit shape, and the accessors that absorb the facade's normalisation. Env-free. |
 | `lib/smart-search-poll.ts` | When to poll again and when to give up. Pure. |
+| `lib/smart-search-registries.ts` | Which registers are searchable, and what to call them. Pure. |
 | `lib/smart-search-notice.ts` | The AiLA Core hook: what a completed watch search emits, and what a clearance search does not. |
 | `lib/clearance-link.ts` | Both ends of the mark → clearance link. Pure. |
 | `app/api/smart-search/route.ts` | POST, submit a search. |
@@ -62,6 +63,25 @@ text-match on, and searching for its application number would search for a
 number nobody registered.
 
 A term: the sidebar's "Clearance search", or `/clearance` directly.
+
+## Which register
+
+Selectable, GB and WO, GB by default — what the facade allows and what §3.1's
+path parameter was always for. The earlier hardcoding to GB came from the
+session brief's example rather than a decision.
+
+The choice is a visible control, not an implied default, and every outcome names
+the register it searched: the running state, the results header, the empty
+state, the failure and the truncation notice. A clearance result read against
+the wrong register is a false clear, so "nothing similar found" has to say where
+nothing was found.
+
+A prefill link carries the register too, taken from the mark's own filing where
+that is one we can search. EUIPO and USPTO marks both appear in real portfolios
+and neither register is searchable yet, so those propose GB rather than refusing
+the action — safe only because the selector displays the choice before the
+search runs. A link written before the register was selectable carries no
+`registry` param and lands on GB, which is the register it always searched.
 
 ## The four outcomes
 
