@@ -24,7 +24,7 @@
  * views do — sourced from the response, never assumed here.
  */
 import type { Coverage, SmartSearchResult } from '../../lib/smart-search';
-import { hitMarkText, hitClassesLabel, type SmartSearchHit } from '../../lib/smart-search-hit';
+import { hitMarkText, hitClassesLabel, truncationNotice, type SmartSearchHit } from '../../lib/smart-search-hit';
 
 export type PanelState = {
   result: SmartSearchResult | null;
@@ -110,13 +110,52 @@ function HitRow({ hit }: { hit: SmartSearchHit }) {
  * its own order; showing that order asserts nothing we cannot support.
  */
 
+const count = (n: number) => n.toLocaleString('en-GB');
+
+/**
+ * The register held more than the facade returned.
+ *
+ * A warning, before the list, not a footnote after it. A truncated list that
+ * reads as a complete search of the register is a false clear, and a false
+ * clear is the one wrong answer in clearance nobody catches: the lawyer acts
+ * on an absence that was never established. The registry facade refuses a
+ * too-large import outright; Smart Search truncates instead, because a
+ * clearance search loses less from a missing tail than from no answer — but
+ * only if the tail is declared.
+ */
+function TruncationNotice({ result }: { result: SmartSearchResult }) {
+  const notice = truncationNotice(result);
+  if (!notice) return null;
+  const { shown, total, cap } = notice;
+  return (
+    <section className="rounded border border-amber-300 bg-amber-50 p-3">
+      <h2 className="text-sm font-semibold text-amber-900">
+        This is not the whole register
+      </h2>
+      <p className="mt-1 text-sm text-amber-800">
+        Showing {count(shown)} of {total === null ? 'more' : count(total)} matching marks
+        {cap !== null && ` — the facade returns at most ${count(cap)} per search`}.
+        The rest were not returned and have not been looked at.
+      </p>
+      <p className="mt-1 text-xs text-amber-800">
+        Narrow the term or the classes and run it again before treating {result.term} as clear.
+      </p>
+    </section>
+  );
+}
+
 function Summary({ result }: { result: SmartSearchResult }) {
   const hits = result.results ?? [];
   const veryHigh = hits.filter((h) => (h.similarity ?? '').toLowerCase() === 'very high').length;
   const overlap = hits.filter((h) => h.class_match).length;
+  // When the list is capped the headline says so too, so the two lines cannot
+  // disagree about how much of the register was searched.
+  const lead = result.truncated && result.total_available !== null
+    ? `Showing ${count(result.result_count ?? hits.length)} of ${count(result.total_available)} hits`
+    : `${count(hits.length)} ${hits.length === 1 ? 'hit' : 'hits'}`;
   return (
     <p className="text-sm text-slate-700">
-      {hits.length} {hits.length === 1 ? 'hit' : 'hits'} for <strong>{result.term}</strong>
+      {lead} for <strong>{result.term}</strong>
       {result.classes.length ? ` in class ${result.classes.join(', ')}` : ' across all classes'}
       {hits.length > 0 && ` · ${veryHigh} rated very high · ${overlap} with class overlap`}
     </p>
@@ -179,6 +218,8 @@ export default function ResultsPanel({ result, polling, error }: PanelState) {
         <Summary result={result} />
         <Banners currencyDate={result.currencyDate} coverage={result.coverage} />
       </div>
+
+      <TruncationNotice result={result} />
 
       {hits.length === 0 ? (
         <div className="rounded border border-slate-200 bg-slate-50 p-4">

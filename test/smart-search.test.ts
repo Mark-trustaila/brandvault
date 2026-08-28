@@ -179,6 +179,28 @@ describe('normaliseResult', () => {
   it('never presents a running search as having no hits', () => {
     expect(normaliseResult('abc', { status: 'running', results: [] }).results).toBeNull();
   });
+
+  // The cap discipline has to survive the normalisation, or the panel cannot
+  // warn about a capped list and the list reads as the whole register.
+  it('carries the cap fields through', () => {
+    const r = normaliseResult('abc', {
+      status: 'completed', results: [], result_count: 2000, total_available: 4318,
+      cap: 2000, truncated: true,
+    });
+    expect(r).toMatchObject({ result_count: 2000, total_available: 4318, cap: 2000, truncated: true });
+  });
+
+  it('defaults truncated to false and the counts to null when the facade omits them', () => {
+    const r = normaliseResult('abc', { status: 'completed', results: [] });
+    expect(r.truncated).toBe(false);
+    expect(r.result_count).toBeNull();
+    expect(r.total_available).toBeNull();
+    expect(r.cap).toBeNull();
+  });
+
+  it('reads a truthy-but-not-true truncated as not truncated', () => {
+    expect(normaliseResult('abc', { status: 'completed', truncated: 1 }).truncated).toBe(false);
+  });
 });
 
 describe('health', () => {

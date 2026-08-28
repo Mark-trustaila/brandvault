@@ -1,6 +1,7 @@
 /**
- * The shape of a Smart Search hit, and the two fields you cannot read straight
- * off it.
+ * Reading a Smart Search response for display: the shape of a hit, the two
+ * fields you cannot read straight off it, and the one judgement the results
+ * panel makes about the response as a whole.
  *
  * Its own module, env-free, so the browser can import the accessors without
  * pulling in lib/smart-search.ts and its keys. lib/smart-search.ts re-exports
@@ -100,4 +101,32 @@ export function hitClasses(hit: SmartSearchHit): string[] {
 /** The classes as one readable string. "3, 9, 25" — never a run-together "3925". */
 export function hitClassesLabel(hit: SmartSearchHit): string {
   return hitClasses(hit).join(', ');
+}
+
+/**
+ * What the panel must warn about before showing a capped list, or null when
+ * there is nothing to warn about.
+ *
+ * A decision, not a component, so "truncated renders the notice" and "not
+ * truncated renders none" are pinned by a test rather than by reading JSX. The
+ * component is the thin part.
+ *
+ * Null unless `truncated` is exactly true. A facade that stops sending the
+ * field, or sends something truthy but not true, must not quietly start
+ * presenting a capped list as a complete search of the register — which is a
+ * false clear, the one wrong answer in clearance that nobody catches.
+ */
+export function truncationNotice(result: {
+  truncated?: boolean;
+  result_count?: number | null;
+  total_available?: number | null;
+  cap?: number | null;
+  results?: unknown[] | null;
+}): { shown: number; total: number | null; cap: number | null } | null {
+  if (result.truncated !== true) return null;
+  return {
+    shown: result.result_count ?? result.results?.length ?? 0,
+    total: result.total_available ?? null,
+    cap: result.cap ?? null,
+  };
 }

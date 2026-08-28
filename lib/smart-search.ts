@@ -61,6 +61,19 @@ export interface SmartSearchResult {
   results: SmartSearchHit[] | null;
   failure_reason: string | null;
   mark_ref?: string | null;
+  /**
+   * Cap discipline, present on a completed search. The facade truncates rather
+   * than refusing — a clearance search loses less from a missing tail than from
+   * no answer at all — and says plainly what it did.
+   *
+   * `truncated` is the one a reader must never miss: a capped list that reads as
+   * a complete search of the register is a false clear, and a false clear is the
+   * one wrong answer in clearance that nobody catches.
+   */
+  result_count: number | null;
+  total_available: number | null;
+  cap: number | null;
+  truncated: boolean;
 }
 
 /** §3.1 submit response. */
@@ -197,6 +210,8 @@ export async function getSearch(searchId: string): Promise<SmartSearchResult> {
  * report an empty register where there was a search still in flight. Running is
  * the honest reading — the UI keeps polling and the cap ends it.
  */
+const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+
 export function normaliseResult(searchId: string, json: any): SmartSearchResult {
   const raw = String(json?.status ?? '').toLowerCase();
   const status: SmartSearchStatus =
@@ -212,6 +227,12 @@ export function normaliseResult(searchId: string, json: any): SmartSearchResult 
     results: status === 'completed' ? (Array.isArray(json?.results) ? json.results : []) : null,
     failure_reason: json?.failure_reason ?? null,
     mark_ref: json?.mark_ref ?? null,
+    result_count: num(json?.result_count),
+    total_available: num(json?.total_available),
+    cap: num(json?.cap),
+    // Strictly true. A facade that stops sending the field, or sends something
+    // truthy-but-not-true, must not silently start claiming a complete search.
+    truncated: json?.truncated === true,
   };
 }
 

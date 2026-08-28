@@ -1,5 +1,5 @@
 {
-  "_source": "Verbatim subset of the live facade response for search_id REDACTED-search-id-not-a-real-token (term \"ASOS\", classes 25,35, gb), captured 2026-08-28 against the facade running locally on 7071. 8 of 206 hits, chosen to cover the head of the facade's own order (the exact match first, at score 19) and the highest-scoring rows (score 50, the LEAST similar), plus each similarity verdict seen. Every hit in the live response had class_match true, so no no-overlap row exists to include. The cap fields (result_count, total_available, cap, truncated) are the live run's own values, recovered from the facade's poll envelope: 206 hits against a RESULT_CAP of 2000, so truncated was false. They are absent from the first capture only because normaliseResult discarded unknown keys at the time. NOTE the deliberate inconsistency: result_count is the live 206 while results holds the 8-hit subset, so never assert result_count === results.length against this file. Hit objects are unedited.\n\nREDACTED: the search_id captured with this response was a signed token carrying the upstream job id (registry-facade v1.1 review §9). It is credential-shaped, so it has been replaced above with an obviously fake placeholder. Nothing in the tests reads it; every other field on this file is as captured.",
+  "_source": "SYNTHETIC ENVELOPE, REAL HITS. The results array is the same verbatim 8-hit subset as smart-search-gb-asos.json, captured from the live facade on 2026-08-28. The envelope is not: today's run returned 206 hits against a cap of 2000 and so was never truncated, and the facade was stopped before a capped response could be captured. The cap fields below are therefore invented, but their names, types and semantics are taken from the facade's own source — registry-facade/src/smartsearch.js constructs result_count as kept.length, total_available as the full hit count, cap from RESULT_CAP and truncated as (total > cap), on the completed branch only. total_available is illustrative. Replace this file with a real capped response the first time one is observed.\n\nREDACTED: the search_id captured with this response was a signed token carrying the upstream job id (registry-facade v1.1 review §9). It is credential-shaped, so it has been replaced above with an obviously fake placeholder. Nothing in the tests reads it; every other field on this file is as captured.",
   "search_id": "REDACTED-search-id-not-a-real-token",
   "status": "completed",
   "term": "ASOS",
@@ -18,10 +18,10 @@
   },
   "failure_reason": null,
   "mark_ref": null,
-  "result_count": 206,
-  "total_available": 206,
+  "result_count": 2000,
+  "total_available": 4318,
   "cap": 2000,
-  "truncated": false,
+  "truncated": true,
   "total_hits_in_live_response": 206,
   "results": [
     {

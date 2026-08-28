@@ -11,9 +11,10 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
-import { hitMarkText, hitClasses, hitClassesLabel, type SmartSearchHit } from '../lib/smart-search-hit';
+import { hitMarkText, hitClasses, hitClassesLabel, truncationNotice, type SmartSearchHit } from '../lib/smart-search-hit';
 
 const fixture = JSON.parse(readFileSync('test/fixtures/smart-search-gb-asos.json', 'utf8'));
+const truncatedFixture = JSON.parse(readFileSync('test/fixtures/smart-search-gb-truncated.json', 'utf8'));
 const hits: SmartSearchHit[] = fixture.results;
 
 describe('the fixture is the live shape', () => {
@@ -144,5 +145,65 @@ describe('class_match', () => {
     expect(Boolean((hits[0] as any).raw.class_match)).toBe(true);
     expect(Boolean(0)).toBe(false);
     expect(Boolean(false)).toBe(false);
+  });
+});
+
+/**
+ * Truncation. The facade caps at RESULT_CAP and truncates rather than refusing,
+ * because a clearance search loses less from a missing tail than from no answer
+ * — but only if the tail is declared. A capped list that reads as a complete
+ * search of the register is a false clear, which is the one wrong answer in
+ * clearance that nobody catches.
+ *
+ * Pinned on the decision rather than on rendered JSX: the component is a thin
+ * shell over truncationNotice(), so "renders the notice" and "renders none" are
+ * exactly non-null and null here.
+ */
+describe('truncationNotice', () => {
+  it('renders nothing for the live 206-hit search, which was not capped', () => {
+    expect(fixture.truncated).toBe(false);
+    expect(fixture.total_available).toBe(206);
+    expect(truncationNotice(fixture)).toBeNull();
+  });
+
+  it('renders the notice when a search is capped, with both counts and the cap', () => {
+    expect(truncationNotice(truncatedFixture)).toEqual({ shown: 2000, total: 4318, cap: 2000 });
+  });
+
+  it('renders nothing when the field is absent altogether', () => {
+    expect(truncationNotice({})).toBeNull();
+    expect(truncationNotice({ result_count: 2000, total_available: 4318 })).toBeNull();
+  });
+
+  // A facade that sends something truthy-but-not-true must not be read as
+  // "complete" — nor as a silent pass. Only exactly true warns.
+  it('demands exactly true, not merely truthy', () => {
+    expect(truncationNotice({ truncated: 1 as unknown as boolean })).toBeNull();
+    expect(truncationNotice({ truncated: 'true' as unknown as boolean })).toBeNull();
+    expect(truncationNotice({ truncated: false })).toBeNull();
+  });
+
+  it('falls back to the list length when the count is missing', () => {
+    expect(truncationNotice({ truncated: true, results: [1, 2, 3] })).toEqual({ shown: 3, total: null, cap: null });
+  });
+
+  it('the synthetic envelope is labelled as such, and its hits are the real ones', () => {
+    expect(truncatedFixture._source).toMatch(/SYNTHETIC ENVELOPE, REAL HITS/);
+    expect(truncatedFixture.results).toEqual(fixture.results);
+  });
+});
+
+describe('the panel warns before the list, not after it', () => {
+  const src = readFileSync('components/clearance/ResultsPanel.tsx', 'utf8');
+
+  it('renders the notice from the decision, not from an inline check', () => {
+    expect(src).toContain('const notice = truncationNotice(result);');
+  });
+
+  // Order matters: a warning under a table of 2000 rows is a footnote, and the
+  // brief for this was a warning.
+  it('places the notice above the results table', () => {
+    expect(src.indexOf('<TruncationNotice')).toBeGreaterThan(-1);
+    expect(src.indexOf('<TruncationNotice')).toBeLessThan(src.indexOf('<table'));
   });
 });

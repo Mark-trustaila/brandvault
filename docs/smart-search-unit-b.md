@@ -24,6 +24,7 @@ env set. The live swap is one environment variable, waiting on Unit A.
 | `components/clearance/ResultsPanel.tsx` | The results, and the three other outcomes. |
 | `mock/smart-search-facade.ts` | The disposable mock. Delete it when live works. |
 | `test/fixtures/smart-search-gb-asos.json` | A verbatim subset of a real search, captured 2026-08-28. The tests' witness. |
+| `test/fixtures/smart-search-gb-truncated.json` | The same real hits under a synthetic capped envelope. Replace when a real one is seen. |
 
 Two existing files changed: `components/detail/DetailPanel.tsx` gains the
 per-mark action, `components/layout/Sidebar.tsx` points its dimmed "Search" slot
@@ -72,6 +73,13 @@ Each is rendered as itself, which is the whole point of §3.3.
   status, application number and date. Sorted by score.
 - **completed with none** — "nothing similar found", read against the currency
   date. A clean result is a result.
+A fifth thing rides above the list when it applies: if the facade capped the
+result set, a warning says so before the table — "showing 2,000 of 4,318" — and
+the headline count changes to match. A capped list that reads as a complete
+search of the register is a false clear, which is the one wrong answer in
+clearance nobody catches, because the lawyer acts on an absence that was never
+established.
+
 - **failed** — the register was not searched. Rendered with its reason, never as
   an empty list: an empty list says "nothing like your mark is registered",
   which is the opposite of what a failure means and is the answer a lawyer would
@@ -166,11 +174,12 @@ in the meantime, each in one place and cheap to change.
 3. **`weighting`.** Never set. The §3.1 body has no such field, so BrandVault
    always takes the facade's default and the question stays upstream of the
    contract, where it belongs.
-4. **Result cap.** No cap applied client-side, and 206 hits came back whole.
-   The facade truncates rather than refusing, reporting `result_count`,
-   `total_available`, `cap` and `truncated`; the panel does not yet surface
-   `truncated`, which it should before a customer reads a capped list as a
-   complete one.
+4. **Result cap.** Settled. The facade truncates rather than refusing,
+   reporting `result_count`, `total_available`, `cap` and `truncated`, and the
+   panel now warns above the list when `truncated` is exactly true. Today's
+   search returned 206 against a cap of 2000, so no capped response has been
+   observed yet — the truncated fixture's envelope is synthetic, taken from the
+   facade's own source, and should be replaced by a real one when it appears.
 5. **Watch semantics.** One-shot only. `noticeRef` is the search id, so two runs
    against one mark stay distinct in the feed rather than collapsing.
 

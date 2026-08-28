@@ -23,6 +23,7 @@ const hit = (over: Partial<SmartSearchHit> = {}): SmartSearchHit => ({
 const result = (over: Partial<SmartSearchResult> = {}): SmartSearchResult => ({
   search_id: 'srch-1', status: 'completed', term: 'BLOC', classes: ['25'], registry: 'gb',
   currencyDate: '2026-07-11', results: [], failure_reason: null, mark_ref: 'UK00002530115',
+  result_count: 0, total_available: 0, cap: 2000, truncated: false,
   ...over,
 });
 
