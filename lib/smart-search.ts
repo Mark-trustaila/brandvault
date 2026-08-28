@@ -71,7 +71,19 @@ export interface SmartSearchResult {
    * one wrong answer in clearance that nobody catches.
    */
   result_count: number | null;
+  /**
+   * The true number of matches, when it is knowable. NULL when upstream itself
+   * capped the search: LawPanel returns at most `upstream_cap` hits and does not
+   * report how many it had, so the total genuinely is not known and must not be
+   * guessed at. `result_count` is not a total and is never to be rendered as
+   * one when this is null.
+   */
   total_available: number | null;
+  /** The floor, when the total is unknown: at least this many matches exist. */
+  total_at_least: number | null;
+  /** What the register's own search will return at most. Upstream's ceiling. */
+  upstream_cap: number | null;
+  /** The facade's own cap, which is a separate ceiling from upstream's. */
   cap: number | null;
   truncated: boolean;
 }
@@ -229,6 +241,8 @@ export function normaliseResult(searchId: string, json: any): SmartSearchResult 
     mark_ref: json?.mark_ref ?? null,
     result_count: num(json?.result_count),
     total_available: num(json?.total_available),
+    total_at_least: num(json?.total_at_least),
+    upstream_cap: num(json?.upstream_cap),
     cap: num(json?.cap),
     // Strictly true. A facade that stops sending the field, or sends something
     // truthy-but-not-true, must not silently start claiming a complete search.

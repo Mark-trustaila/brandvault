@@ -20,6 +20,8 @@
   "mark_ref": null,
   "result_count": 206,
   "total_available": 206,
+  "total_at_least": null,
+  "upstream_cap": null,
   "cap": 2000,
   "truncated": false,
   "total_hits_in_live_response": 206,

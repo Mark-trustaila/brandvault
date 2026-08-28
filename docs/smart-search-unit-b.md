@@ -73,12 +73,22 @@ Each is rendered as itself, which is the whole point of §3.3.
   status, application number and date. Sorted by score.
 - **completed with none** — "nothing similar found", read against the currency
   date. A clean result is a result.
-A fifth thing rides above the list when it applies: if the facade capped the
-result set, a warning says so before the table — "showing 2,000 of 4,318" — and
-the headline count changes to match. A capped list that reads as a complete
-search of the register is a false clear, which is the one wrong answer in
-clearance nobody catches, because the lawyer acts on an absence that was never
-established.
+A fifth thing rides above the list when it applies: if the result set was
+capped, a warning says so before the table, and the headline count changes to
+match. A capped list that reads as a complete search of the register is a false
+clear, which is the one wrong answer in clearance nobody catches, because the
+lawyer acts on an absence that was never established.
+
+Two variants, because there are two truths. When the facade counted the set and
+capped it itself, the reader gets "showing 2,000 of 4,318" and knows exactly
+what is missing. When upstream capped first — LawPanel returns at most 250 and
+never says how many it found — `total_available` comes back null, and the notice
+says only "showing 250: the register holds more matches than the search can
+return", with the floor from `total_at_least` and the ceiling from
+`upstream_cap`. The headline follows the same rule and never names a total it
+does not have, because rendering `result_count` as a total turns "we could not
+see the rest" into "there is no rest": a false clear with a number attached,
+which reads as a finding.
 
 - **failed** — the register was not searched. Rendered with its reason, never as
   an empty list: an empty list says "nothing like your mark is registered",
@@ -174,12 +184,14 @@ in the meantime, each in one place and cheap to change.
 3. **`weighting`.** Never set. The §3.1 body has no such field, so BrandVault
    always takes the facade's default and the question stays upstream of the
    contract, where it belongs.
-4. **Result cap.** Settled. The facade truncates rather than refusing,
-   reporting `result_count`, `total_available`, `cap` and `truncated`, and the
-   panel now warns above the list when `truncated` is exactly true. Today's
-   search returned 206 against a cap of 2000, so no capped response has been
-   observed yet — the truncated fixture's envelope is synthetic, taken from the
-   facade's own source, and should be replaced by a real one when it appears.
+4. **Result cap.** Settled, and the §7 "suspicious 250" is confirmed: upstream
+   caps at 250 and does not report how many it found. The facade reports
+   `result_count`, `total_available` (null when upstream capped), `total_at_least`,
+   `upstream_cap`, `cap` and `truncated`; the panel warns above the list when
+   `truncated` is exactly true, in whichever of the two variants applies.
+   BrandVault has still not observed a capped response of its own — the
+   truncated fixture's envelope follows the deployed probe line rather than a
+   capture, and should be replaced by a real one when it appears.
 5. **Watch semantics.** One-shot only. `noticeRef` is the search id, so two runs
    against one mark stay distinct in the feed rather than collapsing.
 

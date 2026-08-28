@@ -190,11 +190,26 @@ describe('normaliseResult', () => {
     expect(r).toMatchObject({ result_count: 2000, total_available: 4318, cap: 2000, truncated: true });
   });
 
+  // The deployed shape for an upstream-capped search: the total is genuinely
+  // unknown, so it arrives null with a floor and a ceiling beside it.
+  it('carries the unknown-total shape: null total, floor, upstream ceiling', () => {
+    const r = normaliseResult('abc', {
+      status: 'completed', results: [], result_count: 250, total_available: null,
+      total_at_least: 250, upstream_cap: 250, cap: 2000, truncated: true,
+    });
+    expect(r).toMatchObject({
+      result_count: 250, total_available: null, total_at_least: 250,
+      upstream_cap: 250, truncated: true,
+    });
+  });
+
   it('defaults truncated to false and the counts to null when the facade omits them', () => {
     const r = normaliseResult('abc', { status: 'completed', results: [] });
     expect(r.truncated).toBe(false);
     expect(r.result_count).toBeNull();
     expect(r.total_available).toBeNull();
+    expect(r.total_at_least).toBeNull();
+    expect(r.upstream_cap).toBeNull();
     expect(r.cap).toBeNull();
   });
 

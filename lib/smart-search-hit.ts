@@ -111,22 +111,47 @@ export function hitClassesLabel(hit: SmartSearchHit): string {
  * truncated renders none" are pinned by a test rather than by reading JSX. The
  * component is the thin part.
  *
+ * Two shapes, because there are two different truths to tell.
+ *
+ *   known   — the facade capped a result set it had counted. We can say
+ *             "250 of 4,318", and the reader knows exactly what is missing.
+ *   unknown — upstream capped it first. LawPanel returns at most `upstream_cap`
+ *             hits and never says how many it had, so `total_available` comes
+ *             back null and the total is genuinely unknowable. All that can be
+ *             said honestly is "at least this many, and more than we can see".
+ *
+ * The distinction is the whole point. Rendering `result_count` as a total when
+ * the total is unknown turns "we could not see the rest" into "there is no
+ * rest", which is a false clear stated with a number attached — worse than the
+ * silence it replaced, because a number reads as a finding.
+ *
  * Null unless `truncated` is exactly true. A facade that stops sending the
  * field, or sends something truthy but not true, must not quietly start
- * presenting a capped list as a complete search of the register — which is a
- * false clear, the one wrong answer in clearance that nobody catches.
+ * presenting a capped list as a complete search of the register.
  */
+export type TruncationNotice =
+  | { kind: 'known'; shown: number; total: number; cap: number | null }
+  | { kind: 'unknown'; shown: number; atLeast: number | null; upstreamCap: number | null };
+
 export function truncationNotice(result: {
   truncated?: boolean;
   result_count?: number | null;
   total_available?: number | null;
+  total_at_least?: number | null;
+  upstream_cap?: number | null;
   cap?: number | null;
   results?: unknown[] | null;
-}): { shown: number; total: number | null; cap: number | null } | null {
+}): TruncationNotice | null {
   if (result.truncated !== true) return null;
+  const shown = result.result_count ?? result.results?.length ?? 0;
+  const total = result.total_available;
+  if (typeof total === 'number') {
+    return { kind: 'known', shown, total, cap: result.cap ?? null };
+  }
   return {
-    shown: result.result_count ?? result.results?.length ?? 0,
-    total: result.total_available ?? null,
-    cap: result.cap ?? null,
+    kind: 'unknown',
+    shown,
+    atLeast: result.total_at_least ?? null,
+    upstreamCap: result.upstream_cap ?? null,
   };
 }

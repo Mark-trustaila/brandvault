@@ -126,17 +126,29 @@ const count = (n: number) => n.toLocaleString('en-GB');
 function TruncationNotice({ result }: { result: SmartSearchResult }) {
   const notice = truncationNotice(result);
   if (!notice) return null;
-  const { shown, total, cap } = notice;
   return (
     <section className="rounded border border-amber-300 bg-amber-50 p-3">
-      <h2 className="text-sm font-semibold text-amber-900">
-        This is not the whole register
-      </h2>
-      <p className="mt-1 text-sm text-amber-800">
-        Showing {count(shown)} of {total === null ? 'more' : count(total)} matching marks
-        {cap !== null && ` — the facade returns at most ${count(cap)} per search`}.
-        The rest were not returned and have not been looked at.
-      </p>
+      <h2 className="text-sm font-semibold text-amber-900">This is not the whole register</h2>
+      {notice.kind === 'known' ? (
+        <p className="mt-1 text-sm text-amber-800">
+          Showing {count(notice.shown)} of {count(notice.total)} matching marks
+          {notice.cap !== null && ` — the facade returns at most ${count(notice.cap)} per search`}.
+          The rest were not returned and have not been looked at.
+        </p>
+      ) : (
+        <>
+          <p className="mt-1 text-sm text-amber-800">
+            Showing {count(notice.shown)} — the register holds more matches than the search can
+            return; this list is incomplete.
+          </p>
+          <p className="mt-1 text-sm text-amber-800">
+            {notice.upstreamCap !== null
+              ? `The register's own search returns at most ${count(notice.upstreamCap)} results and does not say how many it found`
+              : 'The register does not say how many matches it found'}
+            {notice.atLeast !== null && `, so the true number is unknown — at least ${count(notice.atLeast)} exist`}.
+          </p>
+        </>
+      )}
       <p className="mt-1 text-xs text-amber-800">
         Narrow the term or the classes and run it again before treating {result.term} as clear.
       </p>
@@ -149,10 +161,16 @@ function Summary({ result }: { result: SmartSearchResult }) {
   const veryHigh = hits.filter((h) => (h.similarity ?? '').toLowerCase() === 'very high').length;
   const overlap = hits.filter((h) => h.class_match).length;
   // When the list is capped the headline says so too, so the two lines cannot
-  // disagree about how much of the register was searched.
-  const lead = result.truncated && result.total_available !== null
-    ? `Showing ${count(result.result_count ?? hits.length)} of ${count(result.total_available)} hits`
-    : `${count(hits.length)} ${hits.length === 1 ? 'hit' : 'hits'}`;
+  // disagree about how much of the register was searched. With an unknown total
+  // it says "the register holds more" rather than naming a number: result_count
+  // is not a total, and rendering it as one is the false clear this exists to
+  // prevent.
+  const notice = truncationNotice(result);
+  const lead = !notice
+    ? `${count(hits.length)} ${hits.length === 1 ? 'hit' : 'hits'}`
+    : notice.kind === 'known'
+      ? `Showing ${count(notice.shown)} of ${count(notice.total)} hits`
+      : `Showing ${count(notice.shown)} hits — the register holds more`;
   return (
     <p className="text-sm text-slate-700">
       {lead} for <strong>{result.term}</strong>

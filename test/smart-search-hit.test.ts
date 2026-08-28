@@ -166,13 +166,9 @@ describe('truncationNotice', () => {
     expect(truncationNotice(fixture)).toBeNull();
   });
 
-  it('renders the notice when a search is capped, with both counts and the cap', () => {
-    expect(truncationNotice(truncatedFixture)).toEqual({ shown: 2000, total: 4318, cap: 2000 });
-  });
-
   it('renders nothing when the field is absent altogether', () => {
     expect(truncationNotice({})).toBeNull();
-    expect(truncationNotice({ result_count: 2000, total_available: 4318 })).toBeNull();
+    expect(truncationNotice({ result_count: 250, total_at_least: 250 })).toBeNull();
   });
 
   // A facade that sends something truthy-but-not-true must not be read as
@@ -183,12 +179,51 @@ describe('truncationNotice', () => {
     expect(truncationNotice({ truncated: false })).toBeNull();
   });
 
-  it('falls back to the list length when the count is missing', () => {
-    expect(truncationNotice({ truncated: true, results: [1, 2, 3] })).toEqual({ shown: 3, total: null, cap: null });
+  // The facade counted the set and capped it itself. The reader can be told
+  // exactly what is missing.
+  describe('known total', () => {
+    it('reports both counts and the facade cap', () => {
+      expect(truncationNotice({ truncated: true, result_count: 2000, total_available: 4318, cap: 2000 }))
+        .toEqual({ kind: 'known', shown: 2000, total: 4318, cap: 2000 });
+    });
+
+    it('falls back to the list length when the count is missing', () => {
+      expect(truncationNotice({ truncated: true, total_available: 9, results: [1, 2, 3] }))
+        .toEqual({ kind: 'known', shown: 3, total: 9, cap: null });
+    });
+  });
+
+  // Upstream capped first, so the true total is unknowable. This is the shape
+  // the deployed facade returns: total_available null, the floor in
+  // total_at_least, the ceiling in upstream_cap.
+  describe('unknown total', () => {
+    it('matches the deployed probe: completed 250 None 250 250 True', () => {
+      expect(truncatedFixture.result_count).toBe(250);
+      expect(truncatedFixture.total_available).toBeNull();
+      expect(truncatedFixture.total_at_least).toBe(250);
+      expect(truncatedFixture.upstream_cap).toBe(250);
+      expect(truncatedFixture.truncated).toBe(true);
+      expect(truncationNotice(truncatedFixture))
+        .toEqual({ kind: 'unknown', shown: 250, atLeast: 250, upstreamCap: 250 });
+    });
+
+    // The distinction is the whole point: result_count is not a total, and a
+    // null total_available must never quietly become one.
+    it('never presents the shown count as a total', () => {
+      const n = truncationNotice(truncatedFixture);
+      expect(n?.kind).toBe('unknown');
+      expect(n).not.toHaveProperty('total');
+    });
+
+    it('survives a facade that sends neither floor nor ceiling', () => {
+      expect(truncationNotice({ truncated: true, result_count: 250 }))
+        .toEqual({ kind: 'unknown', shown: 250, atLeast: null, upstreamCap: null });
+    });
   });
 
   it('the synthetic envelope is labelled as such, and its hits are the real ones', () => {
     expect(truncatedFixture._source).toMatch(/SYNTHETIC ENVELOPE, REAL HITS/);
+    expect(truncatedFixture._source).toMatch(/probe-verified/);
     expect(truncatedFixture.results).toEqual(fixture.results);
   });
 });
@@ -205,5 +240,14 @@ describe('the panel warns before the list, not after it', () => {
   it('places the notice above the results table', () => {
     expect(src.indexOf('<TruncationNotice')).toBeGreaterThan(-1);
     expect(src.indexOf('<TruncationNotice')).toBeLessThan(src.indexOf('<table'));
+  });
+
+  // The headline takes the same decision as the notice, so the two lines cannot
+  // disagree — and it must not read total_available or result_count directly,
+  // which is how "250 hits" would reappear as a total.
+  it('derives the headline count from the same decision', () => {
+    expect(src).toContain('const notice = truncationNotice(result);');
+    expect(src).toContain('the register holds more');
+    expect(src).not.toMatch(/lead =[^;]*result\.total_available/);
   });
 });
