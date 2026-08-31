@@ -9,15 +9,7 @@ Azure MySQL database** (see the root `CLAUDE.md` env table). A migration sitting
 in `prisma/migrations/` is one stray `npm run db:deploy` away from altering
 production. Staging it here removes that path entirely.
 
-**Staged now:** `20260831120000_clearance_search` — the `clearance_searches` and
-`clearance_hit_reviews` tables for the clearance workflow
-(`docs/clearance-workflow.md` §3). Both are new tables; nothing existing gains a
-column, so the unapplied state cannot break a query that works today. The
-consequence of leaving it unapplied is bounded and loud: `/api/clearance*`
-returns a 500 naming the missing table, and nothing else is affected. The
-schema.prisma models and the generated client are merged ahead of the DDL so the
-routes compile — which is safe here precisely because these are new tables, and
-would not be for a new column on an existing one.
+Currently empty — nothing is staged.
 
 ## Promotion sequence
 
@@ -42,8 +34,14 @@ For any migration staged here, all steps need explicit approval:
 
 ## History
 
-- `20260831120000_clearance_search` — **STAGED, awaiting approval.** Two new
-  tables for the clearance record and its per-hit review.
+- `20260831120000_clearance_search` — `clearance_searches` and
+  `clearance_hit_reviews`, the registry-search record and its per-hit review
+  (`docs/clearance-workflow.md` §3). Approved and promoted 2026-08-31 as
+  `prisma/migrations/20260831120000_clearance_search`. Both tables are new, so
+  no existing query gained a column. **Confirm `prisma migrate resolve --applied
+  20260831120000_clearance_search` was run** — the promotion commit moved the
+  directory only, and without the resolve step Prisma's history does not know
+  the DDL ran, which is what makes `migrate dev` offer to reset the database.
 
 - `20260725140000_trademark_image_url` — nullable `trademarks.image_url` for
   device-mark images. Approved and promoted 2026-07-25 as

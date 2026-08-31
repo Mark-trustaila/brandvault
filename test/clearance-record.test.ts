@@ -10,28 +10,32 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 
-const MIGRATION_DIR = 'prisma/migrations-pending/20260831120000_clearance_search';
+const MIGRATION_NAME = '20260831120000_clearance_search';
+// Promoted 31 Aug 2026, so it now lives in prisma/migrations. The shape
+// assertions below are unchanged by the move — they check the DDL against the
+// model, which matters more once the DDL has actually run.
+const MIGRATION_DIR = `prisma/migrations/${MIGRATION_NAME}`;
 const sql = readFileSync(join(MIGRATION_DIR, 'migration.sql'), 'utf8');
 const schema = readFileSync('prisma/schema.prisma', 'utf8');
 const recordSrc = readFileSync('lib/clearance.ts', 'utf8');
 
-describe('the migration is staged, not applied', () => {
-  // Preview and Production share one Azure database. A migration in
-  // prisma/migrations/ is one stray db:deploy away from altering production.
-  it('lives in migrations-pending, where prisma migrate deploy cannot see it', () => {
-    expect(readdirSync('prisma/migrations-pending')).toContain('20260831120000_clearance_search');
-    expect(readdirSync('prisma/migrations')).not.toContain('20260831120000_clearance_search');
+describe('the migration is promoted, and only once', () => {
+  // Exactly one of the two directories, ever. In both, prisma migrate deploy
+  // would try to apply DDL that has already run; in neither, the tables exist
+  // with nothing in the repo describing them.
+  it('lives in migrations, not in migrations-pending', () => {
+    expect(readdirSync('prisma/migrations')).toContain(MIGRATION_NAME);
+    expect(readdirSync('prisma/migrations-pending')).not.toContain(MIGRATION_NAME);
   });
 
-  it('says so in the file, for whoever opens it next', () => {
-    expect(sql).toMatch(/STAGED, NOT APPLIED/);
-    expect(sql).toMatch(/migrations-pending\/README/);
-  });
-
-  it('is listed in the README as awaiting approval', () => {
+  // The README is the only record of what was applied to a database Preview and
+  // Production share. A promotion missing from History is a promotion nobody
+  // can audit later.
+  it('is recorded in the pending README history', () => {
     const readme = readFileSync('prisma/migrations-pending/README.md', 'utf8');
-    expect(readme).toContain('20260831120000_clearance_search');
-    expect(readme).toMatch(/STAGED, awaiting approval/);
+    expect(readme).toContain(MIGRATION_NAME);
+    expect(readme).toMatch(/Approved and promoted/);
+    expect(readme).not.toMatch(new RegExp(`${MIGRATION_NAME}[^\\n]*STAGED`));
   });
 });
 

@@ -1,25 +1,32 @@
 'use client';
 
 /**
- * One clearance hit, opened in the right-hand panel (docs/clearance-workflow.md §5).
+ * One registry-search result, opened in the right-hand panel.
  *
- * Same pattern as the portfolio's DetailPanel — right-hand slide-over, backdrop,
- * previous and next in the header — but its own component rather than an
- * extension of that one. DetailPanel is CSS Modules and bound to `Trademark`
- * and DashboardContext; a clearance hit is a different entity from a different
- * source and shares no fields, so extending it would have meant two data
- * shapes in one component. New component, so Tailwind, per the CSS rule.
+ * Uses DetailPanel.module.css directly rather than a lookalike, so a result
+ * opens exactly as a portfolio mark does: same position, same width, same
+ * backdrop, same header and footer chrome, same close behaviour. A panel that
+ * merely resembled the other one would drift the first time either was
+ * restyled, and the two would slowly stop being the same gesture.
  *
- * Previous and next walk the list without returning to it, because reviewing
- * twenty hits means twenty decisions and closing the panel between each one
- * loses the reader's place.
+ * That is a deliberate exception to "new components use Tailwind". The point of
+ * that rule is to stop the two styling systems mixing inside one component;
+ * this component uses one system, the existing one, because matching an
+ * existing surface exactly is the requirement.
+ *
+ * Previous and next in the header walk the results without closing, because
+ * reviewing twenty of them means twenty decisions and returning to the list
+ * between each one loses the reader's place. Nothing in the list changes while
+ * the panel is open.
  *
  * The specification comes from the registry facade, which implements GB only.
- * A WO hit shows what the search returned plus the register link and says the
- * specification is not available for that register. Never a blank section: an
- * empty specification reads as a mark with no goods, which is not a thing.
+ * A WO result shows what the search returned plus the register link, and says
+ * the specification is not available for that register — never a blank section,
+ * which would read as a mark with no goods.
  */
 import { useCallback, useEffect, useState } from 'react';
+import styles from '../detail/DetailPanel.module.css';
+import { useDashboard } from '../../context/DashboardContext';
 import { hitMarkText, hitClassesLabel, type SmartSearchHit } from '../../lib/smart-search-hit';
 import { registerDeepLink, registryLabel } from '../../lib/smart-search-registries';
 import { TIERS, TIER_LABEL, isExactMatch, type HitReview, type Tier } from '../../lib/clearance-review';
@@ -30,7 +37,7 @@ type Lookup = {
   found?: boolean;
   reason?: string;
   mark?: any;
-  ownerMarks?: Array<{ ownerString: string; markCount: number; matchedVia: string[] }>;
+  ownerMarks?: Array<{ ownerString: string; markCount: number }>;
   error?: string;
 };
 
@@ -41,30 +48,19 @@ function formatDate(value: string | null | undefined): string {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-/** Dates the facade returns as a path/value list; pick the ones worth showing. */
 function pickDates(mark: any): Array<{ label: string; value: string }> {
   const dates: Array<{ path: string; value: string }> = mark?.dates ?? [];
   const wanted: Array<[RegExp, string]> = [
-    [/ApplicationDate/i, 'Filed'],
     [/RegistrationDate/i, 'Registered'],
     [/ExpiryDate|RenewalDate/i, 'Renewal due'],
     [/PublicationDate/i, 'Published'],
   ];
   const out: Array<{ label: string; value: string }> = [];
   for (const [re, label] of wanted) {
-    const hit = dates.find((d) => re.test(d.path));
-    if (hit) out.push({ label, value: formatDate(hit.value) });
+    const found = dates.find((d) => re.test(d.path));
+    if (found) out.push({ label, value: formatDate(found.value) });
   }
   return out;
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="border-t border-slate-100 px-4 py-3">
-      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</h3>
-      {children}
-    </div>
-  );
 }
 
 export default function HitPanel({ hit, registry, index, total, review, onClose, onPrev, onNext, onReview }: {
@@ -78,12 +74,13 @@ export default function HitPanel({ hit, registry, index, total, review, onClose,
   onNext?: () => void;
   onReview?: (patch: { tier?: Tier; note?: string }) => void;
 }) {
+  const { breeOpen } = useDashboard();
   const [lookup, setLookup] = useState<Lookup | null>(null);
   const [note, setNote] = useState(review?.note ?? '');
   const appNo = hit.application_number;
 
-  // Reset per hit: walking to the next one must not carry the previous note
-  // into a different mark's textarea.
+  // Reset per result: stepping to the next one must not carry the previous
+  // note into a different mark's textarea.
   useEffect(() => { setNote(review?.note ?? ''); }, [appNo, review?.note]);
 
   useEffect(() => {
@@ -98,8 +95,6 @@ export default function HitPanel({ hit, registry, index, total, review, onClose,
     return () => { live = false; };
   }, [appNo, registry, hit.owner]);
 
-  // Arrow keys walk the list, as they do in a mail client. Ignored while
-  // someone is typing a note.
   const onKey = useCallback((e: KeyboardEvent) => {
     const tag = (e.target as HTMLElement)?.tagName;
     if (tag === 'TEXTAREA' || tag === 'INPUT') return;
@@ -118,107 +113,141 @@ export default function HitPanel({ hit, registry, index, total, review, onClose,
   const spec: Array<{ class_number: string; description: string }> = lookup?.mark?.goods_services ?? [];
 
   return (
-    <div className="fixed inset-0 z-40">
-      <div className="absolute inset-0 bg-black/20" onClick={onClose} />
-      <aside className="absolute right-0 top-0 flex h-full w-full max-w-xl flex-col overflow-y-auto bg-white shadow-xl">
-        <header className="flex items-center gap-2 border-b border-slate-200 px-4 py-3">
-          <div className="min-w-0 flex-1">
-            <h2 className="truncate text-base font-semibold text-slate-900">
+    <div className={`${styles.overlay} ${styles.overlayOpen}`}>
+      <div className={styles.backdrop} onClick={onClose} />
+      {/* Sits beside the Bree panel when it is open, exactly as DetailPanel does. */}
+      <div className={styles.panel} style={breeOpen ? { right: 360 } : undefined}>
+        <div className={styles.header}>
+          <div className={styles.headerInfo}>
+            <h2 className={styles.headerTitle}>
               {hitMarkText(hit) || '[no verbal element]'}
-              {isExactMatch(hit) && <span className="ml-2 rounded bg-rose-100 px-1.5 py-0.5 text-xs text-rose-800">identical</span>}
+              {isExactMatch(hit) && (
+                <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 8, background: 'rgba(235,87,87,0.1)', color: '#eb5757' }}>
+                  identical
+                </span>
+              )}
             </h2>
-            <p className="truncate text-xs text-slate-500">{registryLabel(registry)} · {appNo} · score {hit.score}</p>
+            <div className={styles.headerSub}>
+              {registryLabel(registry)} · {appNo} · score {hit.score}
+            </div>
           </div>
-          <span className="whitespace-nowrap text-xs text-slate-400">{index + 1} of {total}</span>
-          <button className="rounded border border-slate-300 px-2 py-1 text-sm disabled:opacity-40" onClick={onPrev} disabled={!onPrev} aria-label="Previous hit">←</button>
-          <button className="rounded border border-slate-300 px-2 py-1 text-sm disabled:opacity-40" onClick={onNext} disabled={!onNext} aria-label="Next hit">→</button>
-          <button className="rounded px-2 py-1 text-lg text-slate-400 hover:text-slate-700" onClick={onClose} aria-label="Close">×</button>
-        </header>
+          <span style={{ fontSize: 11, color: '#9b9a97', whiteSpace: 'nowrap', alignSelf: 'center' }}>
+            {index + 1} of {total}
+          </span>
+          <button className={styles.footerBtn} onClick={onPrev} disabled={!onPrev} aria-label="Previous result">←</button>
+          <button className={styles.footerBtn} onClick={onNext} disabled={!onNext} aria-label="Next result">→</button>
+          <button className={styles.closeBtn} onClick={onClose} aria-label="Close">×</button>
+        </div>
 
-        <Section title="The mark">
-          <dl className="grid grid-cols-[8rem_1fr] gap-x-3 gap-y-1 text-sm">
-            <dt className="text-slate-500">Owner</dt><dd className="text-slate-800">{hit.owner ?? 'not recorded'}</dd>
-            <dt className="text-slate-500">Status</dt><dd className="text-slate-800">{hit.status || '—'}</dd>
-            <dt className="text-slate-500">Application</dt><dd className="tabular-nums text-slate-800">{appNo}</dd>
-            <dt className="text-slate-500">Filed</dt><dd className="text-slate-800">{formatDate(hit.application_date)}</dd>
-            <dt className="text-slate-500">Classes</dt><dd className="text-slate-800">{hitClassesLabel(hit) || '—'}</dd>
-            {pickDates(lookup?.mark).map((d) => (
-              <span key={d.label} className="contents"><dt className="text-slate-500">{d.label}</dt><dd className="text-slate-800">{d.value}</dd></span>
-            ))}
-          </dl>
-          {link && (
-            <a href={link} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm text-slate-600 underline">
-              Open on the register ↗
-            </a>
-          )}
-        </Section>
-
-        <Section title="Goods and services">
-          {lookup === null ? (
-            <p className="text-sm text-slate-500">Reading the register…</p>
-          ) : !lookup.available ? (
-            <p className="text-sm text-amber-800">{lookup.reason ?? 'Not available for this register.'}</p>
-          ) : lookup.error ? (
-            <p className="text-sm text-amber-800">The register could not be read: {lookup.error}</p>
-          ) : lookup.found === false ? (
-            <p className="text-sm text-amber-800">
-              No record for {appNo} in the corpus. While UK009 coverage is partial that is not proof the mark does not
-              exist — check the register directly before relying on it.
-            </p>
-          ) : spec.length === 0 ? (
-            <p className="text-sm text-slate-500">The record carries no specification text.</p>
-          ) : (
-            <ul className="space-y-2 text-sm">
-              {spec.map((g, i) => (
-                <li key={i}>
-                  <div className="font-medium text-slate-800">Class {g.class_number}</div>
-                  <div className="text-slate-600">{g.description}</div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Section>
-
-        {(lookup?.ownerMarks?.length ?? 0) > 0 && (
-          <Section title="What else this owner holds">
-            <ul className="space-y-1 text-sm">
-              {lookup!.ownerMarks!.slice(0, 8).map((o) => (
-                <li key={o.ownerString} className="flex justify-between gap-3">
-                  <span className="text-slate-700">{o.ownerString}</span>
-                  <span className="whitespace-nowrap text-slate-500">{o.markCount} marks</span>
-                </li>
-              ))}
-            </ul>
-          </Section>
-        )}
-
-        {onReview && (
-          <Section title="Your review">
-            <div className="flex flex-wrap gap-2">
-              {TIERS.map((t) => (
-                <button
-                  key={t}
-                  onClick={() => onReview({ tier: t })}
-                  className={`rounded border px-2.5 py-1 text-sm ${
-                    tier === t ? 'border-slate-800 bg-slate-800 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  {TIER_LABEL[t]}
-                </button>
+        <div className={styles.body}>
+          <div className={styles.section}>
+            <div className={styles.sectionTitle}>The mark</div>
+            <div className={styles.grid}>
+              <div className={styles.field}>
+                <div className={styles.fieldLabel}>Owner</div>
+                <div className={styles.fieldValue}>{hit.owner ?? 'not recorded'}</div>
+              </div>
+              <div className={styles.field}>
+                <div className={styles.fieldLabel}>Status</div>
+                <div className={styles.fieldValue}>{hit.status || '—'}</div>
+              </div>
+              <div className={styles.field}>
+                <div className={styles.fieldLabel}>Application</div>
+                <div className={styles.fieldValue}>{appNo}</div>
+              </div>
+              <div className={styles.field}>
+                <div className={styles.fieldLabel}>Filed</div>
+                <div className={styles.fieldValue}>{formatDate(hit.application_date)}</div>
+              </div>
+              <div className={styles.field}>
+                <div className={styles.fieldLabel}>Classes</div>
+                <div className={styles.fieldValue}>{hitClassesLabel(hit) || '—'}</div>
+              </div>
+              {pickDates(lookup?.mark).map((d) => (
+                <div className={styles.field} key={d.label}>
+                  <div className={styles.fieldLabel}>{d.label}</div>
+                  <div className={styles.fieldValue}>{d.value}</div>
+                </div>
               ))}
             </div>
-            <textarea
-              className="mt-2 w-full rounded border border-slate-300 p-2 text-sm"
-              rows={3}
-              placeholder="Why this matters, or why it does not…"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              onBlur={() => { if (note !== (review?.note ?? '')) onReview({ note }); }}
-            />
-            <p className="text-xs text-slate-400">Saved when you click away.</p>
-          </Section>
-        )}
-      </aside>
+          </div>
+
+          <div className={styles.section}>
+            <div className={styles.sectionTitle}>Goods and services</div>
+            {lookup === null ? (
+              <div style={{ fontSize: 12, color: '#9b9a97' }}>Reading the register…</div>
+            ) : !lookup.available ? (
+              <div style={{ fontSize: 12, color: '#b7791f' }}>{lookup.reason ?? 'Not available for this register.'}</div>
+            ) : lookup.error ? (
+              <div style={{ fontSize: 12, color: '#b7791f' }}>The register could not be read: {lookup.error}</div>
+            ) : lookup.found === false ? (
+              <div style={{ fontSize: 12, color: '#b7791f' }}>
+                No record for {appNo} in the corpus. While UK009 coverage is partial that is not proof the mark does not
+                exist — check the register directly before relying on it.
+              </div>
+            ) : spec.length === 0 ? (
+              <div style={{ fontSize: 12, color: '#9b9a97' }}>The record carries no specification text.</div>
+            ) : (
+              <div>
+                {spec.map((g, i) => (
+                  <div key={i} style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#37352f' }}>Class {g.class_number}</div>
+                    <div style={{ fontSize: 12, color: '#6b6a67', lineHeight: 1.5 }}>{g.description}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {(lookup?.ownerMarks?.length ?? 0) > 0 && (
+            <div className={styles.section}>
+              <div className={styles.sectionTitle}>What else this owner holds</div>
+              {lookup!.ownerMarks!.slice(0, 8).map((o) => (
+                <div key={o.ownerString} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 12, padding: '3px 0' }}>
+                  <span style={{ color: '#37352f' }}>{o.ownerString}</span>
+                  <span style={{ color: '#9b9a97', whiteSpace: 'nowrap' }}>{o.markCount} marks</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {onReview && (
+            <div className={styles.section}>
+              <div className={styles.sectionTitle}>Your review</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                {TIERS.map((t) => (
+                  <button
+                    key={t}
+                    className={styles.footerBtn}
+                    onClick={() => onReview({ tier: t })}
+                    style={tier === t ? { borderColor: '#37352f', color: '#37352f', fontWeight: 600 } : undefined}
+                  >
+                    {TIER_LABEL[t]}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                className={styles.noteEditor}
+                rows={3}
+                placeholder="Why this matters, or why it does not…"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                onBlur={() => { if (note !== (review?.note ?? '')) onReview({ note }); }}
+                style={{ width: '100%', minHeight: 64 }}
+              />
+              <div style={{ fontSize: 10, color: '#9b9a97', marginTop: 4 }}>Saved when you click away.</div>
+            </div>
+          )}
+        </div>
+
+        <div className={styles.footer}>
+          {link && (
+            <a className={styles.footerBtn} href={link} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
+              🔗 Open on the register
+            </a>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
