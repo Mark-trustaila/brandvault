@@ -269,19 +269,22 @@ export default function ResultsPanel({ result, polling, error, reviews = {}, onT
           {/* Fixed layout with sized columns, so the last column is as visible
               as the first. It was auto: the browser gave the wide cells what
               they asked for and cropped Tier to "TIE", which is worse than
-              scrolling because nothing tells you a column was lost. The main
-              column at 1280px gives this about 644px; below that the container
-              scrolls rather than cropping. */}
+              scrolling because nothing tells you a column was lost. The centre
+              column never goes below its 640 floor, which is what these widths
+              are sized to. */}
           <div className="overflow-x-auto rounded border border-line">
             <table className="w-full min-w-[640px] table-fixed text-left text-sm">
+              {/* Sized to the centre's 640 floor: 480 fixed leaves 160 for the
+                  mark and owner at the narrowest the column ever gets, and all
+                  of the slack above that. */}
               <colgroup>
-                <col style={{ width: 32 }} />
-                <col style={{ width: 68 }} />
+                <col style={{ width: 28 }} />
+                <col style={{ width: 60 }} />
                 <col />
-                <col style={{ width: 104 }} />
-                <col style={{ width: 104 }} />
-                <col style={{ width: 124 }} />
-                <col style={{ width: 88 }} />
+                <col style={{ width: 96 }} />
+                <col style={{ width: 96 }} />
+                <col style={{ width: 116 }} />
+                <col style={{ width: 84 }} />
               </colgroup>
               <thead className="bg-surface-muted text-xs uppercase tracking-wide text-ink-muted">
                 <tr>

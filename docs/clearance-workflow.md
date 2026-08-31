@@ -37,6 +37,48 @@ The nav entry is a noun, Registry searches, listing past searches. The same
 table sits under the query box on the search page, so the two routes show the
 same thing.
 
+### The column system
+
+Settled 31 August 2026. The three columns are a system, not three numbers. The
+widths live once, in `app/globals.css` as custom properties, mirrored in
+`lib/layout.ts` for documentation and tests, with a test holding the two to each
+other.
+
+| Viewport | Nav | Centre | Rail |
+| --- | --- | --- | --- |
+| 1280 | 240 | 640 | 400 |
+| 1440 | 240 | 760 | 440 |
+| 1680 | 240 | 1000 | 440 |
+| 1920 | 240 | 1240 | 440 |
+
+The nav is fixed at 240. Its content is short labels and a long index, and wider
+only pushes the counts away from the labels.
+
+The rail is the reading column and the second widest, not the narrowest. Fixed
+at 440 from 1440 up: its cards take two comfortable sentences per line, the
+panels' field grids run two columns, and four footer actions fit with their
+labels. Between 1280 and 1440 it gives up 40px so the centre keeps its floor.
+
+The centre takes the remainder, floored at 640 — the width at which the results
+table stays legible without scrolling — and uncapped above it, because lists and
+tables use width honestly. The results table's column widths are sized to that
+floor.
+
+1280 is the breakpoint precisely because it is where the centre reaches its
+floor: 1280 − 240 − 400 = 640. Below it the rail leaves the flow rather than
+squeezing the centre under. Panels are fixed-position slide-overs and are
+unaffected.
+
+The slide-over panels read the same `--rail-width` variable, so a panel opens
+exactly where the rail is, no edge moves, and both change together at the
+breakpoint because there is only one number to change. Bree's floating button
+offsets by the same variable when a panel is open.
+
+**One gap, flagged rather than built:** below 1280 the rail is out of the flow
+and there is no control to summon its content as an overlay. Panels still work;
+the rail's own cards are simply not reachable at that width. A small trigger in
+the top bar would close it.
+
 **The page renders inside the application frame.** It shipped as a bare document
 with a back link, which read as a different product rather than another room in
 the same one. `components/layout/AppShell.tsx` — extracted from `app/page.tsx`,

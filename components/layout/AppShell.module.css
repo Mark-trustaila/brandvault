@@ -1,0 +1,27 @@
+/* The three-column frame. A CSS module rather than utilities because the
+   columns are driven by custom properties and a breakpoint, which is what the
+   other layout components here use too. Values live in app/globals.css. */
+
+.centre {
+  flex: 1;
+  /* The width at which the results table stays legible without scrolling. */
+  min-width: var(--centre-floor);
+  overflow-y: auto;
+  padding: 20px 28px;
+}
+
+.railBox {
+  display: flex;
+  flex: 0 0 var(--rail-width);
+  width: var(--rail-width);
+  /* The rail sizes from the variable, never from its content: a rail that grew
+     to fit a long card would move the centre's right edge between views. */
+  min-width: 0;
+}
+
+/* Below 1280 the rail leaves the flow rather than squeezing the centre under
+   its floor. Panels are position:fixed slide-overs and are unaffected, so they
+   keep working at the same width. */
+@media (max-width: 1279px) {
+  .railBox { display: none; }
+}

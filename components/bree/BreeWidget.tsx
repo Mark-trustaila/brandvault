@@ -44,7 +44,7 @@ function timeAgo(iso: string): string {
 }
 
 export default function BreeWidget() {
-  const { breeOpen, setBreeOpen, data, setSelectedTrademark, showReport, editTarget } = useDashboard();
+  const { breeOpen, setBreeOpen, data, setSelectedTrademark, showReport, editTarget, sidePanelOpen } = useDashboard();
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const [unread, setUnread] = useState(0);
   const [search, setSearch] = useState('');
@@ -161,7 +161,14 @@ export default function BreeWidget() {
       {!breeOpen && !showReport && !editTarget && (
         <button
           onClick={() => setBreeOpen(true)}
-          style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 9999 }}
+          // Left of an open slide-over rather than under it. The offset is the
+          // rail variable, so it tracks the panel through the 1440 breakpoint
+          // without a second number to keep in step.
+          style={{
+            position: 'fixed', bottom: 20, zIndex: 9999,
+            right: sidePanelOpen ? 'calc(var(--rail-width) + 20px)' : 20,
+            transition: 'right 0.12s',
+          }}
           className="flex items-center gap-2 rounded-full bg-bree px-4 py-2.5 text-sm font-semibold text-white shadow-lg hover:bg-bree-hover"
         >
           <BreeAvatar size={20} />

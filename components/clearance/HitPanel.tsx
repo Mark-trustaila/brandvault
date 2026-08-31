@@ -74,10 +74,18 @@ export default function HitPanel({ hit, registry, index, total, review, onClose,
   onNext?: () => void;
   onReview?: (patch: { tier?: Tier; note?: string }) => void;
 }) {
-  const { breeOpen } = useDashboard();
+  const { breeOpen, setHitPanelOpen } = useDashboard();
   const [lookup, setLookup] = useState<Lookup | null>(null);
   const [note, setNote] = useState(review?.note ?? '');
   const appNo = hit.application_number;
+
+  // Announce the panel for the length of its life, so anything that has to
+  // step out from under it — Bree's floating button — can, and so closing it
+  // puts things back without the panel having to know who moved.
+  useEffect(() => {
+    setHitPanelOpen(true);
+    return () => setHitPanelOpen(false);
+  }, [setHitPanelOpen]);
 
   // Reset per result: stepping to the next one must not carry the previous
   // note into a different mark's textarea.
