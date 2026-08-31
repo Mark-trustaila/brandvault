@@ -1,9 +1,14 @@
-import Link from 'next/link';
+import AppShell from '../../components/layout/AppShell';
 import { changelogEntries, formatEntryDate } from '../../lib/changelog';
 
 /**
  * What's new. Reads a hardcoded list in lib/changelog.ts, so this page touches
  * no database and no tenant data: the same entries are shown to everyone.
+ *
+ * Renders inside the application frame like every other view. It stays a public
+ * route, so a signed-out reader sees the frame with an empty portfolio — the
+ * nav and breadcrumb still name where they are, which is the point of the
+ * frame being everywhere.
  */
 export const dynamic = 'force-static';
 
@@ -13,12 +18,9 @@ export default function WhatsNewPage() {
   const entries = changelogEntries();
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12">
-      <Link href="/" className="text-sm text-slate-400 hover:text-slate-700">
-        ← Dashboard
-      </Link>
-
-      <h1 className="mt-6 text-2xl font-bold text-slate-800">What&rsquo;s new</h1>
+    <AppShell>
+      <div className="max-w-2xl">
+      <h1 className="text-2xl font-bold text-slate-800">What&rsquo;s new</h1>
       <p className="mt-1 text-sm text-slate-500">Changes to BrandVault, most recent first.</p>
 
       {/* list-none + pl-0 are load-bearing: Tailwind's Preflight is disabled
@@ -34,6 +36,7 @@ export default function WhatsNewPage() {
           </li>
         ))}
       </ol>
-    </main>
+      </div>
+    </AppShell>
   );
 }

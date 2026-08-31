@@ -1,4 +1,5 @@
 'use client';
+import { useEffect, useState } from 'react';
 import styles from './RightPanel.module.css';
 import MarkTile from '../ui/MarkTile';
 import { useDashboard } from '../../context/DashboardContext';
@@ -12,8 +13,28 @@ import {
   renewalsDueWithin,
 } from '../../lib/utils';
 
+type RegistryCoverage = {
+  currencyDate: string | null;
+  coverage: Record<string, { partial: boolean; note: string } | undefined> | null;
+};
+
 export default function RightPanel() {
   const { data, setSelectedTrademark } = useDashboard();
+
+  // The register's own statement about what it does and does not hold. Read
+  // from the registry rather than written here: the UK009 figure moves when the
+  // baseline ingest lands, and a number typed into a component would keep
+  // asserting the old one.
+  const [registry, setRegistry] = useState<RegistryCoverage | null>(null);
+  useEffect(() => {
+    let live = true;
+    fetch('/api/registry/coverage')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((j) => { if (live && j) setRegistry(j); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, []);
+  const caveats = Object.values(registry?.coverage ?? {}).filter((c) => c?.partial);
 
   // Same window and same records as the StatsBar's Needs Action count, so the two
   // always agree. These are individual rights records, not distinct mark names.
@@ -67,8 +88,16 @@ export default function RightPanel() {
         <div className={styles.alertCard}>
           <div className={styles.alertText}>
             Live from the BrandVault database. Last loaded: {data?.fetchedAt ? new Date(data.fetchedAt).toLocaleDateString('en-GB') : '—'}.
+            {registry?.currencyDate && <> Register data as at {registry.currencyDate}.</>}
           </div>
         </div>
+        {/* Stated once, here, rather than above every set of search results.
+            Slice 2 carries the same words into the report disclaimer. */}
+        {caveats.map((c, i) => (
+          <div key={i} className={styles.alertCard} style={{ marginTop: 8 }}>
+            <div className={styles.alertText}>⚠ {c!.note}</div>
+          </div>
+        ))}
       </div>
 
       <div>

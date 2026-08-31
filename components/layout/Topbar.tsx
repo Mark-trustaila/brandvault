@@ -1,8 +1,9 @@
 'use client';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import styles from './Topbar.module.css';
 import { useDashboard } from '../../context/DashboardContext';
 import { AuthControls } from '../auth/AuthControls';
+import { breadcrumbLabel } from '../../lib/nav';
 const IconSearch = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{display:'inline-block', verticalAlign:'middle', marginRight:4}}>
     <circle cx="11" cy="11" r="8"/>
@@ -19,6 +20,7 @@ const IconReport = () => (
 export default function Topbar() {
   const { data, setShowReport, setEditTarget } = useDashboard();
   const router = useRouter();
+  const pathname = usePathname();
 
   return (
     <header className={styles.topbar}>
@@ -26,7 +28,7 @@ export default function Topbar() {
         <div className={styles.breadcrumb}>
           <span>BrandVault</span>
           <span>/ {data?.company?.name ?? 'BrandVault'}</span>
-          <span>/ Dashboard</span>
+          <span>/ {breadcrumbLabel(pathname)}</span>
         </div>
       </div>
       <div className={styles.right}>

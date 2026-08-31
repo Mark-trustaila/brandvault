@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
+import AppShell from '../../components/layout/AppShell';
 import { bvFetch } from '../../lib/client/acting-company';
 
 type Classification = {
@@ -82,9 +83,9 @@ export default function InboxPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10">
-      <a href="/" className="text-sm text-slate-500 hover:text-slate-700">← Dashboard</a>
-      <h1 className="mt-2 text-2xl font-semibold text-slate-900">Inbox</h1>
+    <AppShell>
+      <div className="max-w-4xl">
+      <h1 className="text-2xl font-semibold text-slate-900">Inbox</h1>
       <p className="mt-1 text-sm text-slate-500">Registry correspondence Bree classified. Confirm, correct, or dismiss.</p>
 
       <div className="mt-6 flex gap-1 border-b border-slate-200">
@@ -165,7 +166,8 @@ export default function InboxPage() {
           ))}
         </ul>
       )}
-    </div>
+      </div>
+    </AppShell>
   );
 }
 

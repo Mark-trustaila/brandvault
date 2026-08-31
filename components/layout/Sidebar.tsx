@@ -1,12 +1,16 @@
 'use client';
-import { useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import styles from './Sidebar.module.css';
 import { useDashboard } from '../../context/DashboardContext';
+import { isActive } from '../../lib/nav';
 
 export default function Sidebar() {
   const { data, setActiveTab, setFocusedMark, setSearchQuery, setBreeOpen } = useDashboard();
-  const router = useRouter();
+  // Which entry reads as current. Follows the route rather than being fixed on
+  // Dashboard, which claimed you were on the dashboard from every other view.
+  const pathname = usePathname();
+  const nav = (href: string) => `${styles.navItem}${isActive(pathname, href) ? ` ${styles.active}` : ''}`;
 
   const marksByName: Record<string, number> = {};
   data?.trademarks.forEach(t => {
@@ -35,7 +39,7 @@ export default function Sidebar() {
 
       <div className={styles.sectionLabel}>BRANDVAULT</div>
 
-      <div className={`${styles.navItem} ${styles.active}`}>
+      <Link href="/" className={nav('/')} onClick={() => { setSearchQuery(''); setBreeOpen(false); }}>
         <svg viewBox="0 0 24 24" fill="none" strokeWidth="2">
           <rect x="3" y="3" width="7" height="7" rx="1"/>
           <rect x="14" y="3" width="7" height="7" rx="1"/>
@@ -43,7 +47,7 @@ export default function Sidebar() {
           <rect x="14" y="14" width="7" height="7" rx="1"/>
         </svg>
         <span>Dashboard</span>
-      </div>
+      </Link>
 
       <div className={`${styles.navItem} ${styles.dimmed}`}>
         <svg viewBox="0 0 24 24" fill="none" strokeWidth="2">
@@ -58,7 +62,7 @@ export default function Sidebar() {
           together, so this lands somewhere useful even with nothing to run. A
           Link, so middle-click and open-in-new-tab work — comparing a result
           against the portfolio wants two tabs. */}
-      <Link href="/clearance" className={styles.navItem}>
+      <Link href="/clearance" className={nav('/clearance')}>
         <svg viewBox="0 0 24 24" fill="none" strokeWidth="2">
           <circle cx="11" cy="11" r="8"/>
           <line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -66,20 +70,20 @@ export default function Sidebar() {
         <span>Registry searches</span>
       </Link>
 
-      <div className={styles.navItem} style={{ cursor: 'pointer' }} onClick={() => router.push('/inbox')}>
+      <Link href="/inbox" className={nav('/inbox')}>
         <svg viewBox="0 0 24 24" fill="none" strokeWidth="2">
           <path d="M22 12h-6l-2 3h-4l-2-3H2"/>
           <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
         </svg>
         <span>Inbox</span>
-      </div>
+      </Link>
 
       {/* Last item of the BRANDVAULT group. A Link rather than a router.push
           div so it is a real anchor: middle-click, open-in-new-tab and the
           status bar all work, which matters more here than on the in-app
           routes because this page is public and gets shared. Same .navItem
           class as the items above, so icon, weight, colour and hover match. */}
-      <Link href="/whats-new" className={styles.navItem}>
+      <Link href="/whats-new" className={nav('/whats-new')}>
         <svg viewBox="0 0 24 24" fill="none" strokeWidth="2">
           <path d="m3 11 18-5v12L3 14v-3z" />
           <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
