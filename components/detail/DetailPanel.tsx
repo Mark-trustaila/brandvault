@@ -393,7 +393,7 @@ export default function DetailPanel() {
               className={styles.footerBtn}
               onClick={() => router.push(clearanceHref(selectedTrademark))}
             >
-              🔍 Clearance search
+              🔍 Check register
             </button>
           )}
           <button className={styles.footerBtn}>📋 Copy details</button>

@@ -108,7 +108,7 @@ export function noticeImportance(hits: SmartSearchHit[]): number {
 export function noticeFor(
   result: SmartSearchResult,
   kind: SearchKind,
-  opts: { markRef?: string | null; markText?: string | null; base?: string } = {},
+  opts: { markRef?: string | null; markText?: string | null; base?: string; recordId?: string | null } = {},
 ): WatchNoticePlan | null {
   if (kind !== 'watch') return null;
   if (result.status !== 'completed' || !result.results) return null;
@@ -122,7 +122,11 @@ export function noticeFor(
     // feed; the search id is the thing that distinguishes two runs.
     noticeRef: result.search_id,
     noticeSummary: noticeSummary(term, result.results),
-    deepLink: resultsDeepLink(result.search_id, opts.base),
+    // `?search=` on /clearance means a saved ClearanceSearch id, not a facade
+    // search id — the page reopens a record. A watch search will be a record
+    // like any other (Unit C), so pass its id; the facade id is the fallback
+    // and would land on a record that does not exist.
+    deepLink: resultsDeepLink(opts.recordId ?? result.search_id, opts.base),
     title: matterTitle('Watch', opts.markText ?? term, markRef),
     importance: noticeImportance(result.results),
   };

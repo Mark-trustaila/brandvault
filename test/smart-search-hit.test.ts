@@ -145,7 +145,7 @@ describe('result ordering', () => {
   it('the panel does not re-rank the facade\'s order', () => {
     const src = readFileSync('components/clearance/ResultsPanel.tsx', 'utf8');
     expect(src).not.toMatch(/\.sort\(/);
-    expect(src).toContain('const hits = result.results ?? [];');
+    expect(src).toContain('const hits = useMemo(() => result?.results ?? [], [result]);');
   });
 });
 
@@ -256,26 +256,45 @@ describe('truncationNotice', () => {
   });
 });
 
-describe('the panel warns before the list, not after it', () => {
+/**
+ * The panel after the workflow redesign (docs/clearance-workflow.md §4).
+ *
+ * Two rules changed deliberately and are pinned in their new form. Similarity
+ * is gone from the table — the LawPanel string is a bucketed edit distance with
+ * known bugs, and showing it beside the score invited a reader to trust the
+ * word over the number. And the truncation rubric became one line under the
+ * table: the fact belongs next to the list it truncated, not above it as a
+ * three-paragraph warning nobody finishes.
+ */
+describe('the results table', () => {
   const src = readFileSync('components/clearance/ResultsPanel.tsx', 'utf8');
 
-  it('renders the notice from the decision, not from an inline check', () => {
-    expect(src).toContain('const notice = truncationNotice(result);');
+  it('leads on score and does not show similarity at all', () => {
+    expect(src).toContain('>Score<');
+    expect(src).not.toContain('>Similarity<');
+    expect(src).not.toMatch(/hit\.similarity/);
   });
 
-  // Order matters: a warning under a table of 2000 rows is a footnote, and the
-  // brief for this was a warning.
-  it('places the notice above the results table', () => {
-    expect(src.indexOf('<TruncationNotice')).toBeGreaterThan(-1);
-    expect(src.indexOf('<TruncationNotice')).toBeLessThan(src.indexOf('<table'));
+  it('marks the identical match rather than leaving it to be spotted', () => {
+    expect(src).toContain('isExactMatch(hit)');
+    expect(src).toContain('identical');
   });
 
-  // The headline takes the same decision as the notice, so the two lines cannot
-  // disagree — and it must not read total_available or result_count directly,
-  // which is how "250 hits" would reappear as a total.
-  it('derives the headline count from the same decision', () => {
+  it('carries no results-count headline', () => {
+    // A count above the table reads as a finding. The number is in the table.
+    expect(src).not.toMatch(/\{hits\.length\}\s*\{?\s*hits\.length === 1/);
+    expect(src).not.toContain('rated very high');
+  });
+
+  it('states the cap in one line, under the table', () => {
     expect(src).toContain('const notice = truncationNotice(result);');
-    expect(src).toContain('the register holds more');
-    expect(src).not.toMatch(/lead =[^;]*result\.total_available/);
+    expect(src).toContain('shown;');
+    expect(src.indexOf('</table>')).toBeLessThan(src.indexOf('shown;'));
+  });
+
+  it('offers the tier column and the bulk actions that fill it', () => {
+    expect(src).toContain('>Tier<');
+    expect(src).toContain('tierOf(reviews');
+    expect(src).toContain('quickSelect(hits');
   });
 });
