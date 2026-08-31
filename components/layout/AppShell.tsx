@@ -20,6 +20,11 @@
  * "BrandVault" where every other page says the customer's name.
  */
 import { useEffect, type ReactNode } from 'react';
+import styles from './AppShell.module.css';
+// The widths themselves live in lib/layout.ts, which globals.css mirrors and a
+// test holds to it. Kept out of this file so the tests can read them: a .tsx
+// cannot be imported under this project's jsx: preserve.
+export { NAV_WIDTH, RAIL_WIDTH, RAIL_WIDTH_NARROW, CENTRE_FLOOR, RAIL_FULL_FROM, RAIL_IN_FLOW_FROM } from '../../lib/layout';
 import { DashboardProvider, useDashboard } from '../../context/DashboardContext';
 import { PlatformAdminBar } from '../admin/PlatformAdminBar';
 import Sidebar from './Sidebar';
@@ -32,16 +37,6 @@ import BreeWidget from '../bree/BreeWidget';
 import type { TrademarkData } from '../../types/trademark';
 import { bvFetch, getActingCompany } from '../../lib/client/acting-company';
 import { cacheKey, staleWhileRevalidate } from '../../lib/client/dashboard-cache';
-
-/**
- * The rail's width, owned here rather than by the rail itself.
- *
- * The dashboard's rendered width, fixed, so the frame is identical on every
- * view and the main column absorbs the difference. A rail that sized itself to
- * its content would make the main column jump between views, which reads as the
- * page having moved rather than the content having changed.
- */
-const RAIL_WIDTH = 340;
 
 function Frame({ children, rightRail = true, overlay }: {
   children: ReactNode;
@@ -69,13 +64,11 @@ function Frame({ children, rightRail = true, overlay }: {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Topbar />
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-          {/* minWidth 0 so the main column can shrink rather than pushing the
-              rail off; without it a wide table would widen the flex item. */}
-          <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '20px 28px' }}>
+          <div className={styles.centre}>
             {children}
           </div>
           {rightRail && (
-            <div style={{ flex: `0 0 ${RAIL_WIDTH}px`, width: RAIL_WIDTH, minWidth: 0, display: 'flex' }}>
+            <div className={styles.railBox}>
               <RightPanel />
             </div>
           )}

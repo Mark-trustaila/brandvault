@@ -24,6 +24,18 @@ interface DashboardContextType {
   setFocusedMark: (mark: string | null) => void;
   breeOpen: boolean;
   setBreeOpen: (open: boolean) => void;
+  /**
+   * A page-owned slide-over is open — the registry-search hit panel. Set by
+   * that panel; the portfolio's own DetailPanel is inferred from
+   * selectedTrademark and needs no flag.
+   */
+  hitPanelOpen: boolean;
+  setHitPanelOpen: (open: boolean) => void;
+  /**
+   * Either slide-over is open. Bree's floating button reads this to step out
+   * from under whichever one it is, without needing to know which.
+   */
+  sidePanelOpen: boolean;
 }
 
 const DashboardContext = createContext<DashboardContextType | null>(null);
@@ -38,6 +50,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [focusedMark, setFocusedMark] = useState<string | null>(null);
   const [editTarget, setEditTarget] = useState<Trademark | 'new' | null>(null);
   const [breeOpen, setBreeOpen] = useState(false);
+  const [hitPanelOpen, setHitPanelOpen] = useState(false);
 
   // Arriving from a Slack link with ?q=<text>: apply that search immediately,
   // so the dashboard lands filtered rather than showing the whole portfolio
@@ -57,6 +70,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   return (
     <DashboardContext.Provider value={{
       data, setData, searchQuery, setSearchQuery,
+      hitPanelOpen, setHitPanelOpen,
+      sidePanelOpen: hitPanelOpen || selectedTrademark !== null,
       activeTab, setActiveTab,
       pipelineFilter, setPipelineFilter,
       selectedTrademark, setSelectedTrademark,

@@ -10,6 +10,7 @@
  * defect below is a field-name or semantics question only real data answered.
  */
 import { describe, it, expect } from 'vitest';
+import { CENTRE_FLOOR } from '../lib/layout';
 import { readFileSync } from 'fs';
 import { hitMarkText, hitClasses, hitClassesLabel, truncationNotice, type SmartSearchHit } from '../lib/smart-search-hit';
 
@@ -313,11 +314,19 @@ describe('the results table', () => {
     expect(cols.length, 'one col per column').toBe(headers.length);
   });
 
-  it('fits the column it is in, and scrolls only below that', () => {
+  it('is sized to the centre column\'s floor, not to a guess', () => {
     const min = Number(src.match(/min-w-\[(\d+)px\]/)?.[1]);
-    // 1280 viewport − 240 sidebar − 340 rail − 56 padding = 644.
-    expect(min).toBeLessThanOrEqual(644);
+    expect(min).toBeLessThanOrEqual(CENTRE_FLOOR);
     expect(src).toContain('overflow-x-auto');
+  });
+
+  // Everything but the mark and owner is a fixed width, so the slack above the
+  // floor goes to the column that can use it.
+  it('leaves the mark and owner room at the floor', () => {
+    const fixed = (src.match(/<col style=\{\{ width: (\d+) \}\} \/>/g) ?? [])
+      .map((c) => Number(c.match(/(\d+)/)![1]))
+      .reduce((a, b) => a + b, 0);
+    expect(CENTRE_FLOOR - fixed).toBeGreaterThanOrEqual(150);
   });
 
   it('wraps the cells that would otherwise set the width', () => {

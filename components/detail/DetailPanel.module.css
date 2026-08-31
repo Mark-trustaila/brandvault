@@ -18,12 +18,12 @@
   top: 0;
   right: 0;
   bottom: 0;
-  /* The rail's width (AppShell RAIL_WIDTH), so a panel opens exactly where the
-     rail is and covers it rather than reaching 180px further into the main
-     column. The rail underneath does not move either way, but at 520px the eye
-     read the left edge jumping, and that jump was the movement. Now no edge
-     moves: the panel replaces what the rail was showing. */
-  width: 340px;
+  /* The rail's width, from the one variable that defines it (globals.css), so a
+     panel opens exactly where the rail is and no edge moves — including at the
+     1440 breakpoint, where both change together because there is only one
+     number to change. Reading it here rather than repeating it is what makes
+     "the panel equals the rail" structural instead of a coincidence to police. */
+  width: var(--rail-width);
   background: #fff;
   border-left: 1px solid #e8e5e0;
   box-shadow: -2px 0 12px rgba(0,0,0,0.06);
@@ -89,14 +89,23 @@
   margin-bottom: 10px;
 }
 
-/* One column at the panel's width. Two 170px columns would crop a date and
-   hyphenate an owner; stacked, nothing is cut. */
+/* One column at the narrow rail (400): two 176px columns crop a date and
+   hyphenate an owner. At 440 there is room for two, which is most of the point
+   of the wider rail. */
 .grid {
   display: grid;
   grid-template-columns: 1fr;
   border: 1px solid #e8e5e0;
   border-radius: 8px;
   overflow: hidden;
+}
+
+@media (min-width: 1440px) {
+  .grid { grid-template-columns: 1fr 1fr; }
+  /* The interior vertical rule returns with the second column, and the cells
+     in the right-hand one do not need it. */
+  .field { border-right: 1px solid #f0efec; }
+  .field:nth-child(even) { border-right: none; }
 }
 
 .field {
@@ -386,17 +395,24 @@
   font-style: italic;
 }
 
+/* Four actions on one row with their labels. nowrap rather than wrap: a footer
+   that reflows to two rows moves the panel's content up, and at 440 there is
+   room for all four. Below that the row scrolls rather than reflowing. */
 .footer {
   padding: 16px 24px;
   border-top: 1px solid #e8e5e0;
   display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
   gap: 8px;
   flex-shrink: 0;
 }
 
 .footerBtn {
   font-size: 12px;
-  padding: 6px 14px;
+  flex: none;
+  white-space: nowrap;
+  padding: 6px 12px;
   border-radius: 6px;
   border: 1px solid #e8e5e0;
   background: #fff;

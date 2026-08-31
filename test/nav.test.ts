@@ -9,6 +9,10 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { NAV_VIEWS, viewForPath, breadcrumbLabel, isActive } from '../lib/nav';
+import {
+  NAV_WIDTH, RAIL_WIDTH, RAIL_WIDTH_NARROW, CENTRE_FLOOR,
+  RAIL_FULL_FROM, RAIL_IN_FLOW_FROM,
+} from '../lib/layout';
 
 describe('viewForPath', () => {
   it('maps each route to its view', () => {
@@ -117,25 +121,97 @@ describe('every view renders inside the frame', () => {
   });
 });
 
-describe('the frame is the same width on every view', () => {
-  const shell = readFileSync('components/layout/AppShell.tsx', 'utf8');
-  const railCss = readFileSync('components/layout/RightPanel.module.css', 'utf8');
+/**
+ * The three columns are a system, not three numbers.
+ *
+ * Pinned as relationships wherever one exists, because a number in a test is a
+ * number someone updates when it fails. The one place numbers are asserted is
+ * the arithmetic itself — that the columns add up at each breakpoint — which is
+ * the thing that would otherwise be checked by eye against a screenshot.
+ */
+describe('the column system', () => {
+  const globals = readFileSync('app/globals.css', 'utf8');
+  const shellCss = readFileSync('components/layout/AppShell.module.css', 'utf8');
+  const detailCss = readFileSync('components/detail/DetailPanel.module.css', 'utf8');
 
-  // A rail that sized itself to its content would make the main column jump
-  // between views, which reads as the page moving rather than the content.
-  it('fixes the rail width in the shell, at the dashboard\'s width', () => {
-    expect(shell).toContain('const RAIL_WIDTH = 340');
-    expect(shell).toMatch(/flex: `0 0 \$\{RAIL_WIDTH\}px`/);
+  /**
+   * The body of one CSS rule.
+   *
+   * Needed because `/\.panel \{[\s\S]*?width: \d+px/` cheerfully matches a
+   * `width` in some later rule and reports the opposite of the truth — which is
+   * exactly what it did the first time these were written.
+   */
+  const ruleBody = (css: string, selector: string) => {
+    const at = css.indexOf(`${selector} {`);
+    if (at === -1) return '';
+    return css.slice(at, css.indexOf('}', at));
+  };
+
+  const cssVar = (css: string, name: string, after?: string) => {
+    const scope = after ? css.slice(css.indexOf(after)) : css;
+    return Number(scope.match(new RegExp(`--${name}:\\s*(\\d+)px`))?.[1]);
+  };
+
+  // The constants are documentation and test fixtures; globals.css is the
+  // source. A test rather than a convention, because two places holding one
+  // number is exactly what drifts.
+  it('declares the same widths in CSS and in the constants', () => {
+    expect(cssVar(globals, 'sidebar-width')).toBe(NAV_WIDTH);
+    expect(cssVar(globals, 'centre-floor')).toBe(CENTRE_FLOOR);
+    expect(cssVar(globals, 'rail-width')).toBe(RAIL_WIDTH_NARROW);
+    expect(cssVar(globals, 'rail-width', '@media (min-width: 1440px)')).toBe(RAIL_WIDTH);
+    expect(globals).toContain(`@media (min-width: ${RAIL_FULL_FROM}px)`);
+    expect(shellCss).toContain(`@media (max-width: ${RAIL_IN_FLOW_FROM - 1}px)`);
   });
 
-  it('lets the rail fill that box and wrap, rather than demand a width', () => {
-    expect(railCss).toMatch(/\.panel \{[\s\S]*?width: 100%/);
-    expect(railCss).not.toMatch(/\.panel \{[\s\S]*?min-width: 340px/);
-    expect(railCss).toMatch(/overflow-wrap: anywhere/);
+  // The relationship that keeps a panel from moving an edge when it opens.
+  // One variable, read by both, so they cannot drift — including across the
+  // 1440 breakpoint, where both change because there is only one number.
+  it('gives the panel the rail\'s width, from the rail\'s own variable', () => {
+    expect(ruleBody(shellCss, '.railBox')).toContain('width: var(--rail-width)');
+    expect(ruleBody(detailCss, '.panel')).toContain('width: var(--rail-width)');
+    // Not a number anywhere in that rule: a hardcoded width is the drift.
+    expect(ruleBody(detailCss, '.panel')).not.toMatch(/width: \d+px/);
   });
 
-  it('lets the main column absorb the difference', () => {
-    expect(shell).toMatch(/flex: 1, minWidth: 0/);
+  it('opens the panel flush with the rail, at the right edge', () => {
+    expect(ruleBody(detailCss, '.panel')).toMatch(/right: 0/);
+  });
+
+  it('floors the centre and lets it grow without limit', () => {
+    expect(ruleBody(shellCss, '.centre')).toContain('min-width: var(--centre-floor)');
+    expect(ruleBody(shellCss, '.centre')).not.toContain('max-width');
+  });
+
+  // The published table, checked rather than trusted.
+  it('adds up at every breakpoint', () => {
+    const railAt = (w: number) => (w >= RAIL_FULL_FROM ? RAIL_WIDTH : RAIL_WIDTH_NARROW);
+    const centreAt = (w: number) => w - NAV_WIDTH - railAt(w);
+    expect([1280, 1440, 1680, 1920].map((w) => [w, NAV_WIDTH, centreAt(w), railAt(w)])).toEqual([
+      [1280, 240, 640, 400],
+      [1440, 240, 760, 440],
+      [1680, 240, 1000, 440],
+      [1920, 240, 1240, 440],
+    ]);
+  });
+
+  // 1280 is the breakpoint precisely because it is where the centre reaches its
+  // floor. If either number moves without the other, this is what says so.
+  it('puts the rail out of the flow exactly where the centre would go under', () => {
+    expect(RAIL_IN_FLOW_FROM - NAV_WIDTH - RAIL_WIDTH_NARROW).toBe(CENTRE_FLOOR);
+    expect(shellCss).toMatch(/@media \(max-width: 1279px\) \{[\s\S]*?\.railBox \{ display: none/);
+  });
+
+  // The wider rail is for the cards; two columns in the panel is the visible
+  // half of that, and it arrives at the same breakpoint the width does.
+  it('returns the panel grid to two columns with the wider rail', () => {
+    expect(detailCss).toMatch(/@media \(min-width: 1440px\) \{[\s\S]*?grid-template-columns: 1fr 1fr/);
+    expect(ruleBody(detailCss, '.grid')).toContain('grid-template-columns: 1fr;');
+  });
+
+  it('keeps the four footer actions on one row', () => {
+    expect(ruleBody(detailCss, '.footer')).toContain('flex-wrap: nowrap');
+    expect(ruleBody(detailCss, '.footerBtn')).toContain('white-space: nowrap');
   });
 
   // Both slide-overs use one class, so they cannot open at different widths.
@@ -144,38 +220,10 @@ describe('the frame is the same width on every view', () => {
     expect(readFileSync('components/detail/DetailPanel.tsx', 'utf8')).toContain('styles.panel');
   });
 
-  /**
-   * The stillness rule, pinned as a relationship rather than a number so the
-   * two cannot drift apart when either is retuned.
-   *
-   * A panel wider than the rail lands further into the main column than the
-   * rail's left edge. The rail underneath does not move — it is covered — but
-   * the eye reads the edge jumping, and that jump is the movement. At the
-   * rail's own width and position, opening a panel replaces what the rail was
-   * showing and no edge moves.
-   */
-  it('opens a panel at exactly the rail\'s width', () => {
-    const detailCss = readFileSync('components/detail/DetailPanel.module.css', 'utf8');
-    const panelWidth = detailCss.match(/\.panel \{[\s\S]*?width: (\d+)px/)?.[1];
-    const railWidth = shell.match(/const RAIL_WIDTH = (\d+)/)?.[1];
-    expect(panelWidth).toBeDefined();
-    expect(railWidth).toBeDefined();
-    expect(panelWidth).toBe(railWidth);
-  });
-
-  it('opens it flush with the rail, at the right edge', () => {
-    const detailCss = readFileSync('components/detail/DetailPanel.module.css', 'utf8');
-    expect(detailCss).toMatch(/\.panel \{[\s\S]*?right: 0/);
-  });
-
-  // Two columns at the rail's width would crop a date and hyphenate an owner.
-  it('stacks the panel grid to one column at that width', () => {
-    const detailCss = readFileSync('components/detail/DetailPanel.module.css', 'utf8');
-    expect(detailCss).toMatch(/\.grid \{[\s\S]*?grid-template-columns: 1fr;/);
-    expect(detailCss).not.toContain('grid-template-columns: 1fr 1fr');
-    // The interior vertical rule and the every-other-cell rule that stripped it
-    // are both two-column artefacts.
-    expect(detailCss).not.toContain('.field:nth-child(even)');
+  it('steps Bree out from under an open panel, by the same variable', () => {
+    const bree = readFileSync('components/bree/BreeWidget.tsx', 'utf8');
+    expect(bree).toContain('sidePanelOpen');
+    expect(bree).toContain('calc(var(--rail-width) + 20px)');
   });
 });
 
