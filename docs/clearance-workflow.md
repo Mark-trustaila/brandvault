@@ -178,12 +178,16 @@ attachment.
 Gates, as always on the live codebase: the migration (production database
 write), any env change, merge. Build and test freely; stop at those.
 
-**The migration was promoted on 31 August 2026** and now sits in
-`prisma/migrations/20260831120000_clearance_search`. One point to confirm: the
-promotion commit moved the directory only, so `prisma migrate resolve --applied
-20260831120000_clearance_search` should be verified. Without it Prisma's history
-does not know the DDL ran, and `migrate dev` then reports drift and offers to
-reset a database Preview and Production share.
+**The migration was applied on 31 August 2026** with `prisma migrate deploy`
+against the Azure database, and now sits in
+`prisma/migrations/20260831120000_clearance_search`. Prisma's history holds the
+row and `migrate status` reported the schema up to date. The run route has been
+exercised on production: a brexit / class 25 / UK search wrote to
+`clearance_searches` and reads back in the Registry searches list with 250 hits.
+
+The browser leg is verified on app.getbrandvault.com after merge. Production
+Clerk refuses non-branded origins, so neither localhost nor a preview URL can
+sign in — a preview deploy does not close that gap and is not the route to it.
 
 ## 9. What is not in scope
 

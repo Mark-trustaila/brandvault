@@ -37,11 +37,14 @@ For any migration staged here, all steps need explicit approval:
 - `20260831120000_clearance_search` — `clearance_searches` and
   `clearance_hit_reviews`, the registry-search record and its per-hit review
   (`docs/clearance-workflow.md` §3). Approved and promoted 2026-08-31 as
-  `prisma/migrations/20260831120000_clearance_search`. Both tables are new, so
-  no existing query gained a column. **Confirm `prisma migrate resolve --applied
-  20260831120000_clearance_search` was run** — the promotion commit moved the
-  directory only, and without the resolve step Prisma's history does not know
-  the DDL ran, which is what makes `migrate dev` offer to reset the database.
+  `prisma/migrations/20260831120000_clearance_search`. Applied with
+  `prisma migrate deploy` against the Azure database, so Prisma's history holds
+  the row and `migrate status` reported the schema up to date afterwards. No
+  `migrate resolve` was needed — that step is only for DDL applied out of band,
+  which this was not. Both tables are new, so no existing query gained a column.
+  Exercised on production the same day: a brexit / class 25 / UK search wrote to
+  `clearance_searches` and reads back in the Registry searches list with 250
+  hits.
 
 - `20260725140000_trademark_image_url` — nullable `trademarks.image_url` for
   device-mark images. Approved and promoted 2026-07-25 as
