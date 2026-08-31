@@ -50,16 +50,22 @@ function formatDate(value: string | null): string {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-export function Banners({ currencyDate, coverage }: { currencyDate: string; coverage?: Coverage }) {
-  const caveats = Object.values(coverage ?? {}).filter((c) => c?.partial);
+/**
+ * The currency line, and only that.
+ *
+ * The UK009 partial-coverage caveat used to sit here, above every result set.
+ * It is a standing fact about the GB corpus, not a finding about this search,
+ * and repeating it over each one taught readers to scroll past it. It now
+ * appears once, in the right rail's data-source block beside the dashboard's
+ * own data note, and slice 2 carries it into the report disclaimer — where a
+ * reader is deciding something and a caveat is worth reading.
+ */
+export function Banners({ currencyDate }: { currencyDate: string; coverage?: Coverage }) {
   return (
     <div className="space-y-1 text-xs">
       <p className="text-slate-600">
         Register data <strong>as at {currencyDate || 'an unstated date'}</strong> — sourced from the registry, not assumed.
       </p>
-      {caveats.map((c, i) => (
-        <p key={i} className="text-amber-700">⚠ {c!.note}</p>
-      ))}
     </div>
   );
 }

@@ -1,6 +1,10 @@
+/* Width is the frame's decision (AppShell RAIL_WIDTH), not this component's,
+   so every view gets the same rail. This fills the box it is given and wraps
+   its content rather than demanding room. */
 .panel {
-  width: 340px;
-  min-width: 340px;
+  width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
   border-left: 1px solid #e8e5e0;
   background: #fbfbfa;
   overflow-y: auto;
