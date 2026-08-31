@@ -121,7 +121,7 @@ export default function HitPanel({ hit, registry, index, total, review, onClose,
   const spec: Array<{ class_number: string; description: string }> = lookup?.mark?.goods_services ?? [];
 
   return (
-    <div className={`${styles.overlay} ${styles.overlayOpen}`}>
+    <div data-panel-overlay className={`${styles.overlay} ${styles.overlayOpen}`}>
       <div data-panel-backdrop className={styles.backdrop} onClick={onClose} />
       {/* Sits beside the Bree panel when it is open, exactly as DetailPanel does. */}
       <div className={styles.panel} style={breeOpen ? { right: 360 } : undefined}>

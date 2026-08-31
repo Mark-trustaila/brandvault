@@ -19,7 +19,8 @@
  * company. A page that forgot to fetch would show a frame that quietly said
  * "BrandVault" where every other page says the customer's name.
  */
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import styles from './AppShell.module.css';
 // The widths themselves live in lib/layout.ts, which globals.css mirrors and a
 // test holds to it. Kept out of this file so the tests can read them: a .tsx
@@ -45,7 +46,24 @@ function Frame({ children, rightRail = true, overlay }: {
   /** A page-owned panel that opens over the frame, beside the shared ones. */
   overlay?: ReactNode;
 }) {
-  const { setData, sidePanelOpen } = useDashboard();
+  const { setData, sidePanelOpen, setSelectedTrademark, setHitPanelOpen } = useDashboard();
+  const pathname = usePathname();
+
+  // Going somewhere else closes what was open. Each page mounts its own frame
+  // today, so this is belt as well as braces — but "the panel survived a
+  // navigation" is a bug that only appears once the frame is hoisted into a
+  // shared layout, and by then the cause is three refactors away.
+  //
+  // Only on an actual change, never on mount: a parent's effect runs after its
+  // children's, so an unguarded version would clear the flag the panel had just
+  // set on the way up and leave a panel open beside a rail that had not widened.
+  const lastPath = useRef(pathname);
+  useEffect(() => {
+    if (lastPath.current === pathname) return;
+    lastPath.current = pathname;
+    setSelectedTrademark(null);
+    setHitPanelOpen(false);
+  }, [pathname, setSelectedTrademark, setHitPanelOpen]);
 
   // Render from the last portfolio instantly, then refresh in the background.
   useEffect(() => {
