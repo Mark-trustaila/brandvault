@@ -131,12 +131,18 @@ export default function HitPanel({ hit, registry, index, total, review, onClose,
               {registryLabel(registry)} · {appNo} · score {hit.score}
             </div>
           </div>
-          <span style={{ fontSize: 11, color: '#9b9a97', whiteSpace: 'nowrap', alignSelf: 'center' }}>
-            {index + 1} of {total}
-          </span>
+          <button className={styles.closeBtn} onClick={onClose} aria-label="Close">×</button>
+        </div>
+
+        {/* The stepper gets its own strip rather than competing with the title
+            for the header's 292px of content width. */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '8px 24px', borderBottom: '1px solid #e8e5e0', flexShrink: 0,
+        }}>
           <button className={styles.footerBtn} onClick={onPrev} disabled={!onPrev} aria-label="Previous result">←</button>
           <button className={styles.footerBtn} onClick={onNext} disabled={!onNext} aria-label="Next result">→</button>
-          <button className={styles.closeBtn} onClick={onClose} aria-label="Close">×</button>
+          <span style={{ fontSize: 11, color: '#9b9a97', marginLeft: 'auto' }}>{index + 1} of {total}</span>
         </div>
 
         <div className={styles.body}>
