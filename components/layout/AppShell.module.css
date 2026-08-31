@@ -2,6 +2,12 @@
    columns are driven by custom properties and a breakpoint, which is what the
    other layout components here use too. Values live in app/globals.css. */
 
+.shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
 .centre {
   flex: 1;
   /* The width at which the results table stays legible without scrolling. */
@@ -19,9 +25,31 @@
   min-width: 0;
 }
 
+/*
+ * A panel open, in the flow.
+ *
+ * From 1320 the rail column takes the panel's width and the centre narrows to
+ * make room — 1320 − 240 − 440 = 640, the centre's floor exactly, which is why
+ * the breakpoint is 1320 and not a round number. The panel is then coincident
+ * with the column rather than laid over it: the rail's own content steps aside
+ * and the backdrop goes, so nothing is covered and no edge moves except the one
+ * that is meant to.
+ *
+ * The rail takes `var(--panel-width)` rather than its own copy of 440, so
+ * "the panel equals the open rail" holds by reference and cannot drift.
+ */
+@media (min-width: 1320px) {
+  .panelOpen { --rail-width: var(--panel-width); }
+  .panelOpen :global([data-rail-content]) { display: none; }
+  .panelOpen :global([data-panel-backdrop]) { display: none; }
+}
+
+/* Below 1320 widening the column would push the centre under its floor, so the
+   panel stays what it was: a slide-over, with its backdrop, over an unchanged
+   rail. Nothing to switch off — this is the absence of the rules above. */
+
 /* Below 1280 the rail leaves the flow rather than squeezing the centre under
-   its floor. Panels are position:fixed slide-overs and are unaffected, so they
-   keep working at the same width. */
+   its floor. Panels are position:fixed and are unaffected. */
 @media (max-width: 1279px) {
   .railBox { display: none; }
 }

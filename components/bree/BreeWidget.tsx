@@ -161,12 +161,12 @@ export default function BreeWidget() {
       {!breeOpen && !showReport && !editTarget && (
         <button
           onClick={() => setBreeOpen(true)}
-          // Left of an open slide-over rather than under it. The offset is the
-          // rail variable, so it tracks the panel through the 1440 breakpoint
-          // without a second number to keep in step.
+          // Left of an open panel rather than under it, by the panel's own
+          // variable — which is the right one whether the panel is sitting in
+          // the rail's column or over it as a slide-over.
           style={{
             position: 'fixed', bottom: 20, zIndex: 9999,
-            right: sidePanelOpen ? 'calc(var(--rail-width) + 20px)' : 20,
+            right: sidePanelOpen ? 'calc(var(--panel-width) + 20px)' : 20,
             transition: 'right 0.12s',
           }}
           className="flex items-center gap-2 rounded-full bg-bree px-4 py-2.5 text-sm font-semibold text-white shadow-lg hover:bg-bree-hover"

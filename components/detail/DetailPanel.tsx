@@ -330,7 +330,7 @@ export default function DetailPanel() {
 
   return (
     <div className={`${styles.overlay} ${styles.overlayOpen}`}>
-      <div className={styles.backdrop} onClick={() => setSelectedTrademark(null)} />
+      <div data-panel-backdrop className={styles.backdrop} onClick={() => setSelectedTrademark(null)} />
       {/* When the Bree panel (360px, right:0) is open, sit alongside it, not over it. */}
       <div className={styles.panel} style={breeOpen ? { right: 360 } : undefined}>
         <div className={styles.header}>
