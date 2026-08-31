@@ -18,12 +18,13 @@
   top: 0;
   right: 0;
   bottom: 0;
-  /* The rail's width, from the one variable that defines it (globals.css), so a
-     panel opens exactly where the rail is and no edge moves — including at the
-     1440 breakpoint, where both change together because there is only one
-     number to change. Reading it here rather than repeating it is what makes
-     "the panel equals the rail" structural instead of a coincidence to police. */
-  width: var(--rail-width);
+  /* The panel's own width. The rail takes this value when a panel opens in the
+     flow (AppShell.module.css), so "the panel equals the open rail" holds by
+     reference rather than by two numbers agreeing. Below 1320 the rail keeps
+     its own narrower width and the panel is a slide-over at this one — which is
+     the decoupling: a column you read alongside the centre and a column you
+     read instead of it want different amounts of room. */
+  width: var(--panel-width);
   background: #fff;
   border-left: 1px solid #e8e5e0;
   box-shadow: -2px 0 12px rgba(0,0,0,0.06);
@@ -89,24 +90,20 @@
   margin-bottom: 10px;
 }
 
-/* One column at the narrow rail (400): two 176px columns crop a date and
-   hyphenate an owner. At 440 there is room for two, which is most of the point
-   of the wider rail. */
+/* Two columns, unconditionally: the panel is 440 at every viewport now, which
+   is the width the two-column grid was sized for. It was conditional only
+   because the panel used to inherit the rail's narrower width. */
 .grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: 1fr 1fr;
   border: 1px solid #e8e5e0;
   border-radius: 8px;
   overflow: hidden;
 }
 
-@media (min-width: 1440px) {
-  .grid { grid-template-columns: 1fr 1fr; }
-  /* The interior vertical rule returns with the second column, and the cells
-     in the right-hand one do not need it. */
-  .field { border-right: 1px solid #f0efec; }
-  .field:nth-child(even) { border-right: none; }
-}
+.field { border-right: 1px solid #f0efec; }
+/* No interior rule on the right-hand cell of a row. */
+.field:nth-child(even) { border-right: none; }
 
 .field {
   padding: 10px 14px;

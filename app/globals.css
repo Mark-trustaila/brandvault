@@ -15,25 +15,27 @@
      sidebar without hardcoding the width in two places. */
   --sidebar-width: 240px;
 
-  /* The three-column system. One source, because the columns are a system and
-     not three numbers: the rail's width is also the slide-over panels' width,
-     so a panel opens exactly where the rail is and no edge moves.
-     Resulting columns (nav / centre / rail):
-       1280   240 /  640 / 400   centre at its floor
+  /* The three-column system. The rail and the panel are separate widths now:
+     the rail is a column you read alongside the centre, the panel is a column
+     you read instead of it, and they want different amounts of room.
+
+     Resulting columns (nav / centre / rail), no panel open:
+       1280   240 /  720 / 320
+       1440   240 /  880 / 320
+       1680   240 / 1120 / 320
+       1920   240 / 1360 / 320
+
+     With a panel open, from 1320 up, where the rail takes the panel's width:
+       1320   240 /  640 / 440   centre at its floor
        1440   240 /  760 / 440
        1680   240 / 1000 / 440
        1920   240 / 1240 / 440
-     The nav is fixed: its content is short labels and a long index, and wider
-     only pushes the counts away from the labels. The rail is the reading
-     column and holds its width. The centre takes the remainder and grows
-     without limit, because lists and tables use width honestly. */
-  --rail-width: 400px;
-  --centre-floor: 640px;
-}
 
-/* From 1440 the rail gets the width its cards were designed for: two
-   comfortable sentences per line, a two-column field grid in the panels, and
-   four footer actions with their labels. */
-@media (min-width: 1440px) {
-  :root { --rail-width: 440px; }
+     The nav is fixed: its content is short labels and a long index, and wider
+     only pushes the counts away from the labels. The centre takes the
+     remainder and grows without limit, because lists and tables use width
+     honestly. */
+  --rail-width: 320px;
+  --panel-width: 440px;
+  --centre-floor: 640px;
 }

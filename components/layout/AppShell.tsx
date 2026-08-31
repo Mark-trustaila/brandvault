@@ -24,7 +24,7 @@ import styles from './AppShell.module.css';
 // The widths themselves live in lib/layout.ts, which globals.css mirrors and a
 // test holds to it. Kept out of this file so the tests can read them: a .tsx
 // cannot be imported under this project's jsx: preserve.
-export { NAV_WIDTH, RAIL_WIDTH, RAIL_WIDTH_NARROW, CENTRE_FLOOR, RAIL_FULL_FROM, RAIL_IN_FLOW_FROM } from '../../lib/layout';
+export { NAV_WIDTH, RAIL_WIDTH, PANEL_WIDTH, CENTRE_FLOOR, PANEL_IN_FLOW_FROM, RAIL_IN_FLOW_FROM } from '../../lib/layout';
 import { DashboardProvider, useDashboard } from '../../context/DashboardContext';
 import { PlatformAdminBar } from '../admin/PlatformAdminBar';
 import Sidebar from './Sidebar';
@@ -45,7 +45,7 @@ function Frame({ children, rightRail = true, overlay }: {
   /** A page-owned panel that opens over the frame, beside the shared ones. */
   overlay?: ReactNode;
 }) {
-  const { setData } = useDashboard();
+  const { setData, sidePanelOpen } = useDashboard();
 
   // Render from the last portfolio instantly, then refresh in the background.
   useEffect(() => {
@@ -58,7 +58,12 @@ function Frame({ children, rightRail = true, overlay }: {
   }, [setData]);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif", fontSize: 14, color: '#37352f' }}>
+    // The open state is a class on the shell, so the rail's width, the rail's
+    // content and the backdrop all follow from one flag in one place.
+    <div
+      className={`${styles.shell}${sidePanelOpen ? ` ${styles.panelOpen}` : ''}`}
+      style={{ fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif", fontSize: 14, color: '#37352f' }}
+    >
       <PlatformAdminBar />
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -69,7 +74,11 @@ function Frame({ children, rightRail = true, overlay }: {
           </div>
           {rightRail && (
             <div className={styles.railBox}>
-              <RightPanel />
+              {/* Steps aside when a panel takes the column, so the panel
+                  replaces the rail's content rather than covering it. */}
+              <div data-rail-content style={{ display: 'flex', width: '100%' }}>
+                <RightPanel />
+              </div>
             </div>
           )}
         </div>

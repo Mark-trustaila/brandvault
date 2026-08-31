@@ -10,8 +10,8 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { NAV_VIEWS, viewForPath, breadcrumbLabel, isActive } from '../lib/nav';
 import {
-  NAV_WIDTH, RAIL_WIDTH, RAIL_WIDTH_NARROW, CENTRE_FLOOR,
-  RAIL_FULL_FROM, RAIL_IN_FLOW_FROM,
+  NAV_WIDTH, RAIL_WIDTH, PANEL_WIDTH, CENTRE_FLOOR,
+  PANEL_IN_FLOW_FROM, RAIL_IN_FLOW_FROM,
 } from '../lib/layout';
 
 describe('viewForPath', () => {
@@ -129,6 +129,14 @@ describe('every view renders inside the frame', () => {
  * the arithmetic itself — that the columns add up at each breakpoint — which is
  * the thing that would otherwise be checked by eye against a screenshot.
  */
+/**
+ * The three columns are a system, not a set of numbers.
+ *
+ * Pinned as relationships wherever one exists, because a number in a test is a
+ * number someone updates when it fails. The one place numbers are asserted is
+ * the arithmetic — that the columns add up, closed and open — which is the
+ * thing that would otherwise be checked by eye against a screenshot.
+ */
 describe('the column system', () => {
   const globals = readFileSync('app/globals.css', 'utf8');
   const shellCss = readFileSync('components/layout/AppShell.module.css', 'utf8');
@@ -147,30 +155,31 @@ describe('the column system', () => {
     return css.slice(at, css.indexOf('}', at));
   };
 
-  const cssVar = (css: string, name: string, after?: string) => {
-    const scope = after ? css.slice(css.indexOf(after)) : css;
-    return Number(scope.match(new RegExp(`--${name}:\\s*(\\d+)px`))?.[1]);
-  };
+  const cssVar = (css: string, name: string) =>
+    Number(css.match(new RegExp(`--${name}:\\s*(\\d+)px`))?.[1]);
 
-  // The constants are documentation and test fixtures; globals.css is the
-  // source. A test rather than a convention, because two places holding one
-  // number is exactly what drifts.
   it('declares the same widths in CSS and in the constants', () => {
     expect(cssVar(globals, 'sidebar-width')).toBe(NAV_WIDTH);
+    expect(cssVar(globals, 'rail-width')).toBe(RAIL_WIDTH);
+    expect(cssVar(globals, 'panel-width')).toBe(PANEL_WIDTH);
     expect(cssVar(globals, 'centre-floor')).toBe(CENTRE_FLOOR);
-    expect(cssVar(globals, 'rail-width')).toBe(RAIL_WIDTH_NARROW);
-    expect(cssVar(globals, 'rail-width', '@media (min-width: 1440px)')).toBe(RAIL_WIDTH);
-    expect(globals).toContain(`@media (min-width: ${RAIL_FULL_FROM}px)`);
-    expect(shellCss).toContain(`@media (max-width: ${RAIL_IN_FLOW_FROM - 1}px)`);
   });
 
-  // The relationship that keeps a panel from moving an edge when it opens.
-  // One variable, read by both, so they cannot drift — including across the
-  // 1440 breakpoint, where both change because there is only one number.
-  it('gives the panel the rail\'s width, from the rail\'s own variable', () => {
-    expect(ruleBody(shellCss, '.railBox')).toContain('width: var(--rail-width)');
-    expect(ruleBody(detailCss, '.panel')).toContain('width: var(--rail-width)');
-    // Not a number anywhere in that rule: a hardcoded width is the drift.
+  // The rail is 320 at every viewport it is in the flow at. The 1440 step is
+  // gone: the rail no longer has to be wide enough to be a panel.
+  it('holds the rail at one width, closed, at every viewport', () => {
+    expect(RAIL_WIDTH).toBe(320);
+    expect(globals).not.toContain('@media (min-width: 1440px)');
+    expect(ruleBody(shellCss, '.railBox')).toContain('flex: 0 0 var(--rail-width)');
+  });
+
+  // Open, the rail takes the panel's width by reference rather than by a second
+  // copy of 440. That is what makes "the panel equals the open rail" a fact
+  // about the stylesheet rather than a coincidence to police.
+  it('gives the open rail the panel\'s width, by reference', () => {
+    expect(PANEL_WIDTH).toBe(440);
+    expect(shellCss).toMatch(/\.panelOpen \{ --rail-width: var\(--panel-width\); \}/);
+    expect(ruleBody(detailCss, '.panel')).toContain('width: var(--panel-width)');
     expect(ruleBody(detailCss, '.panel')).not.toMatch(/width: \d+px/);
   });
 
@@ -183,30 +192,76 @@ describe('the column system', () => {
     expect(ruleBody(shellCss, '.centre')).not.toContain('max-width');
   });
 
-  // The published table, checked rather than trusted.
-  it('adds up at every breakpoint', () => {
-    const railAt = (w: number) => (w >= RAIL_FULL_FROM ? RAIL_WIDTH : RAIL_WIDTH_NARROW);
-    const centreAt = (w: number) => w - NAV_WIDTH - railAt(w);
-    expect([1280, 1440, 1680, 1920].map((w) => [w, NAV_WIDTH, centreAt(w), railAt(w)])).toEqual([
-      [1280, 240, 640, 400],
+  const railAt = (w: number, open: boolean) =>
+    (open && w >= PANEL_IN_FLOW_FROM ? PANEL_WIDTH : RAIL_WIDTH);
+  const centreAt = (w: number, open: boolean) => w - NAV_WIDTH - railAt(w, open);
+
+  it('adds up closed', () => {
+    expect([1280, 1440, 1680, 1920].map((w) => [w, NAV_WIDTH, centreAt(w, false), railAt(w, false)])).toEqual([
+      [1280, 240, 720, 320],
+      [1440, 240, 880, 320],
+      [1680, 240, 1120, 320],
+      [1920, 240, 1360, 320],
+    ]);
+  });
+
+  it('adds up open', () => {
+    expect([1320, 1440, 1680, 1920].map((w) => [w, NAV_WIDTH, centreAt(w, true), railAt(w, true)])).toEqual([
+      [1320, 240, 640, 440],
       [1440, 240, 760, 440],
       [1680, 240, 1000, 440],
       [1920, 240, 1240, 440],
     ]);
   });
 
-  // 1280 is the breakpoint precisely because it is where the centre reaches its
-  // floor. If either number moves without the other, this is what says so.
-  it('puts the rail out of the flow exactly where the centre would go under', () => {
-    expect(RAIL_IN_FLOW_FROM - NAV_WIDTH - RAIL_WIDTH_NARROW).toBe(CENTRE_FLOOR);
+  // The centre's floor is never breached, open or closed, at any viewport where
+  // the rail is in the flow. This is the whole constraint in one assertion.
+  it('never puts the centre under its floor', () => {
+    for (let w = RAIL_IN_FLOW_FROM; w <= 2560; w += 1) {
+      for (const open of [false, true]) {
+        expect(centreAt(w, open), `${w} open=${open}`).toBeGreaterThanOrEqual(CENTRE_FLOOR);
+      }
+    }
+  });
+
+  // 1320 is the breakpoint precisely because it is where taking the panel's
+  // width would reach the floor. If either number moves without the other,
+  // this is what says so.
+  it('opens in the flow exactly where there is room for it', () => {
+    expect(PANEL_IN_FLOW_FROM - NAV_WIDTH - PANEL_WIDTH).toBe(CENTRE_FLOOR);
+    expect(shellCss).toContain(`@media (min-width: ${PANEL_IN_FLOW_FROM}px)`);
+  });
+
+  it('leaves the rail in the flow exactly where the closed centre would go under', () => {
+    expect(RAIL_IN_FLOW_FROM - NAV_WIDTH - RAIL_WIDTH).toBeGreaterThanOrEqual(CENTRE_FLOOR);
     expect(shellCss).toMatch(/@media \(max-width: 1279px\) \{[\s\S]*?\.railBox \{ display: none/);
   });
 
-  // The wider rail is for the cards; two columns in the panel is the visible
-  // half of that, and it arrives at the same breakpoint the width does.
-  it('returns the panel grid to two columns with the wider rail', () => {
-    expect(detailCss).toMatch(/@media \(min-width: 1440px\) \{[\s\S]*?grid-template-columns: 1fr 1fr/);
-    expect(ruleBody(detailCss, '.grid')).toContain('grid-template-columns: 1fr;');
+  // In the flow means in the flow: the rail's content steps aside and the
+  // backdrop goes, so nothing is covered and there is nothing to dim.
+  it('replaces the rail\'s content rather than covering it', () => {
+    expect(shellCss).toMatch(/\.panelOpen :global\(\[data-rail-content\]\) \{ display: none; \}/);
+    expect(shellCss).toMatch(/\.panelOpen :global\(\[data-panel-backdrop\]\) \{ display: none; \}/);
+    const shell = readFileSync('components/layout/AppShell.tsx', 'utf8');
+    expect(shell).toContain('data-rail-content');
+    for (const f of ['components/detail/DetailPanel.tsx', 'components/clearance/HitPanel.tsx']) {
+      expect(readFileSync(f, 'utf8'), f).toContain('data-panel-backdrop');
+    }
+  });
+
+  // The open state is one flag in one place, so the width, the rail's content
+  // and the backdrop cannot disagree about whether a panel is open.
+  it('drives all of it from one class on the shell', () => {
+    const shell = readFileSync('components/layout/AppShell.tsx', 'utf8');
+    expect(shell).toContain('sidePanelOpen ? ` ${styles.panelOpen}` : \'\'');
+  });
+
+  // The panel is 440 everywhere, so the two-column grid it was sized for is
+  // unconditional. It was behind a media query only while the panel inherited
+  // the rail's narrower width.
+  it('runs the panel grid at two columns unconditionally', () => {
+    expect(ruleBody(detailCss, '.grid')).toContain('grid-template-columns: 1fr 1fr');
+    expect(detailCss).not.toContain('@media (min-width: 1440px)');
   });
 
   it('keeps the four footer actions on one row', () => {
@@ -214,16 +269,15 @@ describe('the column system', () => {
     expect(ruleBody(detailCss, '.footerBtn')).toContain('white-space: nowrap');
   });
 
-  // Both slide-overs use one class, so they cannot open at different widths.
   it('opens both side panels from one class', () => {
     expect(readFileSync('components/clearance/HitPanel.tsx', 'utf8')).toContain('styles.panel');
     expect(readFileSync('components/detail/DetailPanel.tsx', 'utf8')).toContain('styles.panel');
   });
 
-  it('steps Bree out from under an open panel, by the same variable', () => {
+  it('steps Bree out from under an open panel, by the panel\'s variable', () => {
     const bree = readFileSync('components/bree/BreeWidget.tsx', 'utf8');
     expect(bree).toContain('sidePanelOpen');
-    expect(bree).toContain('calc(var(--rail-width) + 20px)');
+    expect(bree).toContain('calc(var(--panel-width) + 20px)');
   });
 });
 
