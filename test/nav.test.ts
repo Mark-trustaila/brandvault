@@ -237,6 +237,69 @@ describe('the column system', () => {
     expect(shellCss).toMatch(/@media \(max-width: 1279px\) \{[\s\S]*?\.railBox \{ display: none/);
   });
 
+  /**
+   * Nothing above the shell intercepts a click when the panel is in the flow.
+   *
+   * The regression this pins: hiding the backdrop was not enough, because
+   * `.overlay` is `position: fixed; inset: 0` — a full-viewport sheet the panel
+   * sits inside — and it went on swallowing every click outside the panel. The
+   * nav, the header actions and the list rows were all live and all
+   * unreachable, which reads as the app having frozen rather than as a panel
+   * being modal. In the flow a panel is a column and nothing about it is modal.
+   */
+  it('lets every click outside an in-flow panel through', () => {
+    const inFlow = shellCss.slice(shellCss.indexOf(`@media (min-width: ${PANEL_IN_FLOW_FROM}px)`));
+    // The sheet stops hit-testing...
+    expect(inFlow).toMatch(/\.panelOpen :global\(\[data-panel-overlay\]\) \{ pointer-events: none; \}/);
+    // ...and its children start again, which leaves exactly the panel clickable.
+    expect(inFlow).toMatch(/\.panelOpen :global\(\[data-panel-overlay\]\) > \* \{ pointer-events: auto; \}/);
+    // The backdrop is gone outright, not merely invisible.
+    expect(inFlow).toMatch(/\.panelOpen :global\(\[data-panel-backdrop\]\) \{ display: none; \}/);
+    for (const f of ['components/detail/DetailPanel.tsx', 'components/clearance/HitPanel.tsx']) {
+      expect(readFileSync(f, 'utf8'), f).toContain('data-panel-overlay');
+    }
+  });
+
+  // Below the breakpoint the panel is a slide-over again, and a slide-over is
+  // modal: the backdrop is visible and clicking it closes.
+  it('keeps the backdrop and click-to-close below the breakpoint', () => {
+    const beforeInFlow = shellCss.slice(0, shellCss.indexOf(`@media (min-width: ${PANEL_IN_FLOW_FROM}px)`));
+    expect(beforeInFlow).not.toContain('pointer-events');
+    expect(beforeInFlow).not.toContain('data-panel-backdrop');
+    for (const f of ['components/detail/DetailPanel.tsx', 'components/clearance/HitPanel.tsx']) {
+      const src = readFileSync(f, 'utf8');
+      expect(src, `${f} backdrop closes`).toMatch(/data-panel-backdrop[\s\S]{0,120}onClick=/);
+    }
+  });
+
+  // Clicking another row swaps the panel's content rather than doing nothing.
+  it('swaps the panel\'s content when another row is clicked', () => {
+    const panel = readFileSync('components/clearance/ResultsPanel.tsx', 'utf8');
+    expect(panel).toContain('onOpen={onOpenHit ? () => onOpenHit(h, i) : undefined}');
+    const page = readFileSync('app/clearance/page.tsx', 'utf8');
+    expect(page).toContain('onOpenHit={(_h, i) => setOpenHit(i)}');
+    // The portfolio's own panel swaps the same way: the rail's renewal list and
+    // the mark rows both set the selected mark.
+    expect(readFileSync('components/layout/RightPanel.tsx', 'utf8')).toContain('setSelectedTrademark(t)');
+  });
+
+  // Navigating closes what was open.
+  it('closes the panel on a route change, and only on a change', () => {
+    const shell = readFileSync('components/layout/AppShell.tsx', 'utf8');
+    expect(shell).toContain('usePathname');
+    expect(shell).toMatch(/if \(lastPath\.current === pathname\) return;/);
+    expect(shell).toContain('setSelectedTrademark(null)');
+    expect(shell).toContain('setHitPanelOpen(false)');
+  });
+
+  // Escape closes both, which in the flow is the only way out besides the
+  // button: there is no backdrop left to click.
+  it('closes both panels on Escape', () => {
+    for (const f of ['components/detail/DetailPanel.tsx', 'components/clearance/HitPanel.tsx']) {
+      expect(readFileSync(f, 'utf8'), f).toContain("e.key === 'Escape'");
+    }
+  });
+
   // In the flow means in the flow: the rail's content steps aside and the
   // backdrop goes, so nothing is covered and there is nothing to dim.
   it('replaces the rail\'s content rather than covering it', () => {

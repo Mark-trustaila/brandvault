@@ -41,7 +41,23 @@
 @media (min-width: 1320px) {
   .panelOpen { --rail-width: var(--panel-width); }
   .panelOpen :global([data-rail-content]) { display: none; }
+
+  /*
+   * The backdrop goes, and so does the layer it sat in.
+   *
+   * Hiding the backdrop alone did nothing: `.overlay` is `position: fixed;
+   * inset: 0`, a full-viewport sheet that the panel is positioned inside, and
+   * it went on swallowing every click outside the panel. The nav, the header
+   * actions and the list rows were all live and all unreachable, which reads as
+   * the app having frozen rather than as a panel being modal.
+   *
+   * In the flow there is nothing modal about a panel: it is a column. So the
+   * sheet stops hit-testing and its children start again, which leaves exactly
+   * the panel clickable and everything outside it as it was.
+   */
   .panelOpen :global([data-panel-backdrop]) { display: none; }
+  .panelOpen :global([data-panel-overlay]) { pointer-events: none; }
+  .panelOpen :global([data-panel-overlay]) > * { pointer-events: auto; }
 }
 
 /* Below 1320 widening the column would push the centre under its floor, so the

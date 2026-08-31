@@ -323,13 +323,27 @@ export default function DetailPanel() {
   const { selectedTrademark, setSelectedTrademark, setEditTarget, breeOpen } = useDashboard();
   const router = useRouter();
 
+  // Escape closes it, as it does the registry-search panel. In the flow the
+  // panel is a column with no backdrop to click, so the keyboard is the only
+  // way out other than the button.
+  useEffect(() => {
+    if (!selectedTrademark) return;
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'TEXTAREA' || tag === 'INPUT') return;
+      if (e.key === 'Escape') setSelectedTrademark(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedTrademark, setSelectedTrademark]);
+
   if (!selectedTrademark) return null;
 
   const isRegistered = selectedTrademark.status === 'Registered';
   const statusStyle = getStatusStyle(selectedTrademark.status);
 
   return (
-    <div className={`${styles.overlay} ${styles.overlayOpen}`}>
+    <div data-panel-overlay className={`${styles.overlay} ${styles.overlayOpen}`}>
       <div data-panel-backdrop className={styles.backdrop} onClick={() => setSelectedTrademark(null)} />
       {/* When the Bree panel (360px, right:0) is open, sit alongside it, not over it. */}
       <div className={styles.panel} style={breeOpen ? { right: 360 } : undefined}>
