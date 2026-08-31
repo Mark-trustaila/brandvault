@@ -42,6 +42,39 @@ read when the function executes. `.env.example` documents all of them.
 | `AILA_BACKFILL_LIMIT` | deadlines replayed per company by the AiLA backfill (`lib/aila-backfill.ts`) | runtime | opt | opt | opt | Default 25, capped at 200. An unusable value falls back to the default rather than failing a provisioning import. |
 | `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` | email alert channel | runtime | – | – | – | **Not wired** — email deferred; the alert job counts + skips email gracefully. |
 
+## Deployments and PR checks
+
+**There are no preview deployments.** Preview builds are switched off in
+Vercel's git settings, deliberately, as of 31 August 2026.
+
+Two reasons, and the second is the one that settles it. The Clerk keys are set
+for Production only, so a preview build fails at prerender — `next build`
+needs `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` at build time (see the env table
+above). And production Clerk refuses non-branded origins, so a preview URL
+cannot be signed into even if it built. A green preview would therefore prove
+only what a local `next build` already proves, at the cost of a check that is
+red on every PR — and a check that is always red is indistinguishable from one
+that means something.
+
+**A PR with no Vercel check is correct.** Its absence is a decision, not a
+failure. Do not try to make it green, do not add env to fix it, and do not read
+a missing check as a problem. Historic red checks on #27 through #31 are this,
+not those branches.
+
+**Review evidence is local**, and all three are expected in a PR description:
+
+    npx tsc --noEmit
+    npx vitest run
+    npx next build
+
+**Production deploys are CLI from main**, by Mark:
+
+    git checkout main && git pull && vercel deploy --prod
+
+**Browser verification happens on app.getbrandvault.com after merge**, every
+time, for the same Clerk-origin reason. Nothing in the browser can be verified
+before then — not on localhost, not on a preview URL. Do not propose one.
+
 ## Hosting region
 
 Serverless functions are pinned to **`fra1`** (Frankfurt) in `vercel.json`,
