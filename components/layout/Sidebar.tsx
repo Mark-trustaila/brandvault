@@ -53,17 +53,17 @@ export default function Sidebar() {
         <span>Matters</span>
       </div>
 
-      {/* Clearance search. This slot sat dimmed as "Search" — now it goes
-          somewhere. Named for what it does, because the dashboard already has
-          a search box and "Search" would read as that one. A Link, so
-          middle-click and open-in-new-tab work: comparing a clearance result
-          against the portfolio wants two tabs. */}
+      {/* Clearances: a noun, because the nav lists things and running a search
+          is now a header action. The page shows the history and the query box
+          together, so this lands somewhere useful even with nothing to run. A
+          Link, so middle-click and open-in-new-tab work — comparing a
+          clearance result against the portfolio wants two tabs. */}
       <Link href="/clearance" className={styles.navItem}>
         <svg viewBox="0 0 24 24" fill="none" strokeWidth="2">
           <circle cx="11" cy="11" r="8"/>
           <line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
-        <span>Clearance search</span>
+        <span>Clearances</span>
       </Link>
 
       <div className={styles.navItem} style={{ cursor: 'pointer' }} onClick={() => router.push('/inbox')}>

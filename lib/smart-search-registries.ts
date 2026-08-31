@@ -64,3 +64,25 @@ export function registryForMark(registryName: string | null | undefined): Regist
   if (name === 'WIPO' || name === 'WO' || name.startsWith('MADRID')) return 'wo';
   return DEFAULT_REGISTRY;
 }
+
+/**
+ * Where to read this mark on the register's own site.
+ *
+ * Offered because a clearance decision often ends with someone checking the
+ * official record themselves, and a link they can follow is worth more than a
+ * number they have to paste. Null when we have no reliable URL shape for the
+ * register — an outbound link that lands on a search page or an error is worse
+ * than no link, because it looks like the record was checked.
+ */
+export function registerDeepLink(registry: unknown, applicationNumber: string): string | null {
+  const code = normaliseRegistry(registry);
+  const ref = (applicationNumber ?? '').trim();
+  if (!ref) return null;
+  if (code === 'gb') {
+    return `https://trademarks.ipo.gov.uk/ipo-tmcase/page/Results/1/${encodeURIComponent(ref)}`;
+  }
+  // WIPO's Madrid Monitor keys on the international registration number, which
+  // is not the application number the hit carries. Rather than guess a URL that
+  // may 404, send the reader to the search with nothing pre-filled.
+  return 'https://www3.wipo.int/madrid/monitor/en/';
+}

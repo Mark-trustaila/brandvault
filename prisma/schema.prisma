@@ -39,28 +39,29 @@ enum MarkStatus {
 }
 
 model Company {
-  id         String   @id @default(cuid())
-  name       String
-  slug       String   @unique
+  id               String   @id @default(cuid())
+  name             String
+  slug             String   @unique
   // Nullable: a company can be created by a platform admin during concierge
   // onboarding before the customer's Clerk org exists; linked on their first login.
-  clerkOrgId String?  @unique @map("clerk_org_id")
+  clerkOrgId       String?  @unique @map("clerk_org_id")
   // Unique local-part for this company's inbound forwarding address
   // (bree-{slug}@<domain>). Nullable until provisioned.
-  inboundEmailSlug String? @unique @map("inbound_email_slug")
-  createdAt  DateTime @default(now()) @map("created_at")
+  inboundEmailSlug String?  @unique @map("inbound_email_slug")
+  createdAt        DateTime @default(now()) @map("created_at")
 
-  users           User[]
-  families        TrademarkFamily[]
-  trademarks      Trademark[]
-  auditLogs       AuditLog[]
-  alertPreference AlertPreference?
-  inboundEmails   InboundEmail[]
-  notifications   Notification[]
-  breeQueryLogs   BreeQueryLog[]
-  approvals       Approval[]
-  watchNotices    WatchNotice[]
-  portfolioImports PortfolioImport[]
+  users             User[]
+  families          TrademarkFamily[]
+  trademarks        Trademark[]
+  auditLogs         AuditLog[]
+  alertPreference   AlertPreference?
+  inboundEmails     InboundEmail[]
+  notifications     Notification[]
+  breeQueryLogs     BreeQueryLog[]
+  approvals         Approval[]
+  watchNotices      WatchNotice[]
+  portfolioImports  PortfolioImport[]
+  clearanceSearches ClearanceSearch[]
 
   @@map("companies")
 }
@@ -73,10 +74,10 @@ model User {
   companyId   String   @map("company_id")
   clerkUserId String   @unique @map("clerk_user_id")
 
-  company       Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  platformAdmin PlatformAdmin?
-  notes         Note[]
-  auditLogs     AuditLog[]
+  company           Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  platformAdmin     PlatformAdmin?
+  notes             Note[]
+  auditLogs         AuditLog[]
   notificationReads NotificationRead[]
   breeQueryLogs     BreeQueryLog[]
 
@@ -123,7 +124,7 @@ model Trademark {
   // "Application Published"). `status` above holds the conservative mapping onto
   // our five-value enum; this keeps the original so the mapping stays auditable
   // and reversible without re-importing. Null for hand-entered marks.
-  imageUrl          String?   @map("image_url") @db.VarChar(1024)
+  imageUrl          String? @map("image_url") @db.VarChar(1024)
   registryStatusRaw String? @map("registry_status_raw")
 
   // Optional — incomplete records are first-class citizens
@@ -160,14 +161,14 @@ model Trademark {
   approvals     Approval[]
   watchNotices  WatchNotice[]
 
-  // company_id is stored on the mark directly (not only via family) so
-  // portfolio queries don't need a join. Both FKs indexed.
-  @@index([companyId])
-  @@index([familyId])
   // Idempotency invariant for portfolio import: one registry mark per
   // (company, registry, application number). Nullable application_number →
   // MySQL permits multiple NULLs, so hand-entered marks are unconstrained.
   @@unique([companyId, registryName, applicationNumber], map: "trademarks_company_registry_appno_key")
+  // company_id is stored on the mark directly (not only via family) so
+  // portfolio queries don't need a join. Both FKs indexed.
+  @@index([companyId])
+  @@index([familyId])
   @@map("trademarks")
 }
 
@@ -204,22 +205,22 @@ model Note {
 // change. The unique key makes recalculation an idempotent upsert instead of
 // duplicating obligations.
 model Deadline {
-  id           String   @id @default(cuid())
-  trademarkId  String   @map("trademark_id")
-  type         String
-  description  String   @db.Text
-  dueDate      DateTime @map("due_date")
-  windowStart  DateTime @map("window_start")
-  alert180Sent Boolean   @default(false) @map("alert_180_sent")
-  alert90Sent  Boolean   @default(false) @map("alert_90_sent")
-  alert30Sent  Boolean   @default(false) @map("alert_30_sent")
+  id                 String    @id @default(cuid())
+  trademarkId        String    @map("trademark_id")
+  type               String
+  description        String    @db.Text
+  dueDate            DateTime  @map("due_date")
+  windowStart        DateTime  @map("window_start")
+  alert180Sent       Boolean   @default(false) @map("alert_180_sent")
+  alert90Sent        Boolean   @default(false) @map("alert_90_sent")
+  alert30Sent        Boolean   @default(false) @map("alert_30_sent")
   // Reconciliation provenance: which date came from the registry, which the
   // engine derived, and whether they disagreed when the row was written.
   registryExpiryDate DateTime? @map("registry_expiry_date")
   calculatedDueDate  DateTime? @map("calculated_due_date")
   datesDiffer        Boolean   @default(false) @map("dates_differ")
   // Set when a renewal_confirmation email reports the deadline as satisfied.
-  completedAt  DateTime? @map("completed_at")
+  completedAt        DateTime? @map("completed_at")
 
   trademark Trademark @relation(fields: [trademarkId], references: [id], onDelete: Cascade)
 
@@ -296,21 +297,21 @@ enum ApprovalStatus {
 }
 
 model Approval {
-  id             String         @id @default(cuid())
-  companyId      String         @map("company_id")
-  inboundEmailId String?        @map("inbound_email_id")
-  trademarkId    String?        @map("trademark_id")
+  id                 String         @id @default(cuid())
+  companyId          String         @map("company_id")
+  inboundEmailId     String?        @map("inbound_email_id")
+  trademarkId        String?        @map("trademark_id")
   // 'renewal_confirmation' | 'registration_certificate'
-  actionType     String         @map("action_type")
-  summary        String         @db.Text
+  actionType         String         @map("action_type")
+  summary            String         @db.Text
   // Everything needed to apply the action (deadlineId / fromStatus / refs).
-  payloadJson    Json           @map("payload_json")
-  status         ApprovalStatus @default(pending)
-  proposedBy     String         @default("Bree") @map("proposed_by")
-  decidedBySlackId   String?    @map("decided_by_slack_id")
-  decidedBySlackName String?    @map("decided_by_slack_name")
-  decidedAt      DateTime?      @map("decided_at")
-  createdAt      DateTime       @default(now()) @map("created_at")
+  payloadJson        Json           @map("payload_json")
+  status             ApprovalStatus @default(pending)
+  proposedBy         String         @default("Bree") @map("proposed_by")
+  decidedBySlackId   String?        @map("decided_by_slack_id")
+  decidedBySlackName String?        @map("decided_by_slack_name")
+  decidedAt          DateTime?      @map("decided_at")
+  createdAt          DateTime       @default(now()) @map("created_at")
 
   company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
   inboundEmail InboundEmail? @relation(fields: [inboundEmailId], references: [id], onDelete: SetNull)
@@ -321,27 +322,27 @@ model Approval {
 }
 
 model InboundEmail {
-  id                 String             @id @default(cuid())
-  companyId          String             @map("company_id")
-  receivedAt         DateTime           @default(now()) @map("received_at")
-  fromAddress        String             @map("from_address")
-  subject            String             @db.Text
-  bodyText           String             @db.Text @map("body_text")
-  rawHeadersJson     Json?              @map("raw_headers_json")
+  id                       String             @id @default(cuid())
+  companyId                String             @map("company_id")
+  receivedAt               DateTime           @default(now()) @map("received_at")
+  fromAddress              String             @map("from_address")
+  subject                  String             @db.Text
+  bodyText                 String             @map("body_text") @db.Text
+  rawHeadersJson           Json?              @map("raw_headers_json")
   // dedup signals
-  messageId          String?            @map("message_id")
-  contentHash        String             @map("content_hash")
+  messageId                String?            @map("message_id")
+  contentHash              String             @map("content_hash")
   // populated by the Step 3 processor
-  classificationJson Json?              @map("classification_json")
-  matchedTrademarkId String?            @map("matched_trademark_id")
-  status             InboundEmailStatus @default(pending)
-  processedAt        DateTime?          @map("processed_at")
-  reviewedByUserId   String?            @map("reviewed_by_user_id")
-  reviewedAt         DateTime?          @map("reviewed_at")
+  classificationJson       Json?              @map("classification_json")
+  matchedTrademarkId       String?            @map("matched_trademark_id")
+  status                   InboundEmailStatus @default(pending)
+  processedAt              DateTime?          @map("processed_at")
+  reviewedByUserId         String?            @map("reviewed_by_user_id")
+  reviewedAt               DateTime?          @map("reviewed_at")
   // Human correction of Bree's classification (registry/type/matched mark),
   // captured on confirm/correct. Feeds back to the harness corpus as a label.
-  reviewClassificationJson Json?        @map("review_classification_json")
-  createdAt          DateTime           @default(now()) @map("created_at")
+  reviewClassificationJson Json?              @map("review_classification_json")
+  createdAt                DateTime           @default(now()) @map("created_at")
 
   company          Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
   matchedTrademark Trademark?        @relation(fields: [matchedTrademarkId], references: [id], onDelete: SetNull)
@@ -364,7 +365,7 @@ model EmailAttachment {
   // Where the binary lives if retained. v1 keeps only extracted text; raw
   // binaries are not persisted to the deployed DB.
   storageRef     String? @map("storage_ref")
-  extractedText  String? @db.Text @map("extracted_text")
+  extractedText  String? @map("extracted_text") @db.Text
 
   inboundEmail InboundEmail @relation(fields: [inboundEmailId], references: [id], onDelete: Cascade)
 
@@ -429,7 +430,7 @@ model BreeQueryLog {
   id                 String   @id @default(cuid())
   companyId          String   @map("company_id")
   userId             String   @map("user_id")
-  inputText          String   @db.Text @map("input_text")
+  inputText          String   @map("input_text") @db.Text
   resolvedIntent     String   @map("resolved_intent")
   matchedTrademarkId String?  @map("matched_trademark_id")
   latencyMs          Int      @map("latency_ms")
@@ -508,4 +509,85 @@ model ImportRateLimit {
   count       Int      @default(0)
 
   @@map("import_rate_limits")
+}
+
+// One row per clearance search, from the moment it runs
+// (docs/clearance-workflow.md §3). A search is a record, not a transient view:
+// a lawyer opens hits, decides which matter, and circulates a report, and all
+// of that has to survive a page refresh and be re-openable months later.
+model ClearanceSearch {
+  id        String  @id @default(cuid())
+  companyId String  @map("company_id")
+  // The facade's own id for the run. Opaque text: it is a signed token, not a
+  // number, and nothing here parses it.
+  searchId  String  @map("search_id") @db.VarChar(1024)
+  term      String  @db.VarChar(191)
+  classes   Json
+  registry  String  @db.VarChar(16)
+  // The portfolio mark this was run from, when it was run from one.
+  markRef   String? @map("mark_ref") @db.VarChar(64)
+
+  // Honesty fields, verbatim from the facade. Stored rather than re-fetched:
+  // what the corpus said on the day is part of the record, and a report
+  // generated next month must cite the date the search actually saw.
+  currencyDate String? @map("currency_date") @db.VarChar(16)
+  coverage     Json?
+
+  // Cap discipline (contract §3.3). totalAvailable is null when upstream capped
+  // and did not say how many it had; totalAtLeast then carries the floor.
+  resultCount    Int?    @map("result_count")
+  totalAvailable Int?    @map("total_available")
+  totalAtLeast   Int?    @map("total_at_least")
+  upstreamCap    Int?    @map("upstream_cap")
+  truncated      Boolean @default(false)
+
+  status        String  @db.VarChar(16) // completed | failed
+  failureReason String? @map("failure_reason") @db.Text
+
+  // The normalised hits exactly as returned, including hits later excluded.
+  // The register moves; the evidence of what was seen and dismissed on the day
+  // is the record. Never edited — review lives in ClearanceHitReview.
+  hits Json
+
+  // A re-run makes a new record pointing at the one it replaces, so the history
+  // of a question asked twice stays legible.
+  rerunOfId String? @map("rerun_of_id")
+
+  runBy     String?  @map("run_by")
+  runAt     DateTime @default(now()) @map("run_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  company Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  reviews ClearanceHitReview[]
+  rerunOf ClearanceSearch?     @relation("ClearanceRerun", fields: [rerunOfId], references: [id], onDelete: SetNull)
+  reruns  ClearanceSearch[]    @relation("ClearanceRerun")
+
+  @@index([companyId, runAt])
+  @@index([markRef])
+  @@map("clearance_searches")
+}
+
+// A lawyer's judgement on one hit. Separate from the snapshot so applying a
+// tier or writing a note can never mutate the evidence.
+model ClearanceHitReview {
+  id                String   @id @default(cuid())
+  searchId          String   @map("search_id")
+  applicationNumber String   @map("application_number") @db.VarChar(64)
+  // highlight = marks of interest, appendix = everything else found,
+  // exclude = seen and dismissed. Excluded hits stay in the snapshot and are
+  // simply left out of reports.
+  tier              String   @default("appendix") @db.VarChar(16)
+  note              String?  @db.Text
+  // Order within the highlight tier only; null everywhere else. Slice 2.
+  position          Int?
+  reviewedBy        String?  @map("reviewed_by")
+  reviewedAt        DateTime @default(now()) @map("reviewed_at")
+
+  search ClearanceSearch @relation(fields: [searchId], references: [id], onDelete: Cascade)
+
+  // One judgement per hit per search — a second review of the same hit updates
+  // the first rather than accumulating.
+  @@unique([searchId, applicationNumber])
+  @@index([searchId, tier])
+  @@map("clearance_hit_reviews")
 }

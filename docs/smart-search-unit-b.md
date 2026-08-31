@@ -1,5 +1,12 @@
 # Smart Search, Unit B — the BrandVault client and UI
 
+> **Superseded in part by `docs/clearance-workflow.md` (31 Aug 2026).** The
+> client, the contract reading and the facade findings below still hold. The
+> page does not: a clearance search is now a saved record with a review
+> attached, reached from a header action rather than the left nav, and the
+> results table leads on score and drops similarity. Read that note for the
+> current shape of the UI.
+
 Built against §3 of `docs/smart-search-facade-contract-v1.md` (frozen v1, 8 Aug
 2026) and a local mock of it. BrandVault never calls `api-live.lawpanel.com` and
 holds no LawPanel key: it talks to the facade contract and nothing upstream.

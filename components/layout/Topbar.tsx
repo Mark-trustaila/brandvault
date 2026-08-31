@@ -1,7 +1,14 @@
 'use client';
+import { useRouter } from 'next/navigation';
 import styles from './Topbar.module.css';
 import { useDashboard } from '../../context/DashboardContext';
 import { AuthControls } from '../auth/AuthControls';
+const IconSearch = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{display:'inline-block', verticalAlign:'middle', marginRight:4}}>
+    <circle cx="11" cy="11" r="8"/>
+    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+  </svg>
+);
 const IconReport = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{display:'inline-block', verticalAlign:'middle', marginRight:4}}>
     <line x1="18" y1="20" x2="18" y2="10"/>
@@ -11,6 +18,7 @@ const IconReport = () => (
 );
 export default function Topbar() {
   const { data, setShowReport, setEditTarget } = useDashboard();
+  const router = useRouter();
 
   return (
     <header className={styles.topbar}>
@@ -25,6 +33,11 @@ export default function Topbar() {
         <div className={styles.badge}>✓ Live</div>
         <button className={styles.btn} onClick={() => setShowReport(true)}><IconReport /> Report</button>
         <button className={`${styles.btn} ${styles.btnDisabled}`}>⚙ Settings</button>
+        {/* The two things someone comes here to start. Independent: clearing a
+            term needs no mark, and adding a mark needs no search. */}
+        <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => router.push('/clearance')}>
+          <IconSearch /> Clearance search
+        </button>
         <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => setEditTarget('new')}>+ New mark</button>
         <AuthControls />
       </div>
