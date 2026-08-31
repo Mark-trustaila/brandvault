@@ -12,6 +12,7 @@ import { NAV_VIEWS, viewForPath, breadcrumbLabel, isActive } from '../lib/nav';
 
 describe('viewForPath', () => {
   it('maps each route to its view', () => {
+    expect(viewForPath('/settings/alerts')?.label).toBe('Alerts');
     expect(viewForPath('/')?.label).toBe('Dashboard');
     expect(viewForPath('/clearance')?.label).toBe('Registry searches');
     expect(viewForPath('/inbox')?.label).toBe('Inbox');
@@ -30,10 +31,11 @@ describe('viewForPath', () => {
     expect(viewForPath('/watch/abc')).toBeNull();
   });
 
-  // A nav that says you are on the dashboard while you read something else is
-  // worse than a nav that says nothing.
+  // Admin stays outside the frame pending the suite settings design, so it is
+  // off the map and highlights nothing.
   it('highlights nothing off the map', () => {
     expect(viewForPath('/admin/import')).toBeNull();
+    expect(viewForPath('/admin/bulk')).toBeNull();
     expect(viewForPath('/sign-in')).toBeNull();
     expect(isActive('/admin/import', '/')).toBe(false);
   });
@@ -81,6 +83,7 @@ describe('every view renders inside the frame', () => {
     ['/clearance', 'app/clearance/page.tsx'],
     ['/inbox', 'app/inbox/page.tsx'],
     ['/whats-new', 'app/whats-new/page.tsx'],
+    ['/settings/alerts', 'app/settings/alerts/page.tsx'],
   ];
 
   it('has a page file for every nav view', () => {
@@ -90,7 +93,7 @@ describe('every view renders inside the frame', () => {
   it('renders the shell', () => {
     for (const [href, file] of PAGES) {
       const src = readFileSync(file, 'utf8');
-      expect(src, `${href} does not import AppShell`).toMatch(/from '\.\.\/(\.\.\/)?components\/layout\/AppShell'/);
+      expect(src, `${href} does not import AppShell`).toMatch(/from '(\.\.\/)+components\/layout\/AppShell'/);
       expect(src, `${href} does not render AppShell`).toMatch(/<AppShell[\s>]/);
     }
   });

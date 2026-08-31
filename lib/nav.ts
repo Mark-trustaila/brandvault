@@ -23,6 +23,11 @@ export const NAV_VIEWS: NavView[] = [
   { href: '/clearance', label: 'Registry searches' },
   { href: '/inbox', label: 'Inbox' },
   { href: '/whats-new', label: "What's new" },
+  // Inside the frame, but not in the sidebar: it is reached from the top bar's
+  // Settings control. The list maps routes to views; the sidebar renders a
+  // subset of it. A view in the frame with no entry here would breadcrumb as
+  // "BrandVault", which names the product rather than where you are.
+  { href: '/settings/alerts', label: 'Alerts' },
 ];
 
 /**

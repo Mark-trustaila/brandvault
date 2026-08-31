@@ -1,4 +1,5 @@
 'use client';
+import AppShell from '../../../components/layout/AppShell';
 import { useEffect, useState } from 'react';
 import { bvFetch } from '../../../lib/client/acting-company';
 
@@ -71,7 +72,8 @@ export default function AlertSettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-12">
+    <AppShell>
+      <div className="max-w-2xl">
       <h1 className="text-2xl font-semibold text-slate-900">Alerts</h1>
       <p className="mt-1 text-sm text-slate-500">
         Bree posts renewal reminders, status changes and a weekly digest to your Slack.
@@ -168,6 +170,7 @@ export default function AlertSettingsPage() {
         </button>
         {saved && <span className="text-sm text-emerald-600">Saved.</span>}
       </div>
-    </div>
+      </div>
+    </AppShell>
   );
 }
