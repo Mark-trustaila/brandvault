@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Past clearance searches (docs/clearance-workflow.md §6).
+ * Past registry searches (docs/clearance-workflow.md §6).
  *
  * The same table appears under the query box and as the Clearances nav page,
  * so the two routes show the same thing rather than two views that drift.
@@ -40,7 +40,7 @@ export default function ClearancesTable({ rows, onOpen, currentId }: {
   if (rows.length === 0) {
     return (
       <div className="rounded border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-        No clearance searches yet. Run one above and it is saved here.
+        No registry searches yet. Run one above and it is saved here.
       </div>
     );
   }
@@ -48,9 +48,9 @@ export default function ClearancesTable({ rows, onOpen, currentId }: {
   return (
     <section className="space-y-2">
       <div className="flex items-center gap-2">
-        <h2 className="text-sm font-medium">Clearances</h2>
+        <h2 className="text-sm font-medium">Registry searches</h2>
         <input
-          className="ml-auto w-64 rounded border border-slate-300 p-1.5 text-sm"
+          className="ml-auto w-64 rounded-md border border-line p-1.5 text-sm"
           placeholder="Filter by term, class, register or person"
           value={q}
           onChange={(e) => setQ(e.target.value)}

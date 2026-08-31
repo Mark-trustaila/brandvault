@@ -33,12 +33,15 @@ export default function Topbar() {
         <div className={styles.badge}>✓ Live</div>
         <button className={styles.btn} onClick={() => setShowReport(true)}><IconReport /> Report</button>
         <button className={`${styles.btn} ${styles.btnDisabled}`}>⚙ Settings</button>
-        {/* The two things someone comes here to start. Independent: clearing a
-            term needs no mark, and adding a mark needs no search. */}
-        <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => router.push('/clearance')}>
-          <IconSearch /> Clearance search
+        {/* The two things someone comes here to start. Independent: searching a
+            register needs no mark, and adding a mark needs no search.
+            Both take the same outline style as Report and Settings. A filled
+            button is a claim about where the eye should go, and neither of these
+            is the one thing this screen wants you to do. */}
+        <button className={styles.btn} onClick={() => router.push('/clearance')}>
+          <IconSearch /> Registry search
         </button>
-        <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => setEditTarget('new')}>+ New mark</button>
+        <button className={styles.btn} onClick={() => setEditTarget('new')}>+ New mark</button>
         <AuthControls />
       </div>
     </header>

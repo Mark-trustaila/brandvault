@@ -21,13 +21,29 @@ drops similarity.
 
 ## 2. Navigation and entry points
 
-The left nav entry "Clearance search" goes. Two header actions sit beside each
-other where actions live, styled as the existing New mark button: Clearance
-search and New mark. They are independent; neither requires the other.
+**Vocabulary settled 31 August 2026:** the header action is *Registry search*,
+the page heading *Registry search*, the nav entry *Registry searches*. The word
+"clearance" no longer appears in any UI label or copy. It survives as the route
+(`/clearance`), as the code identifiers, and as the name of the report templates
+in §7.
 
-The nav gains a noun, Clearances, listing past searches (§5). The same table
-sits under the query box on the search page, so the two routes show the same
-thing.
+Two header actions sit beside each other where actions live: Registry search and
+New mark. Both take the same secondary outline style as Report and Settings —
+no solid fill, no extra weight. No view has more than one filled button, and
+this feature does not claim it; Run search on the form is the app's standard
+button.
+
+The nav entry is a noun, Registry searches, listing past searches. The same
+table sits under the query box on the search page, so the two routes show the
+same thing.
+
+**The page renders inside the application frame.** It shipped as a bare document
+with a back link, which read as a different product rather than another room in
+the same one. `components/layout/AppShell.tsx` — extracted from `app/page.tsx`,
+which composed the frame inline — now owns the admin bar, sidebar, top bar,
+right rail, the shared overlays and the portfolio fetch. Only the main content
+area changes between pages, and there is no back link, because a page inside the
+frame is not somewhere you go back from.
 
 Entry points into a search: the header action (blank form); a mark's detail
 panel action "Check register" (prefilled, mark_ref set, as `clearanceHref`
@@ -102,11 +118,20 @@ For WO hits, where the facade has no mark read yet, the panel shows the hit as
 returned by the facade plus the deep link, and says the specification is not
 available for this register. No silent blanks.
 
-Implementation note: this is its own component rather than an extension of
-`DetailPanel`. That component is CSS Modules and bound to `Trademark` and
-DashboardContext; a clearance hit is a different entity from a different source
-and shares no fields, so extending it would have put two data shapes in one
-component. The pattern is reused; the code is not shared.
+Implementation note: `HitPanel` is its own component but uses
+`DetailPanel.module.css` directly, so a result opens exactly as a portfolio mark
+does — same position, width, backdrop, header and footer chrome, and close
+behaviour, and it steps aside for the Bree panel identically. A lookalike would
+drift the first time either was restyled. It stays a separate component because
+`DetailPanel` is bound to `Trademark` and DashboardContext and shares no fields
+with a search result; the stylesheet is shared, the data shape is not.
+
+That is a deliberate exception to "new components use Tailwind". The point of
+that rule is to stop the two styling systems mixing inside one component; this
+one uses a single system, the existing one, because matching an existing surface
+exactly is the requirement.
+
+Nothing in the results list changes while the panel is open.
 
 ## 6. Clearances table
 
@@ -153,11 +178,16 @@ attachment.
 Gates, as always on the live codebase: the migration (production database
 write), any env change, merge. Build and test freely; stop at those.
 
-**The migration is staged and unapplied.** It sits in
-`prisma/migrations-pending/20260831120000_clearance_search`, where
-`prisma migrate deploy` cannot reach it. Until it is promoted, `/api/clearance*`
-returns a 500 naming the missing table and nothing else is affected — both
-tables are new, so no query that works today gains a column it cannot find.
+**The migration was applied on 31 August 2026** with `prisma migrate deploy`
+against the Azure database, and now sits in
+`prisma/migrations/20260831120000_clearance_search`. Prisma's history holds the
+row and `migrate status` reported the schema up to date. The run route has been
+exercised on production: a brexit / class 25 / UK search wrote to
+`clearance_searches` and reads back in the Registry searches list with 250 hits.
+
+The browser leg is verified on app.getbrandvault.com after merge. Production
+Clerk refuses non-branded origins, so neither localhost nor a preview URL can
+sign in — a preview deploy does not close that gap and is not the route to it.
 
 ## 9. What is not in scope
 

@@ -53,17 +53,17 @@ export default function Sidebar() {
         <span>Matters</span>
       </div>
 
-      {/* Clearances: a noun, because the nav lists things and running a search
-          is now a header action. The page shows the history and the query box
+      {/* Registry searches: a noun, because the nav lists things and running
+          one is a header action. The page shows the history and the query box
           together, so this lands somewhere useful even with nothing to run. A
-          Link, so middle-click and open-in-new-tab work — comparing a
-          clearance result against the portfolio wants two tabs. */}
+          Link, so middle-click and open-in-new-tab work — comparing a result
+          against the portfolio wants two tabs. */}
       <Link href="/clearance" className={styles.navItem}>
         <svg viewBox="0 0 24 24" fill="none" strokeWidth="2">
           <circle cx="11" cy="11" r="8"/>
           <line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
-        <span>Clearances</span>
+        <span>Registry searches</span>
       </Link>
 
       <div className={styles.navItem} style={{ cursor: 'pointer' }} onClick={() => router.push('/inbox')}>

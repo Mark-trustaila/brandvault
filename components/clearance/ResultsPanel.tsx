@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Clearance results (docs/clearance-workflow.md §4).
+ * Registry search results (docs/clearance-workflow.md §4).
  *
  * Tailwind only, per the CSS rule for new components.
  *
@@ -137,25 +137,27 @@ function Toolbar({ hits, selected, setSelected, onTier }: {
   return (
     <div className="flex flex-wrap items-center gap-2 rounded border border-slate-200 bg-slate-50 p-2 text-xs">
       <span className="text-slate-500">Select</span>
-      <button className="rounded border border-slate-300 bg-white px-2 py-1 hover:bg-slate-100" onClick={() => pick('all')}>All</button>
-      <button className="rounded border border-slate-300 bg-white px-2 py-1 hover:bg-slate-100" onClick={() => pick('live')}>Live only</button>
-      <button className="rounded border border-slate-300 bg-white px-2 py-1 hover:bg-slate-100" onClick={() => pick('overlap')}>Class overlap</button>
+      <button className="rounded-md border border-line bg-surface px-2 py-1 hover:bg-surface-muted" onClick={() => pick('all')}>All</button>
+      <button className="rounded-md border border-line bg-surface px-2 py-1 hover:bg-surface-muted" onClick={() => pick('live')}>Live only</button>
+      <button className="rounded-md border border-line bg-surface px-2 py-1 hover:bg-surface-muted" onClick={() => pick('overlap')}>Class overlap</button>
       <span className="inline-flex items-center gap-1">
-        <button className="rounded border border-slate-300 bg-white px-2 py-1 hover:bg-slate-100" onClick={() => pick('score')}>Score under</button>
+        <button className="rounded-md border border-line bg-surface px-2 py-1 hover:bg-surface-muted" onClick={() => pick('score')}>Score under</button>
         <input
           type="number" min={0} value={threshold} aria-label="Score threshold"
-          className="w-16 rounded border border-slate-300 px-1 py-1"
+          className="w-16 rounded-md border border-line px-1 py-1"
           onChange={(e) => setThreshold(Number(e.target.value))}
         />
       </span>
-      <button className="rounded border border-slate-300 bg-white px-2 py-1 hover:bg-slate-100" onClick={() => pick('none')}>None</button>
+      <button className="rounded-md border border-line bg-surface px-2 py-1 hover:bg-surface-muted" onClick={() => pick('none')}>None</button>
 
       <span className="ml-auto text-slate-500">{chosen.length} selected</span>
+      {/* Outline, like everything else here. Applying a tier is one of three
+          equal choices, not the thing the screen wants you to do. */}
       {onTier && TIERS.map((t) => (
         <button
           key={t}
           disabled={chosen.length === 0}
-          className="rounded bg-slate-800 px-2 py-1 text-white disabled:opacity-40"
+          className="rounded-md border border-line bg-surface px-2 py-1 text-ink hover:bg-surface-muted disabled:opacity-40"
           onClick={() => { onTier(chosen, t); setSelected(new Set()); }}
         >
           {TIER_LABEL[t]}

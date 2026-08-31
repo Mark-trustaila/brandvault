@@ -1,11 +1,16 @@
 'use client';
 
 /**
- * Clearance search: the query box, the saved record, and the history
+ * Registry search: the query box, the saved record, and the history
  * (docs/clearance-workflow.md §2, §6).
  *
- * New page, Tailwind only. Every facade call goes through the server, so the
- * facade URL and both keys stay out of the browser.
+ * Renders inside AppShell, so the sidebar, top bar and right rail persist and
+ * only this content area changes. The route and the code identifiers stay
+ * "clearance" — the word survives as the name of the report templates, and
+ * renaming files would make the history harder to follow for no gain.
+ *
+ * Tailwind for this content area; every facade call goes through the server, so
+ * the facade URL and both keys stay out of the browser.
  *
  * A search is a record from the moment it settles. `POST /api/clearance` runs
  * and saves it; this page then reads the record back and renders from that, so
@@ -19,6 +24,7 @@
  */
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import AppShell from '../../components/layout/AppShell';
 import ResultsPanel from '../../components/clearance/ResultsPanel';
 import HitPanel from '../../components/clearance/HitPanel';
 import ClearancesTable from '../../components/clearance/ClearancesTable';
@@ -135,91 +141,93 @@ function ClearanceSearch() {
   const hits = record && record.status !== 'failed' ? record.hits ?? [] : [];
   const result = record ? recordAsResult(record) : null;
 
+  const hitPanel = openHit !== null && hits[openHit] && record ? (
+    <HitPanel
+      hit={hits[openHit]}
+      registry={record.registry}
+      index={openHit}
+      total={hits.length}
+      review={reviews[hits[openHit].application_number]}
+      onClose={() => setOpenHit(null)}
+      onPrev={openHit > 0 ? () => setOpenHit(openHit - 1) : undefined}
+      onNext={openHit < hits.length - 1 ? () => setOpenHit(openHit + 1) : undefined}
+      onReview={(patch) => patchReviews([{ applicationNumber: hits[openHit].application_number, ...patch }])}
+    />
+  ) : null;
+
   return (
-    <main className="mx-auto max-w-5xl space-y-5 p-6">
-      <a href="/" className="text-sm text-slate-500 hover:text-slate-700">← Dashboard</a>
+    <AppShell overlay={hitPanel}>
+      <div className="space-y-5">
+        <header className="space-y-1">
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#37352f', marginBottom: 2 }}>Registry search</h1>
+          <p style={{ fontSize: 12, color: '#9b9a97' }}>
+            Search a register for marks similar to a term. Score is the engine&apos;s own measure of difference: 0 is
+            identical and lower is closer.
+          </p>
+        </header>
 
-      <header className="space-y-1">
-        <h1 className="text-lg font-semibold">Clearance search</h1>
-        <p className="text-sm text-slate-600">
-          Search a register for marks similar to a term. Score is the engine&apos;s own measure of difference: 0 is
-          identical and lower is closer.
-        </p>
-      </header>
+        <section className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <input
+              className="min-w-[220px] flex-1 rounded-md border border-line p-2 text-sm"
+              value={term}
+              placeholder="Mark or term, e.g. ASOS"
+              onChange={(e) => { setTerm(e.target.value); setMarkRef(null); }}
+              onKeyDown={(e) => e.key === 'Enter' && !busy && run(term, classes, markRef, registry)}
+            />
+            <input
+              className="w-44 rounded-md border border-line p-2 text-sm"
+              value={classes}
+              placeholder="Classes, e.g. 25, 35"
+              onChange={(e) => setClasses(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !busy && run(term, classes, markRef, registry)}
+            />
+            <select
+              className="w-52 rounded-md border border-line bg-surface p-2 text-sm"
+              value={registry}
+              aria-label="Register to search"
+              onChange={(e) => setRegistry(normaliseRegistry(e.target.value))}
+            >
+              {REGISTRIES.map((r) => <option key={r.code} value={r.code}>{r.label}</option>)}
+            </select>
+            {/* The app's standard button: outline, not filled. No view here
+                claims the single filled button. */}
+            <button
+              className="rounded-md border border-line bg-surface px-3.5 py-1.5 text-xs text-ink hover:bg-surface-muted disabled:opacity-40"
+              disabled={busy || term.trim().length < 2}
+              onClick={() => run(term, classes, markRef, registry)}
+            >
+              {busy ? 'Searching…' : 'Run search'}
+            </button>
+          </div>
+          <p className="text-xs text-ink-muted">
+            {markRef
+              ? `Run from ${markRef} against ${registryLabel(registry)} — the result is recorded against that mark.`
+              : `Searching ${registryLabel(registry)}. Leave classes empty to search every class; a narrower class list gives a shorter, more useful list.`}
+            {' '}A search takes about half a minute and is saved when it finishes.
+          </p>
+        </section>
 
-      <section className="space-y-2">
-        <div className="flex flex-wrap gap-2">
-          <input
-            className="min-w-[220px] flex-1 rounded border border-slate-300 p-2 text-sm"
-            value={term}
-            placeholder="Mark or term, e.g. ASOS"
-            onChange={(e) => { setTerm(e.target.value); setMarkRef(null); }}
-            onKeyDown={(e) => e.key === 'Enter' && !busy && run(term, classes, markRef, registry)}
-          />
-          <input
-            className="w-44 rounded border border-slate-300 p-2 text-sm"
-            value={classes}
-            placeholder="Classes, e.g. 25, 35"
-            onChange={(e) => setClasses(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !busy && run(term, classes, markRef, registry)}
-          />
-          <select
-            className="w-52 rounded border border-slate-300 bg-white p-2 text-sm"
-            value={registry}
-            aria-label="Register to search"
-            onChange={(e) => setRegistry(normaliseRegistry(e.target.value))}
-          >
-            {REGISTRIES.map((r) => <option key={r.code} value={r.code}>{r.label}</option>)}
-          </select>
-          <button
-            className="rounded bg-slate-800 px-4 py-2 text-sm text-white disabled:opacity-50"
-            disabled={busy || term.trim().length < 2}
-            onClick={() => run(term, classes, markRef, registry)}
-          >
-            {busy ? 'Searching…' : 'Run search'}
-          </button>
-        </div>
-        <p className="text-xs text-slate-500">
-          {markRef
-            ? `Run from ${markRef} against ${registryLabel(registry)} — the result is recorded against that mark.`
-            : `Searching ${registryLabel(registry)}. Leave classes empty to search every class; a narrower class list gives a shorter, more useful list.`}
-          {' '}A search takes about half a minute and is saved when it finishes.
-        </p>
-      </section>
+        {error && <p className="rounded bg-red-50 p-2 text-sm text-red-700">{error}</p>}
 
-      {error && <p className="rounded bg-red-50 p-2 text-sm text-red-700">{error}</p>}
-
-      <ResultsPanel
-        result={result as any}
-        polling={busy}
-        error={null}
-        reviews={reviews}
-        onTier={record ? applyTier : undefined}
-        onOpenHit={(_h, i) => setOpenHit(i)}
-      />
-
-      {openHit !== null && hits[openHit] && record && (
-        <HitPanel
-          hit={hits[openHit]}
-          registry={record.registry}
-          index={openHit}
-          total={hits.length}
-          review={reviews[hits[openHit].application_number]}
-          onClose={() => setOpenHit(null)}
-          onPrev={openHit > 0 ? () => setOpenHit(openHit - 1) : undefined}
-          onNext={openHit < hits.length - 1 ? () => setOpenHit(openHit + 1) : undefined}
-          onReview={(patch) => patchReviews([{ applicationNumber: hits[openHit].application_number, ...patch }])}
+        <ResultsPanel
+          result={result as any}
+          polling={busy}
+          error={null}
+          reviews={reviews}
+          onTier={record ? applyTier : undefined}
+          onOpenHit={(_h, i) => setOpenHit(i)}
         />
-      )}
 
-      <ClearancesTable rows={history} currentId={record?.id ?? null} onOpen={(id) => loadRecord(id)} />
-    </main>
+        <ClearancesTable rows={history} currentId={record?.id ?? null} onOpen={(id) => loadRecord(id)} />
+      </div>
+    </AppShell>
   );
 }
 
 export default function ClearancePage() {
   return (
-    <Suspense fallback={<main className="p-6 text-sm text-slate-500">Loading…</main>}>
+    <Suspense fallback={<AppShell><p className="text-sm text-ink-muted">Loading…</p></AppShell>}>
       <ClearanceSearch />
     </Suspense>
   );
