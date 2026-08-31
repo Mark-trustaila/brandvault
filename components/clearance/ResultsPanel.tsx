@@ -43,6 +43,9 @@ export type PanelState = {
 
 const count = (n: number) => n.toLocaleString('en-GB');
 
+/** Quick-select button. flex-none so nothing in the toolbar can be squeezed. */
+const QS = 'flex-none whitespace-nowrap rounded-md border border-line bg-surface px-2 py-1 hover:bg-surface-muted';
+
 function formatDate(value: string | null): string {
   if (!value) return '—';
   const d = new Date(value);
@@ -90,19 +93,21 @@ function HitRow({ hit, tier, checked, onCheck, onOpen }: {
         <input type="checkbox" checked={checked} onChange={(e) => onCheck(e.target.checked)} aria-label={`Select ${hit.application_number}`} />
       </td>
       <td className="py-2 pr-3">
-        <span className="tabular-nums font-medium text-slate-900">{hit.score}</span>
+        <div className="tabular-nums font-medium text-slate-900">{hit.score}</div>
         {/* Score 0 is the engine's identical match — the fact a clearance
-            report opens by stating, so it is marked rather than left to spot. */}
-        {exact && <span className="ml-1.5 rounded bg-rose-100 px-1.5 py-0.5 text-xs text-rose-800">identical</span>}
+            report opens by stating, so it is marked rather than left to spot.
+            Below the number, not beside it: beside it, the chip set the
+            column's width. */}
+        {exact && <span className="mt-0.5 inline-block rounded bg-rose-100 px-1 py-0.5 text-[10px] text-rose-800">identical</span>}
       </td>
       <td className="py-2 pr-3">
-        <button className="text-left font-medium text-slate-900 underline decoration-slate-300 underline-offset-2 hover:decoration-slate-600" onClick={onOpen}>
+        <button className="break-words text-left font-medium text-slate-900 underline decoration-slate-300 underline-offset-2 hover:decoration-slate-600" onClick={onOpen}>
           {hitMarkText(hit) || '[no verbal element]'}
         </button>
-        <div className="text-xs text-slate-500">{hit.owner ?? 'owner not recorded'}</div>
+        <div className="break-words text-xs text-slate-500">{hit.owner ?? 'owner not recorded'}</div>
       </td>
       <td className="py-2 pr-3">
-        <div className="text-slate-700">{hitClassesLabel(hit) || '—'}</div>
+        <div className="break-words text-slate-700">{hitClassesLabel(hit) || '—'}</div>
         {hit.class_match
           ? <span className="mt-0.5 inline-block rounded bg-emerald-100 px-1.5 py-0.5 text-xs text-emerald-800">class overlap</span>
           : <span className="mt-0.5 inline-block text-xs text-slate-400">no class overlap</span>}
@@ -112,7 +117,7 @@ function HitRow({ hit, tier, checked, onCheck, onOpen }: {
         {!isLive(hit) && <div className="text-xs text-slate-400">not live</div>}
       </td>
       <td className="py-2 pr-3">
-        <div className="tabular-nums text-slate-700">{hit.application_number || '—'}</div>
+        <div className="break-words tabular-nums text-slate-700">{hit.application_number || '—'}</div>
         <div className="text-xs text-slate-500">{formatDate(hit.application_date)}</div>
       </td>
       <td className="py-2 pr-3">
@@ -141,34 +146,44 @@ function Toolbar({ hits, selected, setSelected, onTier }: {
   const chosen = Array.from(selected);
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded border border-slate-200 bg-slate-50 p-2 text-xs">
-      <span className="text-slate-500">Select</span>
-      <button className="rounded-md border border-line bg-surface px-2 py-1 hover:bg-surface-muted" onClick={() => pick('all')}>All</button>
-      <button className="rounded-md border border-line bg-surface px-2 py-1 hover:bg-surface-muted" onClick={() => pick('live')}>Live only</button>
-      <button className="rounded-md border border-line bg-surface px-2 py-1 hover:bg-surface-muted" onClick={() => pick('overlap')}>Class overlap</button>
-      <span className="inline-flex items-center gap-1">
-        <button className="rounded-md border border-line bg-surface px-2 py-1 hover:bg-surface-muted" onClick={() => pick('score')}>Score under</button>
+    // flex-nowrap, so it is one line by construction rather than by luck: at a
+    // narrow window it scrolls sideways instead of silently becoming two rows
+    // and pushing the table down. Labels are short for the same reason.
+    <div className="flex flex-nowrap items-center gap-2 overflow-x-auto rounded border border-line bg-surface-muted p-2 text-xs">
+      <button className={QS} onClick={() => pick('all')}>All</button>
+      <button className={QS} onClick={() => pick('live')}>Live</button>
+      <button className={QS} onClick={() => pick('overlap')}>Overlap</button>
+      <span className="inline-flex flex-none items-center gap-1">
+        <button className={QS} onClick={() => pick('score')}>Score under</button>
         <input
           type="number" min={0} value={threshold} aria-label="Score threshold"
-          className="w-16 rounded-md border border-line px-1 py-1"
+          className="w-14 flex-none rounded-md border border-line px-1 py-1"
           onChange={(e) => setThreshold(Number(e.target.value))}
         />
       </span>
-      <button className="rounded-md border border-line bg-surface px-2 py-1 hover:bg-surface-muted" onClick={() => pick('none')}>None</button>
+      <button className={QS} onClick={() => pick('none')}>None</button>
 
-      <span className="ml-auto text-slate-500">{chosen.length} selected</span>
-      {/* Outline, like everything else here. Applying a tier is one of three
-          equal choices, not the thing the screen wants you to do. */}
-      {onTier && TIERS.map((t) => (
-        <button
-          key={t}
+      <span className="ml-auto flex-none whitespace-nowrap text-ink-muted">{chosen.length} selected</span>
+      {/* One control rather than three buttons. Bulk tiering is the only reason
+          the ticks exist, so it stays — it just stops costing three widths. */}
+      {onTier && (
+        <select
+          className="flex-none rounded-md border border-line bg-surface px-2 py-1 text-ink disabled:opacity-40"
+          aria-label="Apply tier to selected"
           disabled={chosen.length === 0}
-          className="rounded-md border border-line bg-surface px-2 py-1 text-ink hover:bg-surface-muted disabled:opacity-40"
-          onClick={() => { onTier(chosen, t); setSelected(new Set()); }}
+          value=""
+          onChange={(e) => {
+            const t = e.target.value as Tier;
+            if (!t) return;
+            onTier(chosen, t);
+            setSelected(new Set());
+            e.target.value = '';
+          }}
         >
-          {TIER_LABEL[t]}
-        </button>
-      ))}
+          <option value="">Apply tier…</option>
+          {TIERS.map((t) => <option key={t} value={t}>{TIER_LABEL[t]}</option>)}
+        </select>
+      )}
     </div>
   );
 }
@@ -251,9 +266,24 @@ export default function ResultsPanel({ result, polling, error, reviews = {}, onT
       ) : (
         <>
           <Toolbar hits={hits} selected={selected} setSelected={setSelected} onTier={onTier} />
-          <div className="overflow-x-auto rounded border border-slate-200">
-            <table className="w-full min-w-[860px] text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+          {/* Fixed layout with sized columns, so the last column is as visible
+              as the first. It was auto: the browser gave the wide cells what
+              they asked for and cropped Tier to "TIE", which is worse than
+              scrolling because nothing tells you a column was lost. The main
+              column at 1280px gives this about 644px; below that the container
+              scrolls rather than cropping. */}
+          <div className="overflow-x-auto rounded border border-line">
+            <table className="w-full min-w-[640px] table-fixed text-left text-sm">
+              <colgroup>
+                <col style={{ width: 32 }} />
+                <col style={{ width: 68 }} />
+                <col />
+                <col style={{ width: 104 }} />
+                <col style={{ width: 104 }} />
+                <col style={{ width: 124 }} />
+                <col style={{ width: 88 }} />
+              </colgroup>
+              <thead className="bg-surface-muted text-xs uppercase tracking-wide text-ink-muted">
                 <tr>
                   <th className="px-3 py-2 font-medium" />
                   <th className="px-3 py-2 font-medium">Score</th>

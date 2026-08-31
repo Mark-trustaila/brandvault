@@ -297,4 +297,57 @@ describe('the results table', () => {
     expect(src).toContain('tierOf(reviews');
     expect(src).toContain('quickSelect(hits');
   });
+
+  /**
+   * Fitting the main column. It was an auto-layout table at min-width 860,
+   * inside a column that is about 644px at 1280 and 804px at 1440: the browser
+   * gave the wide cells what they asked for and cropped Tier to "TIE". A
+   * cropped last column is worse than a scrollbar, because nothing tells you a
+   * column was lost.
+   */
+  it('sizes its columns rather than letting the content bid for them', () => {
+    expect(src).toContain('table-fixed');
+    expect(src).toContain('<colgroup>');
+    const cols = src.match(/<col[ /]/g) ?? [];
+    const headers = src.match(/<th /g) ?? [];
+    expect(cols.length, 'one col per column').toBe(headers.length);
+  });
+
+  it('fits the column it is in, and scrolls only below that', () => {
+    const min = Number(src.match(/min-w-\[(\d+)px\]/)?.[1]);
+    // 1280 viewport − 240 sidebar − 340 rail − 56 padding = 644.
+    expect(min).toBeLessThanOrEqual(644);
+    expect(src).toContain('overflow-x-auto');
+  });
+
+  it('wraps the cells that would otherwise set the width', () => {
+    for (const cell of ['break-words text-left font-medium', 'break-words text-xs text-slate-500', 'break-words text-slate-700']) {
+      expect(src, cell).toContain(cell);
+    }
+  });
+});
+
+describe('the selection toolbar', () => {
+  const src = readFileSync('components/clearance/ResultsPanel.tsx', 'utf8');
+
+  // One line by construction, not by luck. Wrapping to a second row pushed the
+  // table down and hid the Excluded control on the fold.
+  it('cannot wrap to a second line', () => {
+    expect(src).toContain('flex-nowrap');
+    expect(src).not.toMatch(/flex flex-wrap items-center gap-2 rounded[^"]*bg-surface-muted/);
+  });
+
+  it('keeps every control at its natural width', () => {
+    const qs = src.match(/const QS = '([^']*)'/)?.[1] ?? '';
+    expect(qs).toContain('flex-none');
+    expect(qs).toContain('whitespace-nowrap');
+  });
+
+  // Bulk tiering is the only reason the ticks exist, so it stays — as one
+  // control rather than three, which is what made the row overflow.
+  it('applies a tier in bulk from a single control', () => {
+    expect(src).toContain('aria-label="Apply tier to selected"');
+    expect(src).toContain('onTier(chosen, t)');
+    expect(src).not.toMatch(/TIERS\.map\(\(t\) => \(\s*<button/);
+  });
 });

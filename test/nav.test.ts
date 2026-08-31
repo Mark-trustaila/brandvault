@@ -139,12 +139,43 @@ describe('the frame is the same width on every view', () => {
   });
 
   // Both slide-overs use one class, so they cannot open at different widths.
-  it('opens both side panels at the same width', () => {
-    const detailCss = readFileSync('components/detail/DetailPanel.module.css', 'utf8');
-    const widths = detailCss.match(/\.panel \{[\s\S]*?width: (\d+)px/);
-    expect(widths?.[1]).toBe('520');
+  it('opens both side panels from one class', () => {
     expect(readFileSync('components/clearance/HitPanel.tsx', 'utf8')).toContain('styles.panel');
     expect(readFileSync('components/detail/DetailPanel.tsx', 'utf8')).toContain('styles.panel');
+  });
+
+  /**
+   * The stillness rule, pinned as a relationship rather than a number so the
+   * two cannot drift apart when either is retuned.
+   *
+   * A panel wider than the rail lands further into the main column than the
+   * rail's left edge. The rail underneath does not move — it is covered — but
+   * the eye reads the edge jumping, and that jump is the movement. At the
+   * rail's own width and position, opening a panel replaces what the rail was
+   * showing and no edge moves.
+   */
+  it('opens a panel at exactly the rail\'s width', () => {
+    const detailCss = readFileSync('components/detail/DetailPanel.module.css', 'utf8');
+    const panelWidth = detailCss.match(/\.panel \{[\s\S]*?width: (\d+)px/)?.[1];
+    const railWidth = shell.match(/const RAIL_WIDTH = (\d+)/)?.[1];
+    expect(panelWidth).toBeDefined();
+    expect(railWidth).toBeDefined();
+    expect(panelWidth).toBe(railWidth);
+  });
+
+  it('opens it flush with the rail, at the right edge', () => {
+    const detailCss = readFileSync('components/detail/DetailPanel.module.css', 'utf8');
+    expect(detailCss).toMatch(/\.panel \{[\s\S]*?right: 0/);
+  });
+
+  // Two columns at the rail's width would crop a date and hyphenate an owner.
+  it('stacks the panel grid to one column at that width', () => {
+    const detailCss = readFileSync('components/detail/DetailPanel.module.css', 'utf8');
+    expect(detailCss).toMatch(/\.grid \{[\s\S]*?grid-template-columns: 1fr;/);
+    expect(detailCss).not.toContain('grid-template-columns: 1fr 1fr');
+    // The interior vertical rule and the every-other-cell rule that stripped it
+    // are both two-column artefacts.
+    expect(detailCss).not.toContain('.field:nth-child(even)');
   });
 });
 
