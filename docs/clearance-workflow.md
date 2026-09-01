@@ -149,8 +149,16 @@ only, class overlap, score under a threshold, none). Its only use is to apply a
 tier to the selected rows in one action from the toolbar. What persists is the
 tier, never the tick.
 
-Reorder (slice 2): up and down controls on rows in the highlight tier only; the
-order is saved as `position`; "by score" resets it.
+Reorder: up and down controls on rows in the highlight tier only; the order is
+saved as `position`; "order by score" resets it. Built.
+
+The list itself stays in the engine's order — the rank shown beside the tier is
+where a move registers, rather than the row jumping out from under the cursor.
+A move renumbers the whole tier rather than the pair that swapped: writing only
+the pair would leave the rest holding whatever positions they had, and the
+stored order would depend on the sequence of moves rather than on where things
+ended up. Marks not yet placed keep the engine's order among themselves, after
+the ones that have been.
 
 ## 5. Opening a hit
 
@@ -224,8 +232,14 @@ Tests pin the migration shape, company scoping, the viewer gate, tier
 application in bulk, and that the snapshot is written whole and never mutated by
 review.
 
-Slice 2: reorder; the report builder and UK template; the report route and
-attachment.
+Slice 2: reorder (done); the report builder and UK template; the report route
+and attachment.
+
+The report half is not started, and needs two things that are not in the
+codebase. The statutory sections and disclaimer wording come "from the sample
+reports" (§7) — those have not been shared, and a clearance disclaimer is not
+something to draft from memory. And attaching a generated report to a record is
+a migration, which is gated.
 
 Gates, as always on the live codebase: the migration (production database
 write), any env change, merge. Build and test freely; stop at those.
