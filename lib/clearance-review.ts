@@ -229,3 +229,85 @@ export function recordAsResult(record: SavedRecordView): {
     truncated: record.truncated,
   };
 }
+
+/**
+ * The order of the highlight tier (docs/clearance-workflow.md §4).
+ *
+ * Only the highlight tier has an order, because only it has a reader: the
+ * report's front table puts marks of interest in the sequence a lawyer chose to
+ * argue them. The appendix is a schedule and goes by score; excluded hits go
+ * nowhere.
+ *
+ * Hits with no position yet keep the engine's order among themselves, after the
+ * ones that have been placed. Promoting one mark must not scramble the rest
+ * into some arbitrary sequence — the unplaced tail stays as it was.
+ */
+export function highlightOrder(
+  hits: SmartSearchHit[],
+  reviews: Record<string, HitReview>,
+): string[] {
+  const inTier = hits
+    .map((h) => h.application_number)
+    .filter((n) => n && tierOf(reviews, n) === 'highlight');
+  const placed = inTier
+    .filter((n) => typeof reviews[n]?.position === 'number')
+    .sort((a, b) => (reviews[a]!.position as number) - (reviews[b]!.position as number));
+  const unplaced = inTier.filter((n) => typeof reviews[n]?.position !== 'number');
+  return [...placed, ...unplaced];
+}
+
+/** Where a hit sits in the highlight tier, 1-based, or null if it is not in it. */
+export function highlightRank(
+  hits: SmartSearchHit[],
+  reviews: Record<string, HitReview>,
+  applicationNumber: string,
+): number | null {
+  const at = highlightOrder(hits, reviews).indexOf(applicationNumber);
+  return at === -1 ? null : at + 1;
+}
+
+/**
+ * Moving one mark up or down the highlight tier.
+ *
+ * Returns positions for the whole tier rather than for the two rows that swap.
+ * Writing only the pair would leave the rest holding whatever positions they
+ * had — including none — and the order would depend on the sequence of moves
+ * rather than on where things ended up. Renumbering the tier from the top makes
+ * the stored order say exactly what the screen says.
+ *
+ * A move off either end is not an error; it is a no-op, and returns nothing to
+ * write.
+ */
+export function reorderUpdates(
+  hits: SmartSearchHit[],
+  reviews: Record<string, HitReview>,
+  applicationNumber: string,
+  direction: 'up' | 'down',
+): Array<{ applicationNumber: string; position: number }> {
+  const order = highlightOrder(hits, reviews);
+  const from = order.indexOf(applicationNumber);
+  if (from === -1) return [];
+  const to = direction === 'up' ? from - 1 : from + 1;
+  if (to < 0 || to >= order.length) return [];
+
+  const next = [...order];
+  [next[from], next[to]] = [next[to], next[from]];
+  return next.map((n, i) => ({ applicationNumber: n, position: i + 1 }));
+}
+
+/**
+ * Clearing the chosen order, so the tier falls back to the engine's.
+ *
+ * Only rows that carry a position are written: "order by score" on a tier
+ * nobody has reordered should do nothing at all rather than touch every row's
+ * reviewedAt to say so.
+ */
+export function clearOrderUpdates(
+  hits: SmartSearchHit[],
+  reviews: Record<string, HitReview>,
+): Array<{ applicationNumber: string; position: null }> {
+  return hits
+    .map((h) => h.application_number)
+    .filter((n) => n && typeof reviews[n]?.position === 'number')
+    .map((n) => ({ applicationNumber: n, position: null }));
+}

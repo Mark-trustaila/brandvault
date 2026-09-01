@@ -27,7 +27,7 @@ import { hitMarkText, hitClassesLabel, truncationNotice, type SmartSearchHit } f
 import { registryLabel, registryInProse } from '../../lib/smart-search-registries';
 import {
   TIERS, TIER_LABEL, DEFAULT_TIER, isExactMatch, isLive, quickSelect, tierOf,
-  type HitReview, type QuickSelectKind, type Tier,
+  highlightRank, type HitReview, type QuickSelectKind, type Tier,
 } from '../../lib/clearance-review';
 
 export type PanelState = {
@@ -38,6 +38,10 @@ export type PanelState = {
   reviews?: Record<string, HitReview>;
   /** Apply a tier to these hits. Absent means the record is read-only. */
   onTier?: (applicationNumbers: string[], tier: Tier) => void;
+  /** Move one mark up or down the highlight tier. */
+  onReorder?: (applicationNumber: string, direction: 'up' | 'down') => void;
+  /** Drop the chosen order and fall back to the engine's. */
+  onClearOrder?: () => void;
   onOpenHit?: (hit: SmartSearchHit, index: number) => void;
 };
 
@@ -79,12 +83,17 @@ const TIER_CHIP: Record<Tier, string> = {
   exclude: 'bg-slate-100 text-slate-400 line-through',
 };
 
-function HitRow({ hit, tier, checked, onCheck, onOpen }: {
+function HitRow({ hit, tier, rank, checked, onCheck, onOpen, onReorder, canMoveUp, canMoveDown }: {
   hit: SmartSearchHit;
   tier: Tier;
+  /** Position in the highlight tier, 1-based; null outside it. */
+  rank: number | null;
   checked: boolean;
   onCheck: (next: boolean) => void;
   onOpen?: () => void;
+  onReorder?: (direction: 'up' | 'down') => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
 }) {
   const exact = isExactMatch(hit);
   return (
@@ -121,7 +130,25 @@ function HitRow({ hit, tier, checked, onCheck, onOpen }: {
         <div className="text-xs text-slate-500">{formatDate(hit.application_date)}</div>
       </td>
       <td className="py-2 pr-3">
-        <span className={`inline-block whitespace-nowrap rounded px-1.5 py-0.5 text-xs ${TIER_CHIP[tier]}`}>{TIER_LABEL[tier]}</span>
+        <span className={`inline-block whitespace-nowrap rounded px-1.5 py-0.5 text-xs ${TIER_CHIP[tier]}`}>
+          {TIER_LABEL[tier]}{rank !== null && ` ${rank}`}
+        </span>
+        {/* Only the highlight tier has an order, because only it has a reader:
+            the report's front table argues these marks in this sequence. The
+            list itself stays in the engine's order, so the rank is where the
+            move shows rather than the row jumping under the cursor. */}
+        {rank !== null && onReorder && (
+          <div className="mt-1 flex gap-1">
+            <button
+              className="rounded border border-line bg-surface px-1 leading-none text-ink-muted hover:bg-surface-muted disabled:opacity-30"
+              onClick={() => onReorder('up')} disabled={!canMoveUp} aria-label={`Move ${hit.application_number} up`}
+            >▲</button>
+            <button
+              className="rounded border border-line bg-surface px-1 leading-none text-ink-muted hover:bg-surface-muted disabled:opacity-30"
+              onClick={() => onReorder('down')} disabled={!canMoveDown} aria-label={`Move ${hit.application_number} down`}
+            >▼</button>
+          </div>
+        )}
       </td>
     </tr>
   );
@@ -188,7 +215,7 @@ function Toolbar({ hits, selected, setSelected, onTier }: {
   );
 }
 
-export default function ResultsPanel({ result, polling, error, reviews = {}, onTier, onOpenHit }: PanelState) {
+export default function ResultsPanel({ result, polling, error, reviews = {}, onTier, onReorder, onClearOrder, onOpenHit }: PanelState) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const hits = useMemo(() => result?.results ?? [], [result]);
 
@@ -241,6 +268,8 @@ export default function ResultsPanel({ result, polling, error, reviews = {}, onT
   }
 
   const notice = truncationNotice(result);
+  const highlightCount = hits.filter((h) => tierOf(reviews, h.application_number) === 'highlight').length;
+  const ordered = hits.some((h) => typeof reviews[h.application_number]?.position === 'number');
 
   return (
     <section className="space-y-3">
@@ -301,11 +330,17 @@ export default function ResultsPanel({ result, polling, error, reviews = {}, onT
                 {/* The facade's own order: by score, exact matches first. Not
                     re-sorted here — score is a distance, and re-ranking on it
                     once put the least similar marks at the top. */}
-                {hits.map((h, i) => (
+                {hits.map((h, i) => {
+                  const rank = highlightRank(hits, reviews, h.application_number);
+                  return (
                   <HitRow
                     key={h.application_number || i}
                     hit={h}
                     tier={tierOf(reviews, h.application_number) ?? DEFAULT_TIER}
+                    rank={rank}
+                    onReorder={onReorder ? (d) => onReorder(h.application_number, d) : undefined}
+                    canMoveUp={rank !== null && rank > 1}
+                    canMoveDown={rank !== null && rank < highlightCount}
                     checked={selected.has(h.application_number)}
                     onCheck={(next) => {
                       const s = new Set(selected);
@@ -314,10 +349,19 @@ export default function ResultsPanel({ result, polling, error, reviews = {}, onT
                     }}
                     onOpen={onOpenHit ? () => onOpenHit(h, i) : undefined}
                   />
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
+
+          {/* Offered only once an order has been chosen: a reset for something
+              nobody has changed is a control that does nothing. */}
+          {ordered && onClearOrder && (
+            <button className="text-xs text-ink-muted underline hover:text-ink" onClick={onClearOrder}>
+              Order marks of interest by score
+            </button>
+          )}
 
           {/* One line, not a rubric. The cap is a fact about the search, and it
               belongs next to the list it truncated. */}

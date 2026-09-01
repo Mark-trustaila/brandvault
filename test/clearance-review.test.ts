@@ -7,6 +7,7 @@ import { readFileSync } from 'fs';
 import {
   TIERS, DEFAULT_TIER, isTier, reviewMap, tierOf, isLive, isExactMatch,
   quickSelect, tierUpdates, matchesHistory, recordAsResult, describeHit,
+  highlightOrder, highlightRank, reorderUpdates, clearOrderUpdates,
   type HistoryRow, type SavedRecordView,
 } from '../lib/clearance-review';
 import type { SmartSearchHit } from '../lib/smart-search-hit';
@@ -190,5 +191,116 @@ describe('recordAsResult', () => {
 describe('describeHit', () => {
   it('names a device mark rather than leaving a hole', () => {
     expect(describeHit(hit({ mark: '', application_number: 'UK9' }))).toContain('[no verbal element]');
+  });
+});
+
+/**
+ * The highlight tier's order (docs/clearance-workflow.md §4).
+ *
+ * Only that tier has one, because only it has a reader: the report's front
+ * table argues its marks in the sequence a lawyer chose. The appendix is a
+ * schedule and goes by score.
+ */
+describe('highlightOrder', () => {
+  const hits = [
+    hit({ application_number: 'A' }),
+    hit({ application_number: 'B' }),
+    hit({ application_number: 'C' }),
+    hit({ application_number: 'D' }),
+  ];
+  const tiers = (m: Record<string, [string, number | null]>) =>
+    reviewMap(Object.entries(m).map(([applicationNumber, [tier, position]]) => ({ applicationNumber, tier, position })));
+
+  it('contains only the highlight tier, in the engine\'s order until placed', () => {
+    const r = tiers({ A: ['highlight', null], B: ['appendix', null], C: ['highlight', null] });
+    expect(highlightOrder(hits, r)).toEqual(['A', 'C']);
+  });
+
+  it('puts placed marks first, in their positions', () => {
+    const r = tiers({ A: ['highlight', 2], C: ['highlight', 1] });
+    expect(highlightOrder(hits, r)).toEqual(['C', 'A']);
+  });
+
+  // Promoting one mark must not scramble the rest into an arbitrary sequence.
+  it('keeps the unplaced tail in the engine\'s order, after the placed', () => {
+    const r = tiers({ D: ['highlight', 1], A: ['highlight', null], C: ['highlight', null] });
+    expect(highlightOrder(hits, r)).toEqual(['D', 'A', 'C']);
+  });
+
+  it('ranks from 1, and nothing outside the tier has a rank', () => {
+    const r = tiers({ A: ['highlight', null], C: ['highlight', null], B: ['appendix', null] });
+    expect(highlightRank(hits, r, 'A')).toBe(1);
+    expect(highlightRank(hits, r, 'C')).toBe(2);
+    expect(highlightRank(hits, r, 'B')).toBeNull();
+    expect(highlightRank(hits, r, 'D')).toBeNull();
+  });
+});
+
+describe('reorderUpdates', () => {
+  const hits = [
+    hit({ application_number: 'A' }),
+    hit({ application_number: 'B' }),
+    hit({ application_number: 'C' }),
+  ];
+  const all = reviewMap([
+    { applicationNumber: 'A', tier: 'highlight' },
+    { applicationNumber: 'B', tier: 'highlight' },
+    { applicationNumber: 'C', tier: 'highlight' },
+  ]);
+
+  // The whole tier is renumbered, not the pair that swapped: writing only the
+  // pair would leave the rest holding whatever they had, and the stored order
+  // would depend on the sequence of moves rather than on where things ended up.
+  it('renumbers the whole tier from the top', () => {
+    expect(reorderUpdates(hits, all, 'B', 'up')).toEqual([
+      { applicationNumber: 'B', position: 1 },
+      { applicationNumber: 'A', position: 2 },
+      { applicationNumber: 'C', position: 3 },
+    ]);
+  });
+
+  it('moves down as well as up', () => {
+    expect(reorderUpdates(hits, all, 'A', 'down').map((u) => u.applicationNumber)).toEqual(['B', 'A', 'C']);
+  });
+
+  // Off the end is a no-op, not an error.
+  it('writes nothing at either end', () => {
+    expect(reorderUpdates(hits, all, 'A', 'up')).toEqual([]);
+    expect(reorderUpdates(hits, all, 'C', 'down')).toEqual([]);
+  });
+
+  it('writes nothing for a mark outside the tier', () => {
+    const r = reviewMap([{ applicationNumber: 'A', tier: 'appendix' }]);
+    expect(reorderUpdates(hits, r, 'A', 'up')).toEqual([]);
+  });
+
+  it('round-trips: two moves that undo each other restore the order', () => {
+    const first = reorderUpdates(hits, all, 'C', 'up');
+    const after = reviewMap(first.map((u) => ({ ...u, tier: 'highlight' })));
+    expect(highlightOrder(hits, after)).toEqual(['A', 'C', 'B']);
+    const back = reorderUpdates(hits, after, 'C', 'down');
+    expect(highlightOrder(hits, reviewMap(back.map((u) => ({ ...u, tier: 'highlight' }))))).toEqual(['A', 'B', 'C']);
+  });
+});
+
+describe('clearOrderUpdates', () => {
+  const hits = [hit({ application_number: 'A' }), hit({ application_number: 'B' })];
+
+  it('nulls every position that was set', () => {
+    const r = reviewMap([
+      { applicationNumber: 'A', tier: 'highlight', position: 1 },
+      { applicationNumber: 'B', tier: 'highlight', position: 2 },
+    ]);
+    expect(clearOrderUpdates(hits, r)).toEqual([
+      { applicationNumber: 'A', position: null },
+      { applicationNumber: 'B', position: null },
+    ]);
+  });
+
+  // Resetting an order nobody chose should not touch every row's reviewedAt to
+  // say nothing changed.
+  it('writes nothing when no order was chosen', () => {
+    const r = reviewMap([{ applicationNumber: 'A', tier: 'highlight' }]);
+    expect(clearOrderUpdates(hits, r)).toEqual([]);
   });
 });

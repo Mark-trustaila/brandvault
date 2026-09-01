@@ -293,6 +293,29 @@ describe('the results table', () => {
     expect(src.indexOf('</table>')).toBeLessThan(src.indexOf('shown;'));
   });
 
+  // Reorder is offered on the highlight tier only, and the list itself stays
+  // in the engine's order — the rank is where a move shows, rather than the row
+  // jumping out from under the cursor.
+  it('offers reorder on the highlight tier and nowhere else', () => {
+    expect(src).toContain('highlightRank(hits, reviews, h.application_number)');
+    expect(src).toMatch(/rank !== null && onReorder/);
+    expect(src).toContain('aria-label={`Move ${hit.application_number} up`}');
+    expect(src).toContain('aria-label={`Move ${hit.application_number} down`}');
+    // Still no sort: the table order is the facade's.
+    expect(src).not.toMatch(/\.sort\(/);
+  });
+
+  it('disables the move that would go off the end', () => {
+    expect(src).toContain('canMoveUp={rank !== null && rank > 1}');
+    expect(src).toContain('canMoveDown={rank !== null && rank < highlightCount}');
+  });
+
+  // A reset for something nobody has changed is a control that does nothing.
+  it('offers the reset only once an order has been chosen', () => {
+    expect(src).toMatch(/const ordered = hits\.some\(\(h\) => typeof reviews\[h\.application_number\]\?\.position === 'number'\)/);
+    expect(src).toMatch(/\{ordered && onClearOrder && \(/);
+  });
+
   it('offers the tier column and the bulk actions that fill it', () => {
     expect(src).toContain('>Tier<');
     expect(src).toContain('tierOf(reviews');

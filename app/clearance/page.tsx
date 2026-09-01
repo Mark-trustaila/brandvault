@@ -33,8 +33,8 @@ import { normaliseClasses } from '../../lib/smart-search-classes';
 import { clearanceArrival } from '../../lib/clearance-link';
 import { REGISTRIES, DEFAULT_REGISTRY, registryLabel, normaliseRegistry, type RegistryCode } from '../../lib/smart-search-registries';
 import {
-  recordAsResult, reviewMap, tierUpdates, type HistoryRow, type HitReview,
-  type SavedRecordView, type Tier,
+  recordAsResult, reviewMap, tierUpdates, reorderUpdates, clearOrderUpdates,
+  type HistoryRow, type HitReview, type SavedRecordView, type Tier,
 } from '../../lib/clearance-review';
 
 function ClearanceSearch() {
@@ -110,8 +110,10 @@ function ClearanceSearch() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
 
+  const hits = record && record.status !== 'failed' ? record.hits ?? [] : [];
+
   /** Persist judgement, optimistically. The record is never touched. */
-  const patchReviews = useCallback(async (updates: Array<{ applicationNumber: string; tier?: Tier; note?: string }>) => {
+  const patchReviews = useCallback(async (updates: Array<{ applicationNumber: string; tier?: Tier; note?: string; position?: number | null }>) => {
     if (!record || updates.length === 0) return;
     setReviews((prev) => {
       const next = { ...prev };
@@ -138,7 +140,16 @@ function ClearanceSearch() {
     patchReviews(tierUpdates(appNos, tier, reviews));
   }, [patchReviews, reviews]);
 
-  const hits = record && record.status !== 'failed' ? record.hits ?? [] : [];
+  // Renumbers the whole highlight tier, not just the pair that swapped, so the
+  // stored order says what the screen says however the moves were made.
+  const reorder = useCallback((appNo: string, direction: 'up' | 'down') => {
+    patchReviews(reorderUpdates(hits, reviews, appNo, direction));
+  }, [patchReviews, hits, reviews]);
+
+  const clearOrder = useCallback(() => {
+    patchReviews(clearOrderUpdates(hits, reviews));
+  }, [patchReviews, hits, reviews]);
+
   const result = record ? recordAsResult(record) : null;
 
   const hitPanel = openHit !== null && hits[openHit] && record ? (
@@ -216,6 +227,8 @@ function ClearanceSearch() {
           error={null}
           reviews={reviews}
           onTier={record ? applyTier : undefined}
+          onReorder={record ? reorder : undefined}
+          onClearOrder={record ? clearOrder : undefined}
           onOpenHit={(_h, i) => setOpenHit(i)}
         />
 
